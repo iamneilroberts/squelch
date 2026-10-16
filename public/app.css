@@ -679,8 +679,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @media (max-width: 520px) {
   /* Decorative readouts give way so the location knob and volume share one row. */
   .eye, .nixie { display: none; }
-  .readouts { justify-content: space-around; }
+  .readouts { justify-content: space-between; flex-wrap: nowrap; gap: 4px; }
   .now-playing { font-size: 12px; }
+  /* A 5-position knob is wide; tighten it so the volume knob still fits beside it. */
+  .selector-face.wide { --r: 62px; width: 200px; height: 90px; }
+  .selector-face.wide .sel-pos { font-size: 8.5px; letter-spacing: .05em; padding: 2px 1px; }
+  .vol-face { width: 88px; height: 84px; }
+  .knob-scale span { transform: rotate(var(--a)) translateY(-37px) rotate(calc(-1 * var(--a))); }
 }
 
 @media (prefers-reduced-motion: reduce) {

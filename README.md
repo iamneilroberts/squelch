@@ -2,6 +2,13 @@
 
 A scanner-radio receiver for your part of the world. Squelch listens to public scanner feeds, transcribes every transmission, triages them into incidents on a map, and prints a daily log of the stories worth hearing — dressed as a 1950s tabletop radio.
 
+<p align="center">
+  <img src="docs/screenshots/desktop.webp" alt="Squelch in a desktop browser: the slide-rule tuning dial, band keys, Location knob and volume knob above a map with an incident popup and the green-bar printed incident log" width="760">
+  &nbsp;
+  <img src="docs/screenshots/phone.webp" alt="Squelch on a phone: badge, swipeable dial, band keys, Location and volume knobs side by side, and the incident map" width="220">
+</p>
+<p align="center"><sub>Shown with the Gulf Coast example config and sample data.</sub></p>
+
 - **Live map** of incidents (fires, crashes, rescues, police calls, hazards), each with its transcript and audio clip
 - **Dial, band keys and a Location knob** to tune any feed live or **Scan** new traffic across the channels you pick
 - **Daily log**: after midnight, each area's day is read back and the best storylines are printed, with a highlight reel of the real audio
