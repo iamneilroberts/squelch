@@ -436,8 +436,25 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .cc-line { margin: 0; overflow-wrap: anywhere; }
 .cc-old { color: oklch(0.72 0 0); }
+.cc-old .cc-src { opacity: .7; }
 .cc-now { color: oklch(1 0 0); }
 .cc-note { color: oklch(0.6 0 0); font-style: italic; }
+/* Source tag: band icon + code in the band's colour, like a caption speaker ID. */
+.cc-src {
+  --c: oklch(0.85 0 0);
+  display: inline-flex; align-items: center; gap: 3px; vertical-align: middle;
+  height: 14px; box-sizing: border-box;
+  padding: 0 5px 0 4px; border: 1.5px solid var(--c); border-radius: 3px;
+  font: 700 10px/1 var(--font-type); letter-spacing: .06em; font-style: normal; color: var(--c);
+}
+.cc-src svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.cc-src[data-band="police"] { --c: oklch(0.74 0.13 250); }
+.cc-src[data-band="fire"] { --c: oklch(0.7 0.19 32); }
+.cc-src[data-band="air"] { --c: oklch(0.82 0.11 220); }
+.cc-src[data-band="marine"] { --c: oklch(0.8 0.11 185); }
+.cc-src[data-band="rail"] { --c: oklch(0.82 0.14 75); }
+.cc-src[data-band="weather"] { --c: oklch(0.85 0.15 110); }
+.cc-src[data-band="ham"] { --c: oklch(0.76 0.13 310); }
 
 /* ───────────── Desk: chart + printer ───────────── */
 .desk {

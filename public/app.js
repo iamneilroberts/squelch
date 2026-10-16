@@ -222,11 +222,11 @@ function powerOff() {
   syncTransport();
 }
 
-function playRecording(src, label, kind = 'clip', speaker = '') {
+function playRecording(src, label, kind = 'clip') {
   if (kind === 'clip') stopScan(); // playing one recording by hand ends a scan
   state.tuned = null;
   clearTimeout(tuneTimer);
-  ccLoad(src, speaker);
+  ccLoad(src);
   radio.src = src;
   radio.dataset.kind = kind;
   radio.dataset.label = label;
@@ -239,7 +239,24 @@ function playRecording(src, label, kind = 'clip', speaker = '') {
    and clips at the top, so older lines (including the previous transmission's) scroll off like CC.
    A live stream has no clip yet: the strip shows that channel's transcripts as they arrive. */
 let ccPrev = []; // lines still on screen from the previous recording
-let ccSpeaker = '';
+let ccSource = null; // station of the recording being captioned (from its clip filename)
+
+// Source tags: band icon + code, e.g. ✈ ATC. Icons: Lucide 1.58.0 (ISC licence, lucide.dev).
+const CC_BANDS = {
+  police: ['LAW', '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>'],
+  fire: ['FIRE', '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>'],
+  air: ['ATC', '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>'],
+  marine: ['MAR', '<path d="M12 6v16"/><path d="m19 13 2-1a9 9 0 0 1-18 0l2 1"/><path d="M9 11h6"/><circle cx="12" cy="4" r="2"/>'],
+  rail: ['RAIL', '<path d="M8 3.1V7a4 4 0 0 0 8 0V3.1"/><path d="m9 15-1-1"/><path d="m15 15 1-1"/><path d="M9 19c-2.8 0-5-2.2-5-5v-4a8 8 0 0 1 16 0v4c0 2.8-2.2 5-5 5Z"/><path d="m8 19-2 3"/><path d="m16 19 2 3"/>'],
+  weather: ['WX', '<path d="M6 16.326A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 .5 8.973"/><path d="m13 12-3 5h4l-3 5"/>'],
+  ham: ['HAM', '<path d="M4.9 16.1C1 12.2 1 5.8 4.9 1.9"/><path d="M7.8 4.7a6.14 6.14 0 0 0-.8 7.5"/><circle cx="12" cy="9" r="2"/><path d="M16.2 4.8c2 2 2.26 5.11.8 7.47"/><path d="M19.1 1.9a9.96 9.96 0 0 1 0 14.1"/><path d="M9.5 18h5"/><path d="m8 22 4-11 4 11"/>'],
+};
+function ccTag(id) {
+  const s = state.byId.get(id);
+  const b = s && CC_BANDS[s.band];
+  return b ? `<span class="cc-src" data-band="${s.band}"><svg viewBox="0 0 24 24" aria-hidden="true">${b[1]}</svg>${b[0]}</span>` : '';
+}
+const ccWho = (id) => (state.byId.has(id) ? `${ccTag(id)} ${shortOf(id)}: ` : '&gt;&gt; ');
 const ccLine = (text, cls = '') => `<p class="cc-line ${cls}">${text}</p>`;
 const ccSet = (html) => { $('cc-text').innerHTML = html; };
 const ccOff = () => !state.viewer?.transcripts;
@@ -249,9 +266,9 @@ function ccIdle() {
   ccSet(ccLine(ccOff() ? 'Captions are off — transcripts are private on this receiver.' : 'Captions appear here when traffic plays.', 'cc-note'));
 }
 
-function ccLoad(src, speaker) {
+function ccLoad(src) {
   ccPrev = [...$('cc-text').querySelectorAll('.cc-line:not(.cc-note)')].slice(-3).map((p) => p.innerHTML);
-  ccSpeaker = speaker;
+  ccSource = /^\/audio\/(.+)-\d+\.mp3$/.exec(decodeURIComponent(src))?.[1] ?? null;
   radio.querySelectorAll('track').forEach((t) => t.remove());
   if (ccOff() || !src.startsWith('/audio/')) return ccOff() ? ccIdle() : ccSet(ccPrev.map((l) => ccLine(l, 'cc-old')).join(''));
   const track = Object.assign(document.createElement('track'), { kind: 'captions', srclang: 'en', label: 'Transcript', src: `/api/captions/${src.slice(7)}.vtt`, default: true });
@@ -265,7 +282,7 @@ function ccSync() {
   if (ccOff() || (kind !== 'clip' && kind !== 'scan')) return;
   const cues = [...(radio.textTracks[0]?.cues || [])].filter((c) => c.startTime <= radio.currentTime);
   const now = cues.at(-1);
-  const lines = cues.map((c, i) => ccLine(`${i === 0 ? `&gt;&gt; ${ccSpeaker ? `${ccSpeaker}: ` : ''}` : ''}${esc(c.text)}`, c === now && radio.currentTime < c.endTime ? 'cc-now' : ''));
+  const lines = cues.map((c, i) => ccLine(`${i === 0 ? ccWho(ccSource) : ''}${esc(c.text)}`, c === now && radio.currentTime < c.endTime ? 'cc-now' : ''));
   ccSet([...ccPrev.map((l) => ccLine(l, 'cc-old')), ...lines].join(''));
 }
 for (const ev of ['timeupdate', 'seeked']) radio.addEventListener(ev, ccSync);
@@ -276,7 +293,7 @@ function ccLive() {
   if (!s || radio.dataset.kind !== 'live') return;
   if (ccOff()) return ccIdle();
   const recent = state.calls.filter((c) => c.source_id === s.id && c.transcript).slice(0, 3).reverse();
-  ccSet(ccLine(`${esc(s.short)} · captions run about a minute behind live`, 'cc-note')
+  ccSet(ccLine(`${ccTag(s.id)} ${esc(s.short)} · captions run about a minute behind live`, 'cc-note')
     + recent.map((c, i) => ccLine(`&gt;&gt; ${hhmm(c.at)} ${esc(c.transcript)}`, i === recent.length - 1 ? 'cc-now' : 'cc-old')).join(''));
 }
 
@@ -389,7 +406,7 @@ function playScan(c, { replay = false } = {}) {
   moveNeedle(state.byId.get(c.source_id));
   const words = state.viewer?.transcripts && c.transcript ? ` — “${esc(c.transcript.slice(0, 90))}${c.transcript.length > 90 ? '…' : ''}”` : '';
   const tag = replay ? 'REPLAY' : scan.hold ? 'HOLD' : isPriority(c) ? 'PRI' : '';
-  playRecording(`/audio/${encodeURIComponent(c.audio)}`, `${tag ? `${tag} · ` : ''}<strong>${shortOf(c.source_id)}</strong> ${hhmm(c.at)}${words}`, 'scan', shortOf(c.source_id));
+  playRecording(`/audio/${encodeURIComponent(c.audio)}`, `${tag ? `${tag} · ` : ''}<strong>${shortOf(c.source_id)}</strong> ${hhmm(c.at)}${words}`, 'scan');
 }
 
 // After a transmission: linger on the channel for DELAY_MS (a reply plays straight away), then move on.
