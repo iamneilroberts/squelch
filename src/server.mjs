@@ -3,7 +3,8 @@ import { Readable } from 'node:stream';
 import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync, createReadStream, existsSync, statSync } from 'node:fs';
 import { join, extname, normalize, dirname } from 'node:path';
-import { recentIncidents, recentCalls, listDigests, getDigest, callsBetween } from './db.mjs';
+import { recentIncidents, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues } from './db.mjs';
+import { buildCues, toVtt } from './ingest/captions.mjs';
 import { startIngest, bus, status, GATE, VAD } from './ingest/pipeline.mjs';
 import { overlays, startShips } from './overlays.mjs';
 import { buildDigest, dayBounds, localDate } from './digest.mjs';
@@ -241,6 +242,16 @@ createServer(async (req, res) => {
       return json(res, { ok: true });
     }
     if (p.startsWith('/listen/')) return relayStream(req, res, p.slice('/listen/'.length));
+    const cc = p.match(/^\/api\/captions\/([\w.-]+)\.vtt$/);
+    if (cc) {
+      const call = hidden ? null : callByAudio(cc[1]);
+      const file = call?.audio && join('data', 'audio', call.audio);
+      if (!call?.transcript || !(call.cues || existsSync(file))) { res.writeHead(404); return res.end(); }
+      const cues = call.cues ? JSON.parse(call.cues) : await buildCues(file, call.transcript);
+      if (!call.cues) setCues(call.id, cues);
+      res.writeHead(200, { 'Content-Type': 'text/vtt; charset=utf-8', 'Cache-Control': 'no-cache' });
+      return res.end(toVtt(cues));
+    }
     if (p.startsWith('/audio/')) return serveFile(res, join('data', 'audio'), decodeURIComponent(p.slice(7)));
     if (p.startsWith('/reels/')) return serveFile(res, join('data', 'digests'), decodeURIComponent(p.slice(7)));
     return serveFile(res, 'public', p === '/' ? 'index.html' : p.slice(1));

@@ -142,7 +142,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   --lit: 0;
   position: relative;
   min-width: 720px;
-  height: 132px;
+  height: 112px;
   border-radius: 7px;
   overflow: hidden;
   background:
@@ -179,14 +179,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dial-band[data-band="fire"] { color: var(--red-ink); border-color: var(--red-ink); }
 
 .dial-scale {
-  position: absolute; left: 0; right: 0; top: 34px; height: 26px;
+  position: absolute; left: 0; right: 0; top: 30px; height: 18px;
   background:
     repeating-linear-gradient(90deg, var(--walnut-900) 0 1px, transparent 1px 8px) bottom / 100% 9px no-repeat,
     repeating-linear-gradient(90deg, var(--walnut-900) 0 1.5px, transparent 1.5px 40px) bottom / 100% 17px no-repeat;
   opacity: .7;
 }
 
-.dial-stations { position: absolute; inset: 60px 0 0; }
+.dial-stations { position: absolute; inset: 50px 0 0; }
 .station {
   position: absolute;
   top: 0;
@@ -410,6 +410,34 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .now-playing a { color: var(--blue-ink); }
 .now-playing strong { color: var(--ink); }
+
+/* Closed captions: a black caption box, three lines, rolling up from the bottom. */
+.cc {
+  --cc-lh: 1.4em;
+  position: relative;
+  display: flex;
+  border-radius: 6px;
+  padding: 7px 12px 7px 44px;
+  background: oklch(0.16 0.01 60);
+  box-shadow: inset 0 2px 6px oklch(0 0 0 / .7), 0 1px 0 oklch(1 0 0 / .25);
+  font: 500 14px/1.4 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color: oklch(0.97 0 0);
+}
+.cc-tag {
+  position: absolute; left: 10px; top: 8px;
+  padding: 1px 4px; border: 1.5px solid oklch(0.75 0 0); border-radius: 3px;
+  font: 700 10px/1.2 var(--font-type); letter-spacing: .05em; color: oklch(0.75 0 0);
+}
+.cc-text {
+  flex: 1; min-width: 0;
+  height: calc(3 * var(--cc-lh));
+  overflow: hidden;
+  display: flex; flex-direction: column; justify-content: flex-end; /* newest line at the bottom; old ones scroll off the top */
+}
+.cc-line { margin: 0; overflow-wrap: anywhere; }
+.cc-old { color: oklch(0.72 0 0); }
+.cc-now { color: oklch(1 0 0); }
+.cc-note { color: oklch(0.6 0 0); font-style: italic; }
 
 /* ───────────── Desk: chart + printer ───────────── */
 .desk {
@@ -661,7 +689,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .badge-script { font-size: 26px; }
   .badge-caps { font-size: 12px; }
   .dial-scroll { -webkit-overflow-scrolling: touch; }
-  .dial { height: 116px; }
+  .dial { height: 82px; }
+  .dial-bands { top: 5px; }
+  .dial-scale { display: none; }
+  .dial-stations { inset: 26px 0 0; }
+  .station { padding: 2px 6px 4px; }
+  .cc { font-size: 13px; padding-left: 40px; }
   .controls { flex-direction: column; align-items: stretch; gap: 10px; }
   /* Band keys: one swipeable row. */
   .keys { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; min-width: 0; max-width: 100%; }

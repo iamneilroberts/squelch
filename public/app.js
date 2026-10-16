@@ -190,8 +190,10 @@ function tune(s) {
     return;
   }
   $('now-playing').innerHTML = `Tuning <strong>${esc(s.short)}</strong>…`;
+  radio.querySelectorAll('track').forEach((t) => t.remove());
   radio.src = `/listen/${encodeURIComponent(s.id)}`;
   radio.dataset.kind = 'live';
+  ccLive();
   radio.play().catch(() => {});
   clearTimeout(tuneTimer);
   tuneTimer = setTimeout(() => {
@@ -216,17 +218,66 @@ function powerOff() {
   for (const b of $('dial-stations').children) b.setAttribute('aria-pressed', 'false');
   setLit(false);
   $('now-playing').textContent = 'Off the air. Tune a station on the dial to listen live.';
+  ccIdle();
   syncTransport();
 }
 
-function playRecording(src, label, kind = 'clip') {
+function playRecording(src, label, kind = 'clip', speaker = '') {
   if (kind === 'clip') stopScan(); // playing one recording by hand ends a scan
   state.tuned = null;
   clearTimeout(tuneTimer);
+  ccLoad(src, speaker);
   radio.src = src;
   radio.dataset.kind = kind;
   radio.dataset.label = label;
   radio.play().catch(() => {});
+}
+
+/* ───────── Closed captions ─────────
+   A recording carries a WebVTT track (/api/captions/<clip>.vtt) whose cues the server lays over the
+   clip's voiced stretches, so lines roll up with playback, pause and seek. The strip is bottom-aligned
+   and clips at the top, so older lines (including the previous transmission's) scroll off like CC.
+   A live stream has no clip yet: the strip shows that channel's transcripts as they arrive. */
+let ccPrev = []; // lines still on screen from the previous recording
+let ccSpeaker = '';
+const ccLine = (text, cls = '') => `<p class="cc-line ${cls}">${text}</p>`;
+const ccSet = (html) => { $('cc-text').innerHTML = html; };
+const ccOff = () => !state.viewer?.transcripts;
+
+function ccIdle() {
+  ccPrev = [];
+  ccSet(ccLine(ccOff() ? 'Captions are off — transcripts are private on this receiver.' : 'Captions appear here when traffic plays.', 'cc-note'));
+}
+
+function ccLoad(src, speaker) {
+  ccPrev = [...$('cc-text').querySelectorAll('.cc-line:not(.cc-note)')].slice(-3).map((p) => p.innerHTML);
+  ccSpeaker = speaker;
+  radio.querySelectorAll('track').forEach((t) => t.remove());
+  if (ccOff() || !src.startsWith('/audio/')) return ccOff() ? ccIdle() : ccSet(ccPrev.map((l) => ccLine(l, 'cc-old')).join(''));
+  const track = Object.assign(document.createElement('track'), { kind: 'captions', srclang: 'en', label: 'Transcript', src: `/api/captions/${src.slice(7)}.vtt`, default: true });
+  track.addEventListener('load', ccSync);
+  radio.append(track);
+  track.track.mode = 'hidden'; // cues drive our strip, not the browser's overlay
+}
+
+function ccSync() {
+  const kind = radio.dataset.kind;
+  if (ccOff() || (kind !== 'clip' && kind !== 'scan')) return;
+  const cues = [...(radio.textTracks[0]?.cues || [])].filter((c) => c.startTime <= radio.currentTime);
+  const now = cues.at(-1);
+  const lines = cues.map((c, i) => ccLine(`${i === 0 ? `&gt;&gt; ${ccSpeaker ? `${ccSpeaker}: ` : ''}` : ''}${esc(c.text)}`, c === now && radio.currentTime < c.endTime ? 'cc-now' : ''));
+  ccSet([...ccPrev.map((l) => ccLine(l, 'cc-old')), ...lines].join(''));
+}
+for (const ev of ['timeupdate', 'seeked']) radio.addEventListener(ev, ccSync);
+
+// Live: the tuned channel's latest transcripts, newest last (they land about a minute behind the audio).
+function ccLive() {
+  const s = state.tuned;
+  if (!s || radio.dataset.kind !== 'live') return;
+  if (ccOff()) return ccIdle();
+  const recent = state.calls.filter((c) => c.source_id === s.id && c.transcript).slice(0, 3).reverse();
+  ccSet(ccLine(`${esc(s.short)} · captions run about a minute behind live`, 'cc-note')
+    + recent.map((c, i) => ccLine(`&gt;&gt; ${hhmm(c.at)} ${esc(c.transcript)}`, i === recent.length - 1 ? 'cc-now' : 'cc-old')).join(''));
 }
 
 radio.addEventListener('playing', () => {
@@ -338,7 +389,7 @@ function playScan(c, { replay = false } = {}) {
   moveNeedle(state.byId.get(c.source_id));
   const words = state.viewer?.transcripts && c.transcript ? ` — “${esc(c.transcript.slice(0, 90))}${c.transcript.length > 90 ? '…' : ''}”` : '';
   const tag = replay ? 'REPLAY' : scan.hold ? 'HOLD' : isPriority(c) ? 'PRI' : '';
-  playRecording(`/audio/${encodeURIComponent(c.audio)}`, `${tag ? `${tag} · ` : ''}<strong>${shortOf(c.source_id)}</strong> ${hhmm(c.at)}${words}`, 'scan');
+  playRecording(`/audio/${encodeURIComponent(c.audio)}`, `${tag ? `${tag} · ` : ''}<strong>${shortOf(c.source_id)}</strong> ${hhmm(c.at)}${words}`, 'scan', shortOf(c.source_id));
 }
 
 // After a transmission: linger on the channel for DELAY_MS (a reply plays straight away), then move on.
@@ -409,6 +460,8 @@ function toggleHold() {
   }
   scan.hold = scan.current || scanChannels()[0]?.id || null;
   clearDelay();
+  clearInterval(scan.stepper); // the idle search sweep would drag the needle off the held channel
+  scan.stepper = null;
   syncScanKeys();
   if (scan.hold) moveNeedle(state.byId.get(scan.hold));
   if (scan.idle || radio.ended || !radio.getAttribute('src')) scanIdle();
@@ -834,6 +887,7 @@ function connect() {
     scanEnqueue(c);
     state.calls.unshift(c);
     state.calls.length = Math.min(state.calls.length, 200);
+    if (c.source_id === state.tuned?.id) ccLive();
     const lamp = $(`lamp-${c.source_id}`);
     if (lamp) { lamp.classList.remove('blink'); void lamp.offsetWidth; lamp.classList.add('blink'); }
     if (inRegion(c.source_id)) flickEye();
@@ -935,6 +989,7 @@ async function boot() {
   for (const i of incidents) state.incidents.set(i.id, i);
   state.calls = calls;
   state.digests = digests;
+  ccIdle();
   buildSelector();
   setRegion(location.hash.slice(1) || store.get('pcm.region') || 'all', { fly: false });
   requestAnimationFrame(() => { map.invalidateSize(); map.fitBounds(regionBounds(), { padding: [20, 20] }); });
