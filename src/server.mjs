@@ -59,6 +59,17 @@ function versionAssets(html, dir) {
   });
 }
 
+// Write the station's name into the page before it's sent, so the browser never flashes the
+// generic "Squelch" placeholder before the script loads the config.
+const escHtml = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function brand(html) {
+  return html
+    .replace(/<title>Squelch<\/title>/, `<title>${escHtml(`${station.script} ${station.caps}`)}</title>`)
+    .replace(/(class="badge-script">)[^<]*/, `$1${escHtml(station.script)}`)
+    .replace(/(class="badge-caps">)[^<]*/, `$1${escHtml(station.caps)}`)
+    .replace(/(id="badge-sub">)[^<]*/, `$1${escHtml(station.badge)}`);
+}
+
 function serveFile(res, root, rel) {
   const path = normalize(join(root, rel));
   if (!path.startsWith(normalize(root)) || !existsSync(path) || statSync(path).isDirectory()) {
@@ -66,7 +77,10 @@ function serveFile(res, root, rel) {
   }
   // no-cache: browsers and Cloudflare's edge revalidate, so tunnel visitors never run a stale app.js.
   res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
-  if (extname(path) === '.html') return res.end(versionAssets(readFileSync(path, 'utf8'), dirname(path)));
+  if (extname(path) === '.html') {
+    const html = versionAssets(readFileSync(path, 'utf8'), dirname(path));
+    return res.end(path.endsWith('index.html') ? brand(html) : html);
+  }
   createReadStream(path).pipe(res);
 }
 
