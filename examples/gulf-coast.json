@@ -1,7 +1,7 @@
 {
-  "_note": "Worked example: the Port City Monitor install covering the Gulf Coast of Alabama and Mississippi (Oct 2026). Copy to sources.json to run it as-is.",
+  "_note": "Worked example: the author's own install covering the Gulf Coast of Alabama and Mississippi (Oct 2026). Copy to sources.json to run it as-is.",
   "station": {
-    "script": "Port City",
+    "script": "Squelch",
     "caps": "Monitor",
     "badge": "Gulf Coast · Ala. & Miss.",
     "timezone": "America/Chicago"
