@@ -11,6 +11,7 @@ A scanner-radio receiver for your part of the world. Squelch listens to public s
 
 - **Live map** of incidents (fires, crashes, rescues, police calls, hazards), each with its transcript and audio clip
 - **Dial, band keys and a Location knob** to tune any feed live or **Scan** new traffic across the channels you pick — with a resume delay after each transmission, **Hold/Resume**, **◁ Prev** to step back to channels it stopped on, and per-channel **priority** and **lockout** (tap a station while scanning: PRI → L/O → normal)
+- **Closed captions and channel stories**: captions follow the audio; the title line says what each channel's conversation is about, and tapping it opens that story's key facts (units, command, size-up, status…) and a chronology that updates as traffic arrives
 - **Daily log**: after midnight, each area's day is read back and the best storylines are printed, with a highlight reel of the real audio
 - **Live map layers**: aircraft (ADS-B), Amtrak trains, NWS weather alerts, tide gauges, ships (AIS)
 - **Station Ledger** (`/costs.html`): every AI and API call with timing, tokens and cost
@@ -59,6 +60,7 @@ feed ─► ffmpeg 45 s segments ─► squelch ─► speech-to-text ─► Jev
 | Speech-to-text | `src/ai/transcribe.mjs` | `xiaomi/mimo-v2.6-flash` via OpenRouter audio input |
 | Speech + newsworthy gate | `src/ai/jev.mjs` | TypeSafe Jev: drops model filler, skips triage for routine traffic (5 % audited) |
 | Incident triage | `src/ai/triage.mjs` | `openai/gpt-6-luna`, strict JSON; merges follow-ups into open incidents |
+| Channel story | `src/ai/thread.mjs` | `openai/gpt-6-luna`: continues or starts each channel's story, keeps its facts and writes a chronology line per transmission |
 | Geocoding | `src/ingest/geocode.mjs` | OpenStreetMap Nominatim, bounded to the feed's region |
 | Daily digest + reel | `src/digest.mjs` | `openai/gpt-6-luna-pro` |
 

@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync, createReadStream, existsSync, statSync } from 'node:fs';
 import { join, extname, normalize, dirname } from 'node:path';
-import { recentIncidents, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues } from './db.mjs';
+import { recentIncidents, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues, getThread } from './db.mjs';
 import { buildCues, toVtt } from './ingest/captions.mjs';
 import { startIngest, bus, status, GATE, VAD } from './ingest/pipeline.mjs';
 import { overlays, startShips } from './overlays.mjs';
@@ -253,6 +253,8 @@ createServer(async (req, res) => {
       return json(res, { ok: true });
     }
     if (p.startsWith('/listen/')) return relayStream(req, res, p.slice('/listen/'.length));
+    const th = p.match(/^\/api\/threads\/(\d+)$/);
+    if (th) { const t = getThread(Number(th[1])); return t ? json(res, t) : (res.writeHead(404), res.end()); }
     const cc = p.match(/^\/api\/captions\/([\w.-]+)\.vtt$/);
     if (cc) {
       const call = hidden ? null : callByAudio(cc[1]);

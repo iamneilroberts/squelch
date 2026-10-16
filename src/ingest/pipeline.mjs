@@ -2,13 +2,14 @@
 import { EventEmitter } from 'node:events';
 import { rmSync, renameSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { insertCall, tagCall, createIncident, updateIncident, openIncidentsFor, expireAudio, setGate, setSubject } from '../db.mjs';
+import { insertCall, tagCall, createIncident, updateIncident, openIncidentsFor, expireAudio, setGate, currentThread, saveThread } from '../db.mjs';
 import { withTrace, linkTraceToCall, pruneSpans, span, setTraceVad } from '../meter.mjs';
 import { loudnessSpread } from './vad.mjs';
 import { gate } from '../ai/jev.mjs';
 import { startStream } from './stream.mjs';
 import { transcribe, transcriberReady } from '../ai/transcribe.mjs';
 import { triage } from '../ai/triage.mjs';
+import { nextThread } from '../ai/thread.mjs';
 import { llmReady } from '../ai/llm.mjs';
 import { geocode } from './geocode.mjs';
 
@@ -96,6 +97,11 @@ async function handleClip(source, clip) {
   }
   const callId = insertCall({ source_id: source.id, at: clip.at, duration: clip.duration, audio: clip.audio, transcript });
   linkTraceToCall(callId);
+  // The channel's story runs beside triage. On failure the call just isn't added to it.
+  const current = currentThread(source.id);
+  const threadP = nextThread({ source, current, transcript }).then(
+    (t) => ({ thread_id: saveThread(callId, source.id, clip.at, t.same && current ? current.id : null, t), subject: t.subject }),
+    () => ({ thread_id: null, subject: current?.subject ?? null }));
   setStatus(source.id, { lastCall: clip.at, error: null });
 
   if (GATE.mode === 'active') {
@@ -108,8 +114,7 @@ async function handleClip(source, clip) {
     items = await runTriage();
   }
   setGate(callId, g, decision);
-  const subject = (items.find((it) => it.action !== 'routine') ?? items[0])?.headline || null;
-  if (subject) setSubject(callId, subject);
+  const { thread_id, subject } = await threadP;
   let category = 'routine';
   let incidentId = null;
   for (const it of items) {
@@ -132,5 +137,5 @@ async function handleClip(source, clip) {
     bus.emit('incident', saved);
   }
   tagCall(callId, incidentId, category);
-  bus.emit('call', { id: callId, source_id: source.id, at: clip.at, duration: clip.duration, audio: clip.audio, transcript, incident_id: incidentId, category, subject });
+  bus.emit('call', { id: callId, source_id: source.id, at: clip.at, duration: clip.duration, audio: clip.audio, transcript, incident_id: incidentId, category, subject, thread_id });
 }

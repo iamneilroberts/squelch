@@ -423,16 +423,19 @@ function playScan(c, { replay = false } = {}) {
   playRecording(`/audio/${encodeURIComponent(c.audio)}`, `${tag ? `${tag} · ` : ''}${titleOf(c)} · ${hhmm(c.at)}`, 'scan');
 }
 
-// Title line: what the conversation on this channel is about. The incident's headline, else triage's
-// subject for this call, else the subject of the channel's last call in the past 10 minutes.
+// Title line: what the conversation on this channel is about. The channel subject kept by the server
+// (src/ai/subject.mjs), else the incident's headline, else the channel's last subject in the past 10 minutes.
 function subjectOf(c) {
-  const of = (x) => state.incidents.get(x.incident_id)?.headline || x.subject;
+  const of = (x) => x.subject || state.incidents.get(x.incident_id)?.headline;
   if (of(c)) return of(c);
   const at = new Date(c.at);
   const prev = state.calls.find((p) => p.source_id === c.source_id && p.id !== c.id && new Date(p.at) < at && at - new Date(p.at) < 10 * 60e3 && of(p));
   return prev ? of(prev) : 'routine traffic';
 }
-const titleOf = (c) => `<strong>${shortOf(c.source_id)}</strong>: ${esc(subjectOf(c))}`;
+function titleOf(c) {
+  const t = `<strong>${shortOf(c.source_id)}</strong>: ${esc(subjectOf(c))}`;
+  return c.thread_id ? `<button type="button" class="story-link" data-thread="${c.thread_id}" title="This channel's story so far">${t} ›</button>` : t;
+}
 
 // After a transmission: linger on the channel for DELAY_MS (a reply plays straight away), then move on.
 function scanAfterTransmission() {
@@ -930,6 +933,7 @@ function connect() {
     state.calls.unshift(c);
     state.calls.length = Math.min(state.calls.length, 200);
     if (c.source_id === state.tuned?.id) ccLive();
+    if (storyId && c.thread_id === storyId) renderStory();
     const lamp = $(`lamp-${c.source_id}`);
     if (lamp) { lamp.classList.remove('blink'); void lamp.offsetWidth; lamp.classList.add('blink'); }
     if (inRegion(c.source_id)) flickEye();
@@ -952,6 +956,36 @@ function connect() {
     if (state.tab === 'digest') loadDigest();
   });
 }
+
+/* ───────── Channel story: tap a title line for the conversation's key facts and chronology ───────── */
+let storyId = null;
+async function openStory(id) {
+  storyId = Number(id);
+  await renderStory();
+  if (storyId && !$('story').open) $('story').showModal();
+}
+async function renderStory() {
+  const t = await fetch(`/api/threads/${storyId}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (!t) return;
+  $('story-title').innerHTML = `${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}`;
+  $('story-facts').innerHTML = t.facts.map((f) => `<dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd>`).join('');
+  const notes = t.events.filter((e) => e.note);
+  const quiet = t.events.length - notes.length;
+  $('story-log').innerHTML = notes.map((e) => `<li><time>${hhmm(e.at)}</time><span>${esc(e.note)}</span>${e.audio
+    ? `<button class="play" data-src="/audio/${encodeURIComponent(e.audio)}" data-label="${esc(`${hhmm(e.at)} ${state.byId.get(t.source_id)?.short || ''}`)}" aria-label="Play">▶\uFE0E</button>` : ''}</li>`).join('')
+    + (quiet ? `<li class="story-more">+ ${quiet} more transmission${quiet > 1 ? 's' : ''} with nothing new</li>` : '');
+}
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('[data-thread]');
+  if (link) openStory(link.dataset.thread);
+});
+$('story-close').addEventListener('click', () => $('story').close());
+$('story').addEventListener('click', (e) => {
+  if (e.target === $('story')) return $('story').close(); // tap on the backdrop
+  const play = e.target.closest('.play');
+  if (play) playRecording(play.dataset.src, play.dataset.label);
+});
+$('story').addEventListener('close', () => { storyId = null; });
 
 /* ───────── Your own Broadcastify Premium login (for visitors who aren't the owner) ───────── */
 document.addEventListener('click', (e) => {

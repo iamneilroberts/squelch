@@ -127,15 +127,51 @@ export function expireAudio(hours) {
 }
 
 /* ───────── Daily digests ───────── */
-for (const col of ['keep INTEGER NOT NULL DEFAULT 0', 'jev_speech REAL', 'jev_news REAL', 'gate TEXT', 'cues TEXT', 'subject TEXT']) {
+for (const col of ['keep INTEGER NOT NULL DEFAULT 0', 'jev_speech REAL', 'jev_news REAL', 'gate TEXT', 'cues TEXT', 'subject TEXT', 'thread_id INTEGER', 'note TEXT']) {
   try { db.exec(`ALTER TABLE calls ADD COLUMN ${col}`); } catch { /* already there */ }
 }
 
 // Caption cues (JSON [{start,end,text}]) are built on first playback and cached here.
 db.exec('CREATE INDEX IF NOT EXISTS calls_audio ON calls (audio)');
 export const callByAudio = (audio) => db.prepare('SELECT id, audio, transcript, cues FROM calls WHERE audio = ?').get(audio);
-// Triage's headline for the call (also for routine traffic), shown as the scan's title line.
-export const setSubject = (id, subject) => db.prepare('UPDATE calls SET subject = ? WHERE id = ?').run(subject, id);
+/* Channel stories (src/ai/thread.mjs): a thread is one conversation on one channel. Its calls carry
+   the subject at that moment and a one-line chronology note. */
+db.exec(`CREATE TABLE IF NOT EXISTS threads (
+  id INTEGER PRIMARY KEY,
+  source_id TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  facts TEXT NOT NULL DEFAULT '[]',
+  started_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+)`);
+db.exec('CREATE INDEX IF NOT EXISTS threads_source ON threads (source_id, updated_at)');
+db.exec('CREATE INDEX IF NOT EXISTS calls_thread ON calls (thread_id)');
+
+// The channel's ongoing story: its latest thread, if that was updated within `minutes`.
+export function currentThread(sourceId, minutes = 30) {
+  const since = new Date(Date.now() - minutes * 60e3).toISOString();
+  const t = db.prepare('SELECT * FROM threads WHERE source_id = ? AND updated_at >= ? ORDER BY updated_at DESC LIMIT 1').get(sourceId, since);
+  if (!t) return null;
+  const calls = db.prepare('SELECT note, transcript FROM calls WHERE thread_id = ? ORDER BY id').all(t.id);
+  return { id: t.id, subject: t.subject, facts: JSON.parse(t.facts), notes: calls.map((c) => c.note).filter(Boolean).slice(-12), transcripts: calls.slice(-2).map((c) => c.transcript) };
+}
+
+// Continue thread `threadId`, or start a new one when it's null. Returns the thread id.
+export function saveThread(callId, sourceId, at, threadId, { subject, facts, note }) {
+  let id = threadId;
+  if (id) db.prepare('UPDATE threads SET subject = ?, facts = ?, updated_at = ? WHERE id = ?').run(subject, JSON.stringify(facts), at, id);
+  else id = Number(db.prepare('INSERT INTO threads (source_id, subject, facts, started_at, updated_at) VALUES (?,?,?,?,?)').run(sourceId, subject, JSON.stringify(facts), at, at).lastInsertRowid);
+  db.prepare('UPDATE calls SET thread_id = ?, subject = ?, note = ? WHERE id = ?').run(id, subject, note || null, callId);
+  return id;
+}
+
+export function getThread(id) {
+  const t = db.prepare('SELECT * FROM threads WHERE id = ?').get(id);
+  if (!t) return null;
+  const events = db.prepare('SELECT id, at, note, audio FROM calls WHERE thread_id = ? ORDER BY at').all(id);
+  return { ...t, facts: JSON.parse(t.facts), events };
+}
+
 export const setCues = (id, cues) => db.prepare('UPDATE calls SET cues = ? WHERE id = ?').run(JSON.stringify(cues), id);
 
 // Jev gate answers per call; `decision` is pass | skip | audit in active mode, null otherwise.
