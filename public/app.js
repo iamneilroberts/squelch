@@ -230,7 +230,20 @@ function playRecording(src, label, kind = 'clip') {
   radio.src = src;
   radio.dataset.kind = kind;
   radio.dataset.label = label;
-  radio.play().catch(() => {});
+  radio.play().catch((e) => { if (e.name === 'NotAllowedError') awaitTap(); });
+}
+
+// Browsers won't start sound before the visitor touches the page. The page opens scanning, so the
+// first transmission waits here, and the first tap or key anywhere starts it.
+function awaitTap() {
+  $('now-playing').innerHTML = '<strong>SCAN</strong> · traffic waiting — <strong>tap anywhere to listen</strong>';
+  const go = () => {
+    removeEventListener('pointerdown', go, true);
+    removeEventListener('keydown', go, true);
+    if (radio.getAttribute('src') && radio.paused) radio.play().catch(() => {});
+  };
+  addEventListener('pointerdown', go, true);
+  addEventListener('keydown', go, true);
 }
 
 /* ───────── Closed captions ─────────
@@ -1012,6 +1025,7 @@ async function boot() {
   requestAnimationFrame(() => { map.invalidateSize(); map.fitBounds(regionBounds(), { padding: [20, 20] }); });
   addEventListener('hashchange', () => setRegion(location.hash.slice(1) || 'all'));
   connect();
+  startScan(); // open scanning; awaitTap() covers the browser's no-sound-before-a-tap rule
   setInterval(refreshAircraft, 15e3);
   setInterval(refreshTrains, 60e3);
   setInterval(refreshShips, 30e3);
