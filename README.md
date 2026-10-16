@@ -10,7 +10,7 @@ A scanner-radio receiver for your part of the world. Squelch listens to public s
 <p align="center"><sub>Shown with the Gulf Coast example config and sample data.</sub></p>
 
 - **Live map** of incidents (fires, crashes, rescues, police calls, hazards), each with its transcript and audio clip
-- **Dial, band keys and a Location knob** to tune any feed live or **Scan** new traffic across the channels you pick
+- **Dial, band keys and a Location knob** to tune any feed live or **Scan** new traffic across the channels you pick — with a resume delay after each transmission, **Hold/Resume**, **◁ Prev** to step back to channels it stopped on, and per-channel **priority** and **lockout** (tap a station while scanning: PRI → L/O → normal)
 - **Daily log**: after midnight, each area's day is read back and the best storylines are printed, with a highlight reel of the real audio
 - **Live map layers**: aircraft (ADS-B), Amtrak trains, NWS weather alerts, tide gauges, ships (AIS)
 - **Station Ledger** (`/costs.html`): every AI and API call with timing, tokens and cost

@@ -120,7 +120,7 @@ function buildDial() {
   }).join('');
 
   $('dial-stations').innerHTML = order.map((s) => `
-    <button class="station ${playable(s) ? '' : 'link'} ${state.band !== 'all' && s.band !== state.band ? 'dimmed' : ''} ${scan.lockouts.has(s.id) ? 'locked' : ''}" data-id="${s.id}" style="left:${s.x}%"
+    <button class="station ${playable(s) ? '' : 'link'} ${state.band !== 'all' && s.band !== state.band ? 'dimmed' : ''} ${scan.lockouts.has(s.id) ? 'locked' : ''} ${scan.priority.has(s.id) ? 'pri' : ''}" data-id="${s.id}" style="left:${s.x}%"
       aria-pressed="${state.tuned?.id === s.id}" title="${esc(s.name)} — ${esc(s.coverage)}">
       <span class="station-freq">${esc(s.dial || '')}</span>
       <span class="station-name">${esc(s.short)}</span>
@@ -134,7 +134,7 @@ function buildDial() {
 $('dial-stations').addEventListener('click', (e) => {
   const b = e.target.closest('.station');
   if (!b) return;
-  if (scan.on) toggleLockout(b.dataset.id); // while scanning, tapping a station locks it out (or back in)
+  if (scan.on) cycleStation(b.dataset.id); // while scanning, a tap cycles normal → PRI → L/O
   else tune(state.byId.get(b.dataset.id));
 });
 $('keys').addEventListener('click', (e) => {
@@ -243,66 +243,130 @@ radio.addEventListener('playing', () => {
 radio.addEventListener('pause', () => setLit(false));
 radio.addEventListener('ended', () => {
   setLit(false);
-  if (radio.dataset.kind === 'scan') return scanNext();
+  if (radio.dataset.kind === 'scan') return scanAfterTransmission();
   if (radio.dataset.kind === 'clip') $('now-playing').innerHTML = `Finished — <strong>${esc(radio.dataset.label)}</strong>`;
 });
 
 /* ───────── Scan: play each new transmission from the chosen channels, back to back ─────────
-   Channels = what the Location knob and band keys show, minus stations locked out (tap while scanning).
+   Channels = what the Location knob and band keys show, minus locked-out stations. While scanning,
+   tapping a station cycles it normal → PRI (priority) → L/O (locked out) → normal.
+   Like a real scanner: after each transmission the scan waits a moment on that channel (DELAY) so a
+   reply follows and there's time to press HOLD; PREV walks back through channels it stopped on.
    Uses the recorded, squelched clips, so it only ever plays actual traffic — about a minute behind live. */
+const DELAY_MS = 2500;
+const loadSet = (key) => new Set((() => { try { return JSON.parse(store.get(key) || '[]'); } catch { return []; } })());
 const scan = {
   on: false,
   queue: [],
   stepper: null,
   step: 0,
-  lockouts: new Set((() => { try { return JSON.parse(store.get('pcm.lockouts') || '[]'); } catch { return []; } })()),
+  current: null,      // channel of the transmission playing or just played
+  idle: true,         // nothing playing and no delay running
+  delayTimer: null,
+  delayTick: null,
+  hold: null,         // channel id the scan is held on, or null
+  history: [],        // channels the scan stopped on, oldest first
+  back: 0,            // how many steps PREV has walked back
+  last: new Map(),    // channel id → its most recent transmission (for PREV replay)
+  lockouts: loadSet('pcm.lockouts'),
+  priority: loadSet('pcm.priority'),
 };
 const scanChannels = () => visibleSources().filter((s) => s.kind === 'stream'
-  && (state.band === 'all' || s.band === state.band) && !scan.lockouts.has(s.id));
+  && (state.band === 'all' || s.band === state.band) && !scan.lockouts.has(s.id)
+  && (!scan.hold || s.id === scan.hold));
 const inScan = (sourceId) => scanChannels().some((s) => s.id === sourceId);
+const isPriority = (c) => scan.priority.has(c.source_id);
+const shortOf = (id) => esc(state.byId.get(id)?.short || id);
 
 function startScan() {
   if (state.tuned || radio.getAttribute('src')) powerOff();
-  scan.on = true;
-  $('btn-scan').setAttribute('aria-pressed', 'true');
+  Object.assign(scan, { on: true, hold: null, history: [], back: 0, current: null, idle: true });
   $('dial').classList.add('scanning');
   // Prime with the last couple of minutes so there's something to hear straight away.
   const since = Date.now() - 2 * 60e3;
   scan.queue = state.calls.filter((c) => c.audio && inScan(c.source_id) && new Date(c.at) >= since).slice(0, 3).reverse();
+  syncScanKeys();
   scanNext();
 }
 
 function stopScan() {
   if (!scan.on) return;
-  scan.on = false;
-  scan.queue = [];
+  clearDelay();
   clearInterval(scan.stepper);
-  scan.stepper = null;
-  $('btn-scan').setAttribute('aria-pressed', 'false');
+  Object.assign(scan, { on: false, queue: [], stepper: null, hold: null, idle: true });
   $('dial').classList.remove('scanning');
+  syncScanKeys();
 }
 
+function syncScanKeys() {
+  $('btn-scan').setAttribute('aria-pressed', scan.on);
+  $('btn-hold').disabled = !scan.on;
+  $('btn-hold').setAttribute('aria-pressed', Boolean(scan.hold));
+  $('btn-hold').textContent = scan.hold ? 'Resume' : 'Hold';
+  $('btn-prev').disabled = !scan.on || scan.history.length < 1;
+}
+
+function clearDelay() {
+  clearTimeout(scan.delayTimer);
+  clearInterval(scan.delayTick);
+  scan.delayTimer = scan.delayTick = null;
+}
+
+// Next transmission: priority channels first, then oldest-first.
 function scanNext() {
   if (!scan.on) return;
-  let c;
-  while ((c = scan.queue.shift()) && !inScan(c.source_id)) { /* channel changed or locked out since queued */ }
-  if (!c) return scanIdle();
+  clearDelay();
+  scan.queue = scan.queue.filter((c) => inScan(c.source_id)); // channel changed, held elsewhere or locked out
+  const i = scan.queue.findIndex(isPriority);
+  const c = scan.queue.splice(i >= 0 ? i : 0, 1)[0];
+  return c ? playScan(c) : scanIdle();
+}
+
+function playScan(c, { replay = false } = {}) {
+  clearDelay();
   clearInterval(scan.stepper);
   scan.stepper = null;
-  const s = state.byId.get(c.source_id);
-  moveNeedle(s);
+  scan.idle = false;
+  scan.current = c.source_id;
+  scan.last.set(c.source_id, c);
+  if (!replay) {
+    if (scan.history[scan.history.length - 1] !== c.source_id) scan.history.push(c.source_id);
+    if (scan.history.length > 30) scan.history.shift();
+    scan.back = 0;
+  }
+  syncScanKeys();
+  moveNeedle(state.byId.get(c.source_id));
   const words = state.viewer?.transcripts && c.transcript ? ` — “${esc(c.transcript.slice(0, 90))}${c.transcript.length > 90 ? '…' : ''}”` : '';
-  playRecording(`/audio/${encodeURIComponent(c.audio)}`, `<strong>${esc(s?.short)}</strong> ${hhmm(c.at)}${words}`, 'scan');
+  const tag = replay ? 'REPLAY' : scan.hold ? 'HOLD' : isPriority(c) ? 'PRI' : '';
+  playRecording(`/audio/${encodeURIComponent(c.audio)}`, `${tag ? `${tag} · ` : ''}<strong>${shortOf(c.source_id)}</strong> ${hhmm(c.at)}${words}`, 'scan');
+}
+
+// After a transmission: linger on the channel for DELAY_MS (a reply plays straight away), then move on.
+function scanAfterTransmission() {
+  if (!scan.on) return;
+  if (scan.hold) return scanNext(); // held: keep playing this channel's traffic as it arrives
+  const ch = scan.current;
+  const until = Date.now() + DELAY_MS;
+  const show = () => {
+    const s = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+    $('now-playing').innerHTML = `<strong>${shortOf(ch)}</strong> · scan resumes in ${s} s — press <strong>Hold</strong> to stay on this channel`;
+  };
+  show();
+  scan.delayTick = setInterval(show, 250);
+  scan.delayTimer = setTimeout(scanNext, DELAY_MS);
 }
 
 // Nothing queued: step the needle across the scanned stations, like a real scanner searching.
 function scanIdle() {
+  scan.idle = true;
   setLit(false);
   const n = scanChannels().length;
-  $('now-playing').innerHTML = n
-    ? `<strong>SCANNING</strong> ${n} channel${n > 1 ? 's' : ''} for traffic · about a minute behind live · tap a station to lock it out`
-    : '<strong>SCAN</strong> — every channel here is locked out. Tap a station to bring it back.';
-  if (scan.stepper || !n) return;
+  $('now-playing').innerHTML = scan.hold
+    ? `<strong>HOLD</strong> · ${shortOf(scan.hold)} — new traffic here plays as it arrives · <strong>Resume</strong> to scan again`
+    : n
+      ? `<strong>SCANNING</strong> ${n} channel${n > 1 ? 's' : ''} · about a minute behind live · tap a station: PRI → L/O → normal`
+      : '<strong>SCAN</strong> — every channel here is locked out. Tap a station to bring it back.';
+  if (scan.stepper || !n || scan.hold) return;
   scan.stepper = setInterval(() => {
     const list = scanChannels();
     if (list.length) moveNeedle(list[scan.step++ % list.length], { scroll: false });
@@ -313,18 +377,59 @@ function scanEnqueue(c) {
   if (!scan.on || !c.audio || !inScan(c.source_id)) return;
   scan.queue.push(c);
   if (scan.queue.length > 20) scan.queue.shift(); // stay close to live
-  if (radio.dataset.kind !== 'scan' || radio.paused || radio.ended) scanNext();
+  const delaying = Boolean(scan.delayTimer);
+  if (scan.idle && !delaying) return scanNext();
+  // During the delay, a reply on the same channel (or any priority traffic) plays at once.
+  if (delaying && (c.source_id === scan.current || isPriority(c))) return scanNext();
+  // Priority traffic interrupts an ordinary transmission on another channel.
+  if (!delaying && isPriority(c) && !scan.priority.has(scan.current) && radio.dataset.kind === 'scan') return scanNext();
 }
 
-function toggleLockout(id) {
-  scan.lockouts.has(id) ? scan.lockouts.delete(id) : scan.lockouts.add(id);
+// Tap while scanning: normal → PRI → L/O → normal (remembered on this device).
+function cycleStation(id) {
+  if (scan.lockouts.has(id)) scan.lockouts.delete(id);
+  else if (scan.priority.has(id)) { scan.priority.delete(id); scan.lockouts.add(id); }
+  else scan.priority.add(id);
   store.set('pcm.lockouts', JSON.stringify([...scan.lockouts]));
+  store.set('pcm.priority', JSON.stringify([...scan.priority]));
   const el = $('dial-stations').querySelector(`[data-id="${id}"]`);
   el?.classList.toggle('locked', scan.lockouts.has(id));
-  if (radio.dataset.kind !== 'scan' || radio.paused) scanIdle();
+  el?.classList.toggle('pri', scan.priority.has(id));
+  if (scan.idle && !scan.delayTimer) scanIdle();
+}
+
+function toggleHold() {
+  if (!scan.on) return;
+  if (scan.hold) {
+    scan.hold = null;
+    scan.back = 0;
+    syncScanKeys();
+    if (scan.idle) scanNext();
+    return;
+  }
+  scan.hold = scan.current || scanChannels()[0]?.id || null;
+  clearDelay();
+  syncScanKeys();
+  if (scan.hold) moveNeedle(state.byId.get(scan.hold));
+  if (scan.idle || radio.ended || !radio.getAttribute('src')) scanIdle();
+}
+
+// PREV: each press goes one channel further back in the scan's history, holds there and replays
+// that channel's most recent transmission.
+function scanPrev() {
+  if (!scan.on || !scan.history.length) return;
+  scan.back = Math.min(scan.back + 1, scan.history.length - 1);
+  const id = scan.history[scan.history.length - 1 - scan.back] ?? scan.history[0];
+  scan.hold = id;
+  syncScanKeys();
+  const c = scan.last.get(id);
+  if (c) playScan(c, { replay: true });
+  else { moveNeedle(state.byId.get(id)); scanIdle(); }
 }
 
 $('btn-scan').addEventListener('click', () => (scan.on ? powerOff() : startScan()));
+$('btn-hold').addEventListener('click', toggleHold);
+$('btn-prev').addEventListener('click', scanPrev);
 
 /* ───────── Transport: stop, pause/resume, seek ───────── */
 const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
