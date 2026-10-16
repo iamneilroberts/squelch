@@ -127,13 +127,15 @@ export function expireAudio(hours) {
 }
 
 /* ───────── Daily digests ───────── */
-for (const col of ['keep INTEGER NOT NULL DEFAULT 0', 'jev_speech REAL', 'jev_news REAL', 'gate TEXT', 'cues TEXT']) {
+for (const col of ['keep INTEGER NOT NULL DEFAULT 0', 'jev_speech REAL', 'jev_news REAL', 'gate TEXT', 'cues TEXT', 'subject TEXT']) {
   try { db.exec(`ALTER TABLE calls ADD COLUMN ${col}`); } catch { /* already there */ }
 }
 
 // Caption cues (JSON [{start,end,text}]) are built on first playback and cached here.
 db.exec('CREATE INDEX IF NOT EXISTS calls_audio ON calls (audio)');
 export const callByAudio = (audio) => db.prepare('SELECT id, audio, transcript, cues FROM calls WHERE audio = ?').get(audio);
+// Triage's headline for the call (also for routine traffic), shown as the scan's title line.
+export const setSubject = (id, subject) => db.prepare('UPDATE calls SET subject = ? WHERE id = ?').run(subject, id);
 export const setCues = (id, cues) => db.prepare('UPDATE calls SET cues = ? WHERE id = ?').run(JSON.stringify(cues), id);
 
 // Jev gate answers per call; `decision` is pass | skip | audit in active mode, null otherwise.

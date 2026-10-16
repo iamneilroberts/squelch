@@ -313,9 +313,10 @@ function ccLive() {
 radio.addEventListener('playing', () => {
   setLit(true);
   if (radio.dataset.kind === 'clip') {
-    $('now-playing').innerHTML = `Playing recording — <strong>${esc(radio.dataset.label)}</strong>`;
+    const c = state.calls.find((x) => x.audio && radio.getAttribute('src') === `/audio/${encodeURIComponent(x.audio)}`);
+    $('now-playing').innerHTML = c ? `${titleOf(c)} · ${hhmm(c.at)}` : `Playing recording — <strong>${esc(radio.dataset.label)}</strong>`;
   } else if (radio.dataset.kind === 'scan') {
-    $('now-playing').innerHTML = `<strong>SCAN</strong> · ${radio.dataset.label}`;
+    $('now-playing').innerHTML = radio.dataset.label;
   } else if (state.tuned) {
     const s = state.tuned;
     $('now-playing').innerHTML = `Receiving <strong>${esc(s.short)}</strong> · ${esc(s.name)} · via <a href="${esc(s.listenUrl)}" target="_blank" rel="noopener">Broadcastify ↗</a>`;
@@ -417,20 +418,31 @@ function playScan(c, { replay = false } = {}) {
   }
   syncScanKeys();
   moveNeedle(state.byId.get(c.source_id));
-  const words = state.viewer?.transcripts && c.transcript ? ` — “${esc(c.transcript.slice(0, 90))}${c.transcript.length > 90 ? '…' : ''}”` : '';
   const tag = replay ? 'REPLAY' : scan.hold ? 'HOLD' : isPriority(c) ? 'PRI' : '';
-  playRecording(`/audio/${encodeURIComponent(c.audio)}`, `${tag ? `${tag} · ` : ''}<strong>${shortOf(c.source_id)}</strong> ${hhmm(c.at)}${words}`, 'scan');
+  scan.lastCall = c;
+  playRecording(`/audio/${encodeURIComponent(c.audio)}`, `${tag ? `${tag} · ` : ''}${titleOf(c)} · ${hhmm(c.at)}`, 'scan');
 }
+
+// Title line: what the conversation on this channel is about. The incident's headline, else triage's
+// subject for this call, else the subject of the channel's last call in the past 10 minutes.
+function subjectOf(c) {
+  const of = (x) => state.incidents.get(x.incident_id)?.headline || x.subject;
+  if (of(c)) return of(c);
+  const at = new Date(c.at);
+  const prev = state.calls.find((p) => p.source_id === c.source_id && p.id !== c.id && new Date(p.at) < at && at - new Date(p.at) < 10 * 60e3 && of(p));
+  return prev ? of(prev) : 'routine traffic';
+}
+const titleOf = (c) => `<strong>${shortOf(c.source_id)}</strong>: ${esc(subjectOf(c))}`;
 
 // After a transmission: linger on the channel for DELAY_MS (a reply plays straight away), then move on.
 function scanAfterTransmission() {
   if (!scan.on) return;
   if (scan.hold) return scanNext(); // held: keep playing this channel's traffic as it arrives
-  const ch = scan.current;
+  const c = scan.lastCall;
   const until = Date.now() + DELAY_MS;
   const show = () => {
     const s = Math.max(0, Math.ceil((until - Date.now()) / 1000));
-    $('now-playing').innerHTML = `<strong>${shortOf(ch)}</strong> · scan resumes in ${s} s — press <strong>Hold</strong> to stay on this channel`;
+    $('now-playing').innerHTML = `${titleOf(c)} · resuming in ${s} s — <strong>Hold</strong> to stay`;
   };
   show();
   scan.delayTick = setInterval(show, 250);
@@ -445,7 +457,7 @@ function scanIdle() {
   $('now-playing').innerHTML = scan.hold
     ? `<strong>HOLD</strong> · ${shortOf(scan.hold)} — new traffic here plays as it arrives · <strong>Resume</strong> to scan again`
     : n
-      ? `<strong>SCANNING</strong> ${n} channel${n > 1 ? 's' : ''} · about a minute behind live · tap a station: PRI → L/O → normal`
+      ? `<strong>SCANNING</strong> ${n} ch · ${scan.lastCall ? `last ${titleOf(scan.lastCall)}` : 'tap a station: PRI → L/O → normal'}`
       : '<strong>SCAN</strong> — every channel here is locked out. Tap a station to bring it back.';
   if (scan.stepper || !n || scan.hold) return;
   scan.stepper = setInterval(() => {

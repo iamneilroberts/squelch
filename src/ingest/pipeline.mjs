@@ -2,7 +2,7 @@
 import { EventEmitter } from 'node:events';
 import { rmSync, renameSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { insertCall, tagCall, createIncident, updateIncident, openIncidentsFor, expireAudio, setGate } from '../db.mjs';
+import { insertCall, tagCall, createIncident, updateIncident, openIncidentsFor, expireAudio, setGate, setSubject } from '../db.mjs';
 import { withTrace, linkTraceToCall, pruneSpans, span, setTraceVad } from '../meter.mjs';
 import { loudnessSpread } from './vad.mjs';
 import { gate } from '../ai/jev.mjs';
@@ -108,6 +108,8 @@ async function handleClip(source, clip) {
     items = await runTriage();
   }
   setGate(callId, g, decision);
+  const subject = (items.find((it) => it.action !== 'routine') ?? items[0])?.headline || null;
+  if (subject) setSubject(callId, subject);
   let category = 'routine';
   let incidentId = null;
   for (const it of items) {
@@ -130,5 +132,5 @@ async function handleClip(source, clip) {
     bus.emit('incident', saved);
   }
   tagCall(callId, incidentId, category);
-  bus.emit('call', { id: callId, source_id: source.id, at: clip.at, duration: clip.duration, audio: clip.audio, transcript, incident_id: incidentId, category });
+  bus.emit('call', { id: callId, source_id: source.id, at: clip.at, duration: clip.duration, audio: clip.audio, transcript, incident_id: incidentId, category, subject });
 }
