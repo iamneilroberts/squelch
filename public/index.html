@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Squelch</title>
+<meta name="description" content="Local scanner radio, transcribed, triaged into incidents and mapped.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%235a3a22'/%3E%3Crect x='4' y='8' width='24' height='10' rx='2' fill='%23f2c66b'/%3E%3Crect x='15' y='6' width='2' height='14' fill='%23c0392b'/%3E%3Ccircle cx='10' cy='24' r='3' fill='%23efe6d2'/%3E%3Ccircle cx='22' cy='24' r='3' fill='%23efe6d2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Yellowtail&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="cabinet">
+
+  <header class="faceplate">
+    <div class="grille">
+      <div class="badge">
+        <span class="badge-script">Squelch</span>
+        <span class="badge-caps">Monitor</span>
+        <span class="badge-sub" id="badge-sub"></span>
+      </div>
+    </div>
+
+    <div class="tuner">
+      <div class="dial-scroll">
+        <div class="dial" id="dial" aria-label="Station dial">
+          <div class="dial-bands" id="dial-bands"></div>
+          <div class="dial-scale" id="dial-scale"></div>
+          <div class="dial-stations" id="dial-stations"></div>
+          <div class="needle" id="needle" aria-hidden="true"></div>
+          <div class="dial-glass" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="keys" role="group" aria-label="Band" id="keys"></div>
+
+        <div class="readouts">
+          <div class="selector" role="radiogroup" aria-label="Location">
+            <div class="selector-face" id="selector"></div>
+            <span class="knob-label">Location</span>
+          </div>
+          <div class="eye" id="eye" title="Tuning indicator" aria-hidden="true">
+            <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" class="eye-ring"/><circle cx="20" cy="20" r="16" class="eye-glow"/><path class="eye-shadow" id="eye-shadow" d="M20 20 L20 4 A16 16 0 0 1 20 4 Z"/><circle cx="20" cy="20" r="5" class="eye-cap"/></svg>
+          </div>
+          <div class="nixie" id="clock" aria-label="Local time"></div>
+          <label class="knob-wrap" title="Volume">
+            <span class="vol-face">
+              <span class="knob-scale" id="knob-scale" aria-hidden="true"></span>
+              <span class="knob" id="knob" aria-hidden="true"></span>
+              <input type="range" id="volume" min="0" max="11" step="0.5" value="8" aria-label="Volume, 0 to 11">
+            </span>
+            <span class="knob-label">Vol</span>
+          </label>
+        </div>
+      </div>
+      <div class="transport" role="group" aria-label="Playback">
+        <button class="key tkey" id="btn-stop" aria-label="Stop" title="Stop (Esc)" disabled>■</button>
+        <button class="key tkey" id="btn-pause" aria-label="Pause" title="Pause" disabled>❚❚</button>
+        <button class="key tkey scan-key" id="btn-scan" aria-pressed="false" title="Scan: play each new transmission from the channels shown, back to back">Scan</button>
+        <div class="progress" id="progress" hidden title="Seek"><span id="progress-bar"></span></div>
+        <span class="elapsed" id="elapsed"></span>
+        <p class="now-playing" id="now-playing" aria-live="polite">Tune a station on the dial to listen live.</p>
+      </div>
+      <form class="bcfy" id="bcfy-form" hidden>
+        <p class="bcfy-why">Live listening here uses <strong>your own Broadcastify Premium</strong> subscription
+          ($15 for 6 months or $30 a year at <a href="https://www.broadcastify.com/premium/" target="_blank" rel="noopener">broadcastify.com/premium</a>).
+          A free account is refused by Broadcastify's stream server. Sign in with your RadioReference/Broadcastify
+          <em>username</em>, not your email. The login is kept in this receiver's memory only, never written to disk,
+          and is used only to play streams for you.</p>
+        <div class="bcfy-row">
+          <input name="username" autocomplete="username" placeholder="Username" aria-label="Broadcastify username" required>
+          <input name="password" type="password" autocomplete="current-password" placeholder="Password" aria-label="Broadcastify password" required>
+          <button class="key" type="submit">Listen</button>
+          <button class="key" type="button" id="bcfy-cancel">Cancel</button>
+        </div>
+        <p class="bcfy-msg" id="bcfy-msg" role="status"></p>
+      </form>
+    </div>
+  </header>
+
+  <main class="desk">
+    <section class="chart" aria-label="Map">
+      <div id="map"></div>
+      <div class="toggles" id="toggles" aria-label="Map layers"></div>
+    </section>
+
+    <section class="printer" aria-label="Incident log">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-incidents" aria-selected="true">Incidents <span id="count-incidents"></span></button>
+        <button role="tab" id="tab-traffic" aria-selected="false">Raw traffic</button>
+        <button role="tab" id="tab-digest" aria-selected="false">Daily log</button>
+      </div>
+      <div class="paper">
+        <ol class="log" id="log" aria-live="polite"></ol>
+      </div>
+    </section>
+  </main>
+
+  <footer class="strip">
+    <ul class="lamps" id="lamps" aria-label="Feed status"></ul>
+    <div class="gauges">
+      <span id="tide" class="gauge"></span>
+      <span id="wx" class="gauge"></span>
+      <span class="gauge" id="bcfy-status" hidden></span>
+      <button class="share-toggle" id="share-toggle" hidden aria-pressed="false" title="Lets visitors coming in through the Cloudflare tunnel read raw transcripts and the Raw traffic tab">
+        <span class="lamp" aria-hidden="true"></span><span id="share-label">Remote transcripts: off</span>
+      </button>
+      <a class="gauge ledger-link" href="/costs.html">Ledger ↗</a>
+    </div>
+  </footer>
+
+</div>
+<audio id="radio" preload="none"></audio>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="app.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "squelch",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Scanner radio, transcribed: a retro receiver that turns public scanner feeds into a live incident map and a daily log",
+  "license": "MIT",
+  "repository": "github:iamneilroberts/squelch",
+  "scripts": {
+    "start": "node --no-warnings=ExperimentalWarning --env-file-if-exists=.env src/server.mjs",
+    "bench": "node --no-warnings=ExperimentalWarning --env-file-if-exists=.env bench/run.mjs"
+  },
+  "engines": { "node": ">=22.13" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0"
+  }
+}

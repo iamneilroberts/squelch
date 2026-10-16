@@ -1,0 +1,1089 @@
+{
+ "date": "2026-10-15",
+ "calls": [
+  {
+   "id": 1,
+   "at": "2026-10-15T01:03:26-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Bridge to bridge, Theodore ship channel, Captain, we'll pass red to red, copy."
+  },
+  {
+   "id": 2,
+   "at": "2026-10-15T01:11:33-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Engine 12 is back in service in Daphne, 10-4."
+  },
+  {
+   "id": 3,
+   "at": "2026-10-15T01:11:44-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Bonanza 2-3-3 Foxtrot Mike, ten miles west, inbound with information Bravo."
+  },
+  {
+   "id": 4,
+   "at": "2026-10-15T01:12:30-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile Fire, Engine 9, Ladder 3, Battalion 2, respond to a structure fire, Wilson Avenue, Prichard, caller reports flames through the roof of a single story residence."
+  },
+  {
+   "id": 5,
+   "at": "2026-10-15T01:15:32-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Bonanza 2-3-9 Foxtrot Mike, ten miles west, inbound with information Bravo."
+  },
+  {
+   "id": 6,
+   "at": "2026-10-15T01:18:35-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin, Medic 6 on scene, Highway 98, Foley, checking a patient, copy."
+  },
+  {
+   "id": 7,
+   "at": "2026-10-15T01:19:05-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Battalion 2 on scene Wilson Avenue, heavy fire showing, working fire, one occupant unaccounted for, requesting a second alarm."
+  },
+  {
+   "id": 8,
+   "at": "2026-10-15T01:27:24-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile Fire, Medic 14 is back in service."
+  },
+  {
+   "id": 9,
+   "at": "2026-10-15T01:27:40-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile, Engine 22, Engine 31 and Ladder 7 are on scene for the second alarm, Battalion 2 has command, Wilson Avenue."
+  },
+  {
+   "id": 10,
+   "at": "2026-10-15T01:35:16-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "Dispatcher, CSX Mobile yard job, we're lined for the main at Brookley, 10-4."
+  },
+  {
+   "id": 11,
+   "at": "2026-10-15T02:27:43-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Tug Dauphin Queen to the ship, one whistle passing, meet at the Bankhead Tunnel, port to port."
+  },
+  {
+   "id": 12,
+   "at": "2026-10-15T02:31:35-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Bonanza 3-4-5 Foxtrot Mike, ten miles west, inbound with information Bravo."
+  },
+  {
+   "id": 13,
+   "at": "2026-10-15T02:35:24-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland, Engine 1 is back in service at the station."
+  },
+  {
+   "id": 14,
+   "at": "2026-10-15T02:41:15-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Command to Mobile, fire is under control, all occupants accounted for, one civilian transported with smoke inhalation, we'll be here for overhaul."
+  },
+  {
+   "id": 15,
+   "at": "2026-10-15T02:50:34-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Battalion 2 clear of the call, returning to station, copy."
+  },
+  {
+   "id": 16,
+   "at": "2026-10-15T02:50:46-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile, Engine 18 is available at quarters, 10-4."
+  },
+  {
+   "id": 17,
+   "at": "2026-10-15T02:53:38-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Coast Guard Sector Mobile, weather broadcast: winds southeast 12 knots, seas one to two feet, Mobile Bay."
+  },
+  {
+   "id": 18,
+   "at": "2026-10-15T03:02:58-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Cessna 5-5-2 Delta Kilo, Brookley tower, wind three one zero at 5, runway one five, cleared for takeoff."
+  },
+  {
+   "id": 19,
+   "at": "2026-10-15T03:04:13-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "AGR dispatcher, local one two clear of the Moffett Road crossing, thanks."
+  },
+  {
+   "id": 20,
+   "at": "2026-10-15T03:04:48-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Bridge to bridge, Theodore ship channel, Captain, we'll pass red to red, copy."
+  },
+  {
+   "id": 21,
+   "at": "2026-10-15T03:28:36-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Cessna 8-9-7 Delta Kilo, Brookley tower, wind three one zero at 11, runway one five, cleared for takeoff."
+  },
+  {
+   "id": 22,
+   "at": "2026-10-15T03:40:32-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile Fire, Medic 14 is back in service."
+  },
+  {
+   "id": 23,
+   "at": "2026-10-15T03:42:09-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Coast Guard Sector Mobile, weather broadcast: winds southeast 8 knots, seas one to two feet, Mobile Bay."
+  },
+  {
+   "id": 24,
+   "at": "2026-10-15T03:43:37-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Radio check, Medic 27, loud and clear, copy."
+  },
+  {
+   "id": 25,
+   "at": "2026-10-15T03:53:12-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Skyhawk 5-6-0 Sierra Hotel, Brookley tower, cleared to land runway one five, wind calm."
+  },
+  {
+   "id": 26,
+   "at": "2026-10-15T03:58:55-05:00",
+   "source_id": "n4rgj",
+   "transcript": "QSL on that, 73 from Theodore, N4RGJ clear."
+  },
+  {
+   "id": 27,
+   "at": "2026-10-15T04:02:51-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Engine 22 on scene, Moffett Road, nothing showing, investigating."
+  },
+  {
+   "id": 28,
+   "at": "2026-10-15T04:12:30-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Gulf Breeze, Coast Guard, switch and answer channel two two alpha."
+  },
+  {
+   "id": 29,
+   "at": "2026-10-15T04:37:29-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Medic 14 clear of the call, returning to station, copy."
+  },
+  {
+   "id": 30,
+   "at": "2026-10-15T05:10:42-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Engine 12 to Mobile, we're en route to the hospital, non-emergency traffic."
+  },
+  {
+   "id": 31,
+   "at": "2026-10-15T05:20:28-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Engine 12 on scene, Moffett Road, nothing showing, investigating."
+  },
+  {
+   "id": 32,
+   "at": "2026-10-15T05:50:40-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile, Rescue 2 is available at quarters, 10-4."
+  },
+  {
+   "id": 33,
+   "at": "2026-10-15T05:59:19-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin, Medic 2 on scene, Highway 98, Foley, checking a patient, copy."
+  },
+  {
+   "id": 34,
+   "at": "2026-10-15T06:03:22-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile Fire, Medic 14 is back in service."
+  },
+  {
+   "id": 35,
+   "at": "2026-10-15T06:12:54-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Medic 9 clear of the call, returning to station, copy."
+  },
+  {
+   "id": 36,
+   "at": "2026-10-15T06:40:16-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Medic 9 on scene, Dog River Road, nothing showing, investigating."
+  },
+  {
+   "id": 37,
+   "at": "2026-10-15T07:04:02-05:00",
+   "source_id": "n4rgj",
+   "transcript": "Good morning to the Mobile net, this is W4XYZ checking in from Spanish Fort."
+  },
+  {
+   "id": 38,
+   "at": "2026-10-15T07:12:48-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Bridge to bridge, Theodore ship channel, Captain, we'll pass red to red, copy."
+  },
+  {
+   "id": 39,
+   "at": "2026-10-15T07:13:19-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Coast Guard Sector Mobile, weather broadcast: winds southeast 10 knots, seas one to two feet, Mobile Bay."
+  },
+  {
+   "id": 40,
+   "at": "2026-10-15T07:24:41-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin, Medic 7 on scene, Highway 98, Foley, checking a patient, copy."
+  },
+  {
+   "id": 41,
+   "at": "2026-10-15T07:34:18-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile, Engine 17, we have reports of about a dozen cattle loose on I-65 northbound near the Saraland exit, requesting the sheriff's office for traffic control."
+  },
+  {
+   "id": 42,
+   "at": "2026-10-15T07:35:04-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile, Engine 22 is available at quarters, 10-4."
+  },
+  {
+   "id": 43,
+   "at": "2026-10-15T07:41:02-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland units, I'm on I-65 at exit 13, the cows are now walking up the shoulder, we have a farmer with a feed bucket, trying to coax them back."
+  },
+  {
+   "id": 44,
+   "at": "2026-10-15T07:54:25-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Bridge to bridge, Theodore ship channel, Captain, we'll pass red to red, copy."
+  },
+  {
+   "id": 45,
+   "at": "2026-10-15T08:04:49-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Engine 18 to Mobile, we're en route to the hospital, non-emergency traffic."
+  },
+  {
+   "id": 46,
+   "at": "2026-10-15T08:05:36-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland, all the cattle are back in the pasture, one calf is named Biscuit apparently, we're clearing the scene."
+  },
+  {
+   "id": 47,
+   "at": "2026-10-15T08:07:46-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Pilot boat to the inbound container ship, pilot ladder is on the starboard side at the sea buoy."
+  },
+  {
+   "id": 48,
+   "at": "2026-10-15T08:12:14-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "CSX, train Q-six-nine-oh has the authority from Mobile to Prichard, readback correct."
+  },
+  {
+   "id": 49,
+   "at": "2026-10-15T08:12:18-05:00",
+   "source_id": "n4rgj",
+   "transcript": "Good morning to the Mobile net, this is KD4QRS checking in from Spanish Fort."
+  },
+  {
+   "id": 50,
+   "at": "2026-10-15T08:13:01-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Piper 7-6-8 Charlie Tango, ready for departure runway three three."
+  },
+  {
+   "id": 51,
+   "at": "2026-10-15T08:27:48-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland Medic 1 en route to the hospital with one patient, non-emergency."
+  },
+  {
+   "id": 52,
+   "at": "2026-10-15T08:31:40-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Piper 5-8-3 Mike Romeo, ready for departure runway three three."
+  },
+  {
+   "id": 53,
+   "at": "2026-10-15T08:36:24-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Miss Lucille, Coast Guard, switch and answer channel two two alpha."
+  },
+  {
+   "id": 54,
+   "at": "2026-10-15T08:44:55-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Skyhawk 3-2-9 Tango Papa, Brookley tower, cleared to land runway one five, wind calm."
+  },
+  {
+   "id": 55,
+   "at": "2026-10-15T08:48:01-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Engine 8 is back in service in Daphne, 10-4."
+  },
+  {
+   "id": 56,
+   "at": "2026-10-15T09:04:04-05:00",
+   "source_id": "n4rgj",
+   "transcript": "Good morning to the Mobile net, this is W4XYZ checking in from Spanish Fort."
+  },
+  {
+   "id": 57,
+   "at": "2026-10-15T09:08:17-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile, Rescue 2 is available at quarters, 10-4."
+  },
+  {
+   "id": 58,
+   "at": "2026-10-15T09:11:52-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Gulf Breeze, Coast Guard, switch and answer channel two two alpha."
+  },
+  {
+   "id": 59,
+   "at": "2026-10-15T09:35:40-05:00",
+   "source_id": "n4rgj",
+   "transcript": "Good morning to the Mobile net, this is KD4QRS checking in from Spanish Fort."
+  },
+  {
+   "id": 60,
+   "at": "2026-10-15T09:41:33-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin County, Medic 7, transporting one patient to Thomas Hospital, non-emergency, copy."
+  },
+  {
+   "id": 61,
+   "at": "2026-10-15T09:48:10-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Pan-pan pan-pan pan-pan, this is the fishing vessel Reel Therapy, we are taking on water about three miles south of Dauphin Island, four persons on board, pumps not keeping up."
+  },
+  {
+   "id": 62,
+   "at": "2026-10-15T09:50:02-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Vessel Reel Therapy, Coast Guard Sector Mobile, roger your pan-pan, say your position and whether everyone has a life jacket."
+  },
+  {
+   "id": 63,
+   "at": "2026-10-15T09:51:19-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Tug Mobile Bay to the ship, one whistle passing, meet at the Bankhead Tunnel, port to port."
+  },
+  {
+   "id": 64,
+   "at": "2026-10-15T10:02:22-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Radio check, Station 3, loud and clear."
+  },
+  {
+   "id": 65,
+   "at": "2026-10-15T10:12:44-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Sector Mobile, Station Dauphin Island, forty-five footer is alongside Reel Therapy, dewatering pump aboard, all four persons are in good condition."
+  },
+  {
+   "id": 66,
+   "at": "2026-10-15T10:22:55-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "CSX, train Q-six-four-one has the authority from Mobile to Prichard, readback correct."
+  },
+  {
+   "id": 67,
+   "at": "2026-10-15T10:28:56-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Bonanza 1-6-0 Foxtrot Mike, ten miles west, inbound with information Bravo."
+  },
+  {
+   "id": 68,
+   "at": "2026-10-15T10:44:13-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile Fire, Engine 31 is back in service."
+  },
+  {
+   "id": 69,
+   "at": "2026-10-15T10:47:38-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile Fire, Engine 18 is back in service."
+  },
+  {
+   "id": 70,
+   "at": "2026-10-15T10:58:30-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Sector Mobile, boat crew has the vessel under tow, all four persons safe, heading to Dauphin Island Marina, no further assistance needed."
+  },
+  {
+   "id": 71,
+   "at": "2026-10-15T11:01:23-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "CSX, train L-two-one-two has the authority from Mobile to Prichard, readback correct."
+  },
+  {
+   "id": 72,
+   "at": "2026-10-15T11:06:20-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Cessna 4-5-7 Delta Kilo, we hit a bird on rotation, runway three three, climbing out, we'd like to return and land."
+  },
+  {
+   "id": 73,
+   "at": "2026-10-15T11:06:58-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Delta Kilo, Brookley tower, roger, make left traffic runway three three, cleared to land, fire trucks are standing by."
+  },
+  {
+   "id": 74,
+   "at": "2026-10-15T11:14:12-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Delta Kilo is on the ground, minor damage to the cowling, we'll taxi back to the ramp, thanks for the help."
+  },
+  {
+   "id": 75,
+   "at": "2026-10-15T11:22:57-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Piper 8-4-7 Mike Romeo, ready for departure runway three three."
+  },
+  {
+   "id": 76,
+   "at": "2026-10-15T11:27:38-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Radio check, this is the vessel Dog River Dancer, channel sixteen, loud and clear."
+  },
+  {
+   "id": 77,
+   "at": "2026-10-15T11:31:16-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "Dispatcher, CSX Mobile yard job, we're lined for the main at Brookley, 10-4."
+  },
+  {
+   "id": 78,
+   "at": "2026-10-15T11:45:31-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Tug Dauphin Queen to the ship, one whistle passing, meet at the Bankhead Tunnel, port to port."
+  },
+  {
+   "id": 79,
+   "at": "2026-10-15T11:46:34-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Engine 22 to Mobile, we're en route to the hospital, non-emergency traffic."
+  },
+  {
+   "id": 80,
+   "at": "2026-10-15T12:01:33-05:00",
+   "source_id": "n4rgj",
+   "transcript": "N4RGJ Mobile repeater, W4XYZ listening, radio check, thanks for the check."
+  },
+  {
+   "id": 81,
+   "at": "2026-10-15T12:20:00-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Skyhawk 2-0-5 Tango Papa, Brookley tower, cleared to land runway one five, wind calm."
+  },
+  {
+   "id": 82,
+   "at": "2026-10-15T12:33:47-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Pilot boat to the inbound container ship, pilot ladder is on the starboard side at the sea buoy."
+  },
+  {
+   "id": 83,
+   "at": "2026-10-15T12:59:07-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin, Medic 9 on scene, Highway 98, Foley, checking a patient, copy."
+  },
+  {
+   "id": 84,
+   "at": "2026-10-15T13:09:43-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Cessna 4-7-8 Lima Charlie, Brookley tower, wind two four zero at 8, runway one five, cleared for takeoff."
+  },
+  {
+   "id": 85,
+   "at": "2026-10-15T13:12:43-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Medic 14 to Mobile, we're en route to the hospital, non-emergency traffic."
+  },
+  {
+   "id": 86,
+   "at": "2026-10-15T13:23:02-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "AGR dispatcher, local one two clear of the Moffett Road crossing, thanks."
+  },
+  {
+   "id": 87,
+   "at": "2026-10-15T13:27:13-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland Medic 1 en route to the hospital with one patient, non-emergency."
+  },
+  {
+   "id": 88,
+   "at": "2026-10-15T13:29:07-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Bonanza 3-3-8 Foxtrot Mike, ten miles west, inbound with information Bravo."
+  },
+  {
+   "id": 89,
+   "at": "2026-10-15T13:41:59-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland, Engine 2 is back in service at the station."
+  },
+  {
+   "id": 90,
+   "at": "2026-10-15T13:48:58-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Engine 15 is back in service in Daphne, 10-4."
+  },
+  {
+   "id": 91,
+   "at": "2026-10-15T14:01:51-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "Dispatcher, CSX Mobile yard job, we're lined for the main at Brookley, 10-4."
+  },
+  {
+   "id": 92,
+   "at": "2026-10-15T14:04:57-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Cessna 6-3-9 Alpha Bravo, Brookley tower, wind three one zero at 10, runway one five, cleared for takeoff."
+  },
+  {
+   "id": 93,
+   "at": "2026-10-15T14:08:59-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland, Engine 1 is back in service at the station."
+  },
+  {
+   "id": 94,
+   "at": "2026-10-15T14:14:37-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin, Medic 6 on scene, Highway 98, Foley, checking a patient, copy."
+  },
+  {
+   "id": 95,
+   "at": "2026-10-15T14:14:57-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Radio check, Ladder 3, loud and clear, copy."
+  },
+  {
+   "id": 96,
+   "at": "2026-10-15T14:18:54-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile Fire, Engine 18 is back in service."
+  },
+  {
+   "id": 97,
+   "at": "2026-10-15T14:22:00-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland Medic 1 en route to the hospital with one patient, non-emergency."
+  },
+  {
+   "id": 98,
+   "at": "2026-10-15T14:22:10-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland Engine 1, respond to a vehicle versus train, Saraland Boulevard at the CSX crossing, one car struck, driver may be inside."
+  },
+  {
+   "id": 99,
+   "at": "2026-10-15T14:22:11-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "AGR dispatcher, local one two clear of the Moffett Road crossing, thanks."
+  },
+  {
+   "id": 100,
+   "at": "2026-10-15T14:22:50-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "Dispatcher, CSX Q-six-four-one, emergency, we struck a vehicle at the Saraland Boulevard crossing, we're stopped, request all trains hold."
+  },
+  {
+   "id": 101,
+   "at": "2026-10-15T14:29:07-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin County, Medic 5, transporting one patient to Thomas Hospital, non-emergency, copy."
+  },
+  {
+   "id": 102,
+   "at": "2026-10-15T14:31:05-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland Engine 1 on scene, the vehicle is clear of the tracks, driver is out walking around, Medic 1 evaluating, we'll need the crew inspection from CSX."
+  },
+  {
+   "id": 103,
+   "at": "2026-10-15T14:55:14-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Skyhawk 8-7-7 Sierra Hotel, Brookley tower, cleared to land runway one five, wind calm."
+  },
+  {
+   "id": 104,
+   "at": "2026-10-15T15:10:40-05:00",
+   "source_id": "n4rgj",
+   "transcript": "QSL on that, 73 from Theodore, N4RGJ clear."
+  },
+  {
+   "id": 105,
+   "at": "2026-10-15T15:10:40-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "CSX dispatcher to Q-six-four-one, mechanical has cleared the locomotive, you are authorized to proceed from Saraland to Mobile at restricted speed."
+  },
+  {
+   "id": 106,
+   "at": "2026-10-15T15:12:32-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "Dispatcher, CSX Mobile yard job, we're lined for the main at Brookley, 10-4."
+  },
+  {
+   "id": 107,
+   "at": "2026-10-15T15:33:06-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Bonanza 3-2-7 Foxtrot Mike, ten miles west, inbound with information Bravo."
+  },
+  {
+   "id": 108,
+   "at": "2026-10-15T15:38:24-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Medic 27 clear of the call, returning to station, copy."
+  },
+  {
+   "id": 109,
+   "at": "2026-10-15T15:48:24-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Radio check, this is the vessel Miss Lucille, channel sixteen, loud and clear."
+  },
+  {
+   "id": 110,
+   "at": "2026-10-15T16:01:51-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Engine 8 is back in service in Daphne, 10-4."
+  },
+  {
+   "id": 111,
+   "at": "2026-10-15T16:05:41-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Skyhawk 1-4-5 Tango Papa, Brookley tower, cleared to land runway one five, wind calm."
+  },
+  {
+   "id": 112,
+   "at": "2026-10-15T16:22:42-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Coast Guard Sector Mobile, weather broadcast: winds southeast 12 knots, seas one to two feet, Mobile Bay."
+  },
+  {
+   "id": 113,
+   "at": "2026-10-15T16:25:37-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Piper 7-9-7 Mike Romeo, ready for departure runway three three."
+  },
+  {
+   "id": 114,
+   "at": "2026-10-15T16:26:36-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Cessna 5-0-8 Foxtrot Mike, Brookley tower, wind one eight zero at 8, runway three three, cleared for takeoff."
+  },
+  {
+   "id": 115,
+   "at": "2026-10-15T16:37:21-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Piper 4-7-5 Mike Romeo, ready for departure runway three three."
+  },
+  {
+   "id": 116,
+   "at": "2026-10-15T16:39:46-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Medic 9 clear of the call, returning to station, copy."
+  },
+  {
+   "id": 117,
+   "at": "2026-10-15T16:41:03-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Rescue 9 and Marine 3 respond to a water rescue, two kayakers in the water near the Fairhope Pier, boat is capsized, bystanders are on the pier."
+  },
+  {
+   "id": 118,
+   "at": "2026-10-15T16:43:55-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Medic 27 clear of the call, returning to station, copy."
+  },
+  {
+   "id": 119,
+   "at": "2026-10-15T16:48:36-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Piper 8-8-5 Mike Romeo, ready for departure runway three three."
+  },
+  {
+   "id": 120,
+   "at": "2026-10-15T16:49:27-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Marine 3 on scene Fairhope Pier, we have both kayakers, one is cold and shaking, bringing them to the pier now."
+  },
+  {
+   "id": 121,
+   "at": "2026-10-15T17:03:50-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Medic 7 to Baldwin, we have both patients at the municipal pier, one declining transport, one being evaluated, kayak will be recovered."
+  },
+  {
+   "id": 122,
+   "at": "2026-10-15T17:04:21-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Radio check, Battalion 2, loud and clear, copy."
+  },
+  {
+   "id": 123,
+   "at": "2026-10-15T17:10:51-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "Dispatcher, CSX Mobile yard job, we're lined for the main at Brookley, 10-4."
+  },
+  {
+   "id": 124,
+   "at": "2026-10-15T17:18:24-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin, Medic 2 on scene, Highway 98, Foley, checking a patient, copy."
+  },
+  {
+   "id": 125,
+   "at": "2026-10-15T17:22:29-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Pilot boat to the inbound container ship, pilot ladder is on the starboard side at the sea buoy."
+  },
+  {
+   "id": 126,
+   "at": "2026-10-15T17:29:58-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Gulf Breeze, Coast Guard, switch and answer channel two two alpha."
+  },
+  {
+   "id": 127,
+   "at": "2026-10-15T17:39:33-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Piper 3-8-6 Charlie Tango, ready for departure runway three three."
+  },
+  {
+   "id": 128,
+   "at": "2026-10-15T17:43:36-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin, Medic 9 on scene, Highway 98, Foley, checking a patient, copy."
+  },
+  {
+   "id": 129,
+   "at": "2026-10-15T17:44:09-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Coast Guard Sector Mobile, weather broadcast: winds southeast 14 knots, seas one to two feet, Mobile Bay."
+  },
+  {
+   "id": 130,
+   "at": "2026-10-15T17:55:44-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Engine 12 on scene, Airport Boulevard, nothing showing, investigating."
+  },
+  {
+   "id": 131,
+   "at": "2026-10-15T17:57:50-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Skyhawk 3-1-2 Sierra Hotel, Brookley tower, cleared to land runway one five, wind calm."
+  },
+  {
+   "id": 132,
+   "at": "2026-10-15T18:17:09-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile Fire, Rescue 2, Engine 18, Engine 12, respond to a multiple vehicle accident, I-10 eastbound at the Bayway, five vehicles, persons trapped."
+  },
+  {
+   "id": 133,
+   "at": "2026-10-15T18:23:32-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Radio check, Station 1, loud and clear."
+  },
+  {
+   "id": 134,
+   "at": "2026-10-15T18:23:45-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Battalion 2 on scene I-10 Bayway, five vehicles involved, two entrapments, we need a second rescue and multiple medic units, close all lanes eastbound."
+  },
+  {
+   "id": 135,
+   "at": "2026-10-15T18:31:20-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Command to Mobile, first patient is extricated, second still being cut out, all eastbound lanes closed, traffic being diverted to Highway 90 at the Causeway."
+  },
+  {
+   "id": 136,
+   "at": "2026-10-15T18:35:33-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "CSX, train L-two-one-two has the authority from Mobile to Prichard, readback correct."
+  },
+  {
+   "id": 137,
+   "at": "2026-10-15T18:36:36-05:00",
+   "source_id": "n4rgj",
+   "transcript": "QSL on that, 73 from Theodore, N4RGJ clear."
+  },
+  {
+   "id": 138,
+   "at": "2026-10-15T18:40:34-05:00",
+   "source_id": "n4rgj",
+   "transcript": "QSL on that, 73 from Theodore, N4RGJ clear."
+  },
+  {
+   "id": 139,
+   "at": "2026-10-15T18:48:12-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Cessna 6-5-2 Delta Kilo, Brookley tower, wind one eight zero at 6, runway one five, cleared for takeoff."
+  },
+  {
+   "id": 140,
+   "at": "2026-10-15T18:55:00-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Command, both patients are out and transported, requesting a tow service for five vehicles, one lane will open after the cleanup."
+  },
+  {
+   "id": 141,
+   "at": "2026-10-15T18:58:29-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Coast Guard Sector Mobile, weather broadcast: winds southeast 15 knots, seas one to two feet, Mobile Bay."
+  },
+  {
+   "id": 142,
+   "at": "2026-10-15T19:20:15-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Engine 31 on scene, Government Street, nothing showing, investigating."
+  },
+  {
+   "id": 143,
+   "at": "2026-10-15T19:38:12-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile, Battalion 2, all lanes of I-10 eastbound at the Bayway are open, we're clear of the scene."
+  },
+  {
+   "id": 144,
+   "at": "2026-10-15T19:42:29-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Cessna 5-7-1 Alpha Bravo, Brookley tower, wind two four zero at 11, runway three three, cleared for takeoff."
+  },
+  {
+   "id": 145,
+   "at": "2026-10-15T19:49:02-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Engine 31 clear of the call, returning to station, copy."
+  },
+  {
+   "id": 146,
+   "at": "2026-10-15T19:55:08-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Rescue 2 clear of the call, returning to station, copy."
+  },
+  {
+   "id": 147,
+   "at": "2026-10-15T20:10:59-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Engine 18 clear of the call, returning to station, copy."
+  },
+  {
+   "id": 148,
+   "at": "2026-10-15T20:16:01-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin, Medic 9 on scene, Highway 98, Foley, checking a patient, copy."
+  },
+  {
+   "id": 149,
+   "at": "2026-10-15T20:28:36-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Rescue 2 on scene, Springhill Avenue, nothing showing, investigating."
+  },
+  {
+   "id": 150,
+   "at": "2026-10-15T20:36:35-05:00",
+   "source_id": "n4rgj",
+   "transcript": "Good morning to the Mobile net, this is W4XYZ checking in from Spanish Fort."
+  },
+  {
+   "id": 151,
+   "at": "2026-10-15T20:37:39-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Tug Carolyn Faye to the ship, one whistle passing, meet at the Bankhead Tunnel, port to port."
+  },
+  {
+   "id": 152,
+   "at": "2026-10-15T20:58:03-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Bonanza 1-6-9 Foxtrot Mike, ten miles west, inbound with information Bravo."
+  },
+  {
+   "id": 153,
+   "at": "2026-10-15T20:58:44-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Piper 6-1-5 Charlie Tango, ready for departure runway three three."
+  },
+  {
+   "id": 154,
+   "at": "2026-10-15T20:59:40-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Gulf Breeze, Coast Guard, switch and answer channel two two alpha."
+  },
+  {
+   "id": 155,
+   "at": "2026-10-15T21:10:04-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "AGR dispatcher, local one two clear of the Moffett Road crossing, thanks."
+  },
+  {
+   "id": 156,
+   "at": "2026-10-15T21:41:27-05:00",
+   "source_id": "bay-marine",
+   "transcript": "Pilot boat to the inbound container ship, pilot ladder is on the starboard side at the sea buoy."
+  },
+  {
+   "id": 157,
+   "at": "2026-10-15T22:03:42-05:00",
+   "source_id": "rail-pensacola",
+   "transcript": "CSX, train Q-six-four-one has the authority from Mobile to Prichard, readback correct."
+  },
+  {
+   "id": 158,
+   "at": "2026-10-15T22:05:59-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Radio check, Station 6, loud and clear."
+  },
+  {
+   "id": 159,
+   "at": "2026-10-15T22:06:33-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Brookley tower, Bonanza 4-0-7 Foxtrot Mike, ten miles west, inbound with information Bravo."
+  },
+  {
+   "id": 160,
+   "at": "2026-10-15T22:11:47-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin County, Medic 4, transporting one patient to Thomas Hospital, non-emergency, copy."
+  },
+  {
+   "id": 161,
+   "at": "2026-10-15T22:34:18-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland Medic 1 en route to the hospital with one patient, non-emergency."
+  },
+  {
+   "id": 162,
+   "at": "2026-10-15T22:48:07-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Medic 9 clear of the call, returning to station, copy."
+  },
+  {
+   "id": 163,
+   "at": "2026-10-15T23:03:42-05:00",
+   "source_id": "n4rgj",
+   "transcript": "Good morning to the Mobile net, this is KD4QRS checking in from Spanish Fort."
+  },
+  {
+   "id": 164,
+   "at": "2026-10-15T23:23:43-05:00",
+   "source_id": "saraland-fire",
+   "transcript": "Saraland Engine 2 on scene at the elementary school, public education, nothing further."
+  },
+  {
+   "id": 165,
+   "at": "2026-10-15T23:31:05-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin, Medic 8 on scene, Highway 98, Foley, checking a patient, copy."
+  },
+  {
+   "id": 166,
+   "at": "2026-10-15T23:31:09-05:00",
+   "source_id": "mobile-fire",
+   "transcript": "Mobile Fire, Battalion 2 is back in service."
+  },
+  {
+   "id": 167,
+   "at": "2026-10-15T23:35:14-05:00",
+   "source_id": "baldwin-fire-ems",
+   "transcript": "Baldwin, Medic 8 on scene, Highway 98, Foley, checking a patient, copy."
+  },
+  {
+   "id": 168,
+   "at": "2026-10-15T23:45:36-05:00",
+   "source_id": "mobile-marine",
+   "transcript": "Radio check, this is the vessel Gulf Breeze, channel sixteen, loud and clear."
+  },
+  {
+   "id": 169,
+   "at": "2026-10-15T23:50:37-05:00",
+   "source_id": "kbfm-tower",
+   "transcript": "Cessna 5-8-5 Alpha Bravo, Brookley tower, wind two four zero at 12, runway one five, cleared for takeoff."
+  }
+ ],
+ "gold": [
+  {
+   "key": "g1",
+   "call_ids": [
+    4,
+    7,
+    9,
+    14
+   ],
+   "description": "Overnight working house fire on Wilson Avenue in Prichard with second alarm"
+  },
+  {
+   "key": "g2",
+   "call_ids": [
+    61,
+    62,
+    65,
+    70
+   ],
+   "description": "Coast Guard pan-pan, boat taking on water near Dauphin Island, all four rescued"
+  },
+  {
+   "key": "g3",
+   "call_ids": [
+    72,
+    73,
+    74
+   ],
+   "description": "Bird strike and return to land at Brookley (KBFM)"
+  },
+  {
+   "key": "g4",
+   "call_ids": [
+    98,
+    100,
+    102,
+    105
+   ],
+   "description": "Train versus vehicle at Saraland Boulevard CSX crossing"
+  },
+  {
+   "key": "g5",
+   "call_ids": [
+    117,
+    120,
+    121
+   ],
+   "description": "Water rescue of two kayakers off Fairhope Pier"
+  },
+  {
+   "key": "g6",
+   "call_ids": [
+    41,
+    43,
+    46
+   ],
+   "description": "Cattle loose on I-65 near Saraland exit, farmer with feed bucket"
+  },
+  {
+   "key": "g7",
+   "call_ids": [
+    132,
+    134,
+    135,
+    140,
+    143
+   ],
+   "description": "Multi-vehicle crash with entrapment on I-10 at the Bayway, lanes closed"
+  }
+ ]
+}

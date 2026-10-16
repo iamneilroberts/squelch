@@ -1,0 +1,18 @@
+[
+  { "id": "g01", "source_id": "george-fire", "speech": false, "transcript": "There is no intelligible speech in this audio clip." },
+  { "id": "g02", "source_id": "greene-fire", "speech": false, "transcript": "The audio contains no intelligible speech; it consists only of a continuous static/electronic hum." },
+  { "id": "g03", "source_id": "george-fire", "speech": false, "transcript": "I'm sorry, but the audio appears to be completely silent with no intelligible speech." },
+  { "id": "g04", "source_id": "george-fire", "speech": false, "transcript": "Unable to transcribe as no intelligible speech is present in the audio." },
+  { "id": "g05", "source_id": "greene-fire", "speech": false, "transcript": "Engine, Ladder, Rescue, Medic, Battalion, Lucedale, Leakesville, Agricola, Highway 26, Highway 63" },
+  { "id": "g06", "source_id": "mobile-fire", "speech": false, "transcript": "Mobile Fire-Rescue, Airport Boulevard, Dauphin Street, Government Street, Old Shell Road, Schillinger Road" },
+  { "id": "g07", "source_id": "george-law", "speech": false, "transcript": "The recording seems to be only background noise." },
+  { "id": "g08", "source_id": "jackson-ps", "speech": false, "transcript": "Thank you for watching." },
+  { "id": "g09", "source_id": "george-law", "speech": true, "transcript": "County 12, we are getting just static on that channel, switch to tac 2." },
+  { "id": "g10", "source_id": "jackson-ps", "speech": true, "transcript": "18S6 23 copy engine Go ahead 13717 13717 G4 12 20" },
+  { "id": "g11", "source_id": "mobile-fire", "speech": true, "transcript": "Fire alarm agency 23 CPD. Engine 23 Engine 1220." },
+  { "id": "g12", "source_id": "george-law", "speech": true, "transcript": "Downed power line on Cullfords Road next to the Methodist Church." },
+  { "id": "g13", "source_id": "baldwin-fire-ems", "speech": true, "transcript": "Medic 2, patient has no injuries, transporting." },
+  { "id": "g14", "source_id": "george-law", "speech": true, "transcript": "10-4." },
+  { "id": "g15", "source_id": "mobile-fire", "speech": true, "transcript": "Engine 12, Ladder 3, respond to Cottage Hill Road and Schillinger for smoke showing." },
+  { "id": "g16", "source_id": "george-law", "speech": true, "transcript": "Can't hold. Wonder who's this? Hello." }
+]

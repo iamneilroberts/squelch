@@ -1,0 +1,474 @@
+[
+ {
+  "id": "t01",
+  "source_id": "mobile-fire",
+  "transcript": "Mobile Fire, Engine 12 is back in service at Station 12. Copy Engine 12, 10-4.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": false,
+   "category": "routine",
+   "type": "other",
+   "action": "routine",
+   "locationTokens": [],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t02",
+  "source_id": "kbfm-tower",
+  "transcript": "Cessna 4-5-7 Delta Kilo, Brookley tower, wind three one zero at eight, runway three three, cleared for takeoff.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": false,
+   "category": "routine",
+   "type": "other",
+   "action": "routine",
+   "locationTokens": [],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t03",
+  "source_id": "baldwin-fire-ems",
+  "transcript": "Baldwin County, Medic 4, we're en route to the hospital in Fairhope, non-emergency traffic. Copy Medic 4.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": false,
+   "category": "routine",
+   "type": "other",
+   "action": "routine",
+   "locationTokens": [],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t04",
+  "source_id": "n4rgj",
+  "transcript": "This is N4RGJ, Mobile repeater, doing a radio check on the Dolphin Street machine, anyone around? Copy, loud and clear, thanks.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": false,
+   "category": "routine",
+   "type": "other",
+   "action": "routine",
+   "locationTokens": [],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t05",
+  "source_id": "mobile-marine",
+  "transcript": "Securite securite securite, this is Coast Guard Sector Mobile, weather broadcast: winds southeast ten to fifteen knots, seas one to two feet in Mobile Bay.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": false,
+   "category": "routine",
+   "type": "other",
+   "action": "routine",
+   "locationTokens": [],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t06",
+  "source_id": "rail-pensacola",
+  "transcript": "CSX, Mobile subdivision, train Q-six-four-one has the authority from Mobile to Prichard, readback correct, 10-4.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": false,
+   "category": "routine",
+   "type": "other",
+   "action": "routine",
+   "locationTokens": [],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t07",
+  "source_id": "saraland-fire",
+  "transcript": "Saraland, Engine 2 on scene at the station for a public education event at the elementary school, nothing further.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": false,
+   "category": "routine",
+   "type": "other",
+   "action": "routine",
+   "locationTokens": [],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t08",
+  "source_id": "bay-marine",
+  "transcript": "Bay Marine, this is the vessel Miss Lucille, radio check on channel sixteen. Loud and clear Miss Lucille, switch and answer six-eight.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": false,
+   "category": "routine",
+   "type": "other",
+   "action": "routine",
+   "locationTokens": [],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t09",
+  "source_id": "mobile-fire",
+  "transcript": "Mobile Fire, Engine 12, Ladder 3, Battalion 2 respond to a structure fire, thirty three hundred Cottage Hill Road, caller reports flames showing from the roof, occupants out.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "breaking",
+   "type": "fire",
+   "action": "new",
+   "locationTokens": [
+    "cottage hill"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t10",
+  "source_id": "mobile-fire",
+  "transcript": "Engine 18, Rescue 2, respond to a vehicle accident with entrapment, I-65 southbound at the Shillinger Road exit, two vehicles, one driver pinned.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "breaking",
+   "type": "crash",
+   "action": "new",
+   "locationTokens": [
+    "schillinger"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t11",
+  "source_id": "baldwin-fire-ems",
+  "transcript": "Medic 7, Engine 5, respond to a patient down, chest pains, one one two Section Street, Fairhope, caller says male, sixty, conscious and breathing.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "notable",
+   "type": "medical",
+   "action": "new",
+   "locationTokens": [
+    "section st",
+    "fairhope"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t12",
+  "source_id": "mobile-marine",
+  "transcript": "Mayday mayday mayday, this is the sailing vessel Second Wind, taking on water, off Dolphin Island, three persons on board, we are abandoning to the life raft.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "breaking",
+   "type": "marine",
+   "action": "new",
+   "locationTokens": [
+    "dauphin island"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t13",
+  "source_id": "kbfm-tower",
+  "transcript": "Brookley tower, Piper 2-2-6 Lima Charlie, we've lost oil pressure, declaring an emergency, request immediate landing runway one five.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "breaking",
+   "type": "aviation",
+   "action": "new",
+   "locationTokens": [
+    "brookley"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t14",
+  "source_id": "rail-pensacola",
+  "transcript": "Dispatcher, AGR conductor, we're stopped at the Moffett Road crossing, a tractor trailer is hung up on the tracks, requesting you hold all trains through Mobile.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "notable",
+   "type": "rail",
+   "action": "new",
+   "locationTokens": [
+    "moffett"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t15",
+  "source_id": "mobile-fire",
+  "transcript": "Hazmat 1 and Engine 22 respond to a chemical odor and possible leak, tanker truck, Government Street at the Bankhead Tunnel, driver reports liquid on the roadway.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "breaking",
+   "type": "hazmat",
+   "action": "new",
+   "locationTokens": [
+    "government st",
+    "bankhead"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t16",
+  "source_id": "mobile-fire",
+  "transcript": "Engine 31 respond to a vehicle fire, Tilman's Corner, Highway 90 at Theodore Dawes Road, passenger car fully involved, no injuries.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "notable",
+   "type": "fire",
+   "action": "new",
+   "locationTokens": [
+    "tillmans corner",
+    "theodore dawes"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t17",
+  "source_id": "baldwin-fire-ems",
+  "transcript": "Rescue 9 and Marine 3 respond to a water rescue, two kayakers in the water near the Fairhope Pier, possible flipped boat, bystanders throwing a ring.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "breaking",
+   "type": "rescue",
+   "action": "new",
+   "locationTokens": [
+    "fairhope pier"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t18",
+  "source_id": "saraland-fire",
+  "transcript": "Saraland units, Engine 1, respond to a minor two vehicle accident, no injuries, Saraland Boulevard at Industrial Parkway, blocking one lane.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "notable",
+   "type": "crash",
+   "action": "new",
+   "locationTokens": [
+    "saraland"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t19",
+  "source_id": "mobile-fire",
+  "transcript": "Battalion 2 to Mobile, we have a working fire, fire through the roof, requesting a second alarm, and have Engine 8 respond to Cottage Hill Road for water supply.",
+  "open_incidents": [
+   {
+    "id": 101,
+    "headline": "Structure fire, Cottage Hill Rd",
+    "location_text": "3300 Cottage Hill Rd, Mobile",
+    "units": "[\"E12\",\"L3\",\"BC2\"]"
+   },
+   {
+    "id": 102,
+    "headline": "Vehicle accident, Airport Blvd",
+    "location_text": "Airport Blvd at Schillinger Rd",
+    "units": "[\"E18\"]"
+   }
+  ],
+  "expect": {
+   "nonRoutine": true,
+   "category": "breaking",
+   "type": "fire",
+   "action": "update",
+   "incident_id": 101,
+   "locationTokens": [
+    "cottage hill"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t20",
+  "source_id": "mobile-fire",
+  "transcript": "Rescue 2 to Mobile, patient is free from the vehicle, one patient being transported to USA Medical, I-65 will need to stay closed southbound at Shillinger.",
+  "open_incidents": [
+   {
+    "id": 201,
+    "headline": "Entrapment, I-65 SB at Schillinger Rd",
+    "location_text": "I-65 southbound at Schillinger Rd",
+    "units": "[\"E18\",\"R2\"]"
+   },
+   {
+    "id": 202,
+    "headline": "Medical, Dauphin St",
+    "location_text": "Dauphin St near Broad St",
+    "units": "[\"M27\"]"
+   },
+   {
+    "id": 203,
+    "headline": "Alarm, Halls Mill Rd",
+    "location_text": "Halls Mill Rd",
+    "units": "[\"E14\"]"
+   }
+  ],
+  "expect": {
+   "nonRoutine": true,
+   "category": "breaking",
+   "type": "crash",
+   "action": "update",
+   "incident_id": 201,
+   "locationTokens": [
+    "schillinger",
+    "i-65"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t21",
+  "source_id": "mobile-marine",
+  "transcript": "Coast Guard Station Dauphin Island, we have the three persons from the Second Wind aboard the forty-five footer, all safe, no injuries, heading to the Dauphin Island public pier.",
+  "open_incidents": [
+   {
+    "id": 301,
+    "headline": "Mayday, sailing vessel taking on water",
+    "location_text": "off Dauphin Island",
+    "units": "[\"CG45\"]"
+   },
+   {
+    "id": 302,
+    "headline": "Disabled vessel, Fowl River",
+    "location_text": "Fowl River",
+    "units": "[\"TOW1\"]"
+   }
+  ],
+  "expect": {
+   "nonRoutine": true,
+   "category": "breaking",
+   "type": "marine",
+   "action": "update",
+   "incident_id": 301,
+   "locationTokens": [
+    "dauphin island"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t22",
+  "source_id": "baldwin-fire-ems",
+  "transcript": "Marine 3, we have both kayakers out of the water at the Fairhope Pier, one patient mild hypothermia, requesting Medic 7 meet us at the municipal pier.",
+  "open_incidents": [
+   {
+    "id": 401,
+    "headline": "Water rescue, kayakers",
+    "location_text": "Fairhope Pier",
+    "units": "[\"R9\",\"MAR3\"]"
+   },
+   {
+    "id": 402,
+    "headline": "Brush fire, County Road 32",
+    "location_text": "County Road 32, Foley",
+    "units": "[\"E21\"]"
+   }
+  ],
+  "expect": {
+   "nonRoutine": true,
+   "category": "notable",
+   "type": "rescue",
+   "action": "update",
+   "incident_id": 401,
+   "locationTokens": [
+    "fairhope"
+   ],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t23",
+  "source_id": "mobile-fire",
+  "transcript": "Medic 27, patient is a sixty-eight year old female, name Eugenia Fernwhistle, F-E-R-N-W-H-I-S-T-L-E, callback number two five one, five five five, zero one four two, Old Shell Road.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "notable",
+   "type": "medical",
+   "action": "new",
+   "locationTokens": [
+    "old shell"
+   ],
+   "forbid": [
+    "fernwhistle",
+    "555",
+    "0142"
+   ]
+  }
+ },
+ {
+  "id": "t24",
+  "source_id": "mobile-fire",
+  "transcript": "Police on scene at Schillinger Road and Airport Boulevard requests a tow for the Chevy pickup, Alabama tag one A B C one two three, registered to Jebediah Q. Fernwhistle, driver is being transported, medic requested.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": true,
+   "category": "notable",
+   "type": "crash",
+   "action": "new",
+   "locationTokens": [
+    "schillinger",
+    "airport"
+   ],
+   "forbid": [
+    "fernwhistle",
+    "1abc123",
+    "abc123",
+    "jebediah"
+   ]
+  }
+ },
+ {
+  "id": "t25",
+  "source_id": "mobile-fire",
+  "transcript": "[inaudible] ... copy ... [static] ... [inaudible] ten four.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": false,
+   "category": "routine",
+   "type": "other",
+   "action": "routine",
+   "locationTokens": [],
+   "forbid": []
+  }
+ },
+ {
+  "id": "t26",
+  "source_id": "baldwin-fire-ems",
+  "transcript": "[static] ... Medic ... [inaudible] ... [static] ... thank you.",
+  "open_incidents": [],
+  "expect": {
+   "nonRoutine": false,
+   "category": "routine",
+   "type": "other",
+   "action": "routine",
+   "locationTokens": [],
+   "forbid": []
+  }
+ }
+]

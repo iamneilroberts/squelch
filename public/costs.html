@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Station Ledger</title>
+<meta name="description" content="Every AI and API call behind the receiver: timing, tokens and cost.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Yellowtail&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="costs.css">
+</head>
+<body>
+<div class="ledger-wrap">
+  <header class="ledger-head">
+    <a class="back" href="/">← Receiver</a>
+    <h1><span class="badge-script">Station</span> Ledger</h1>
+    <div class="keys" role="group" aria-label="Period" id="period">
+      <button class="key" data-h="1">1 h</button>
+      <button class="key" data-h="24" aria-pressed="true">24 h</button>
+      <button class="key" data-h="168">7 d</button>
+      <button class="key" data-h="720">30 d</button>
+    </div>
+  </header>
+
+  <main class="book">
+    <section class="page" aria-labelledby="h-balance">
+      <h2 id="h-balance">Balance</h2>
+      <dl class="leaders" id="balance"></dl>
+    </section>
+
+    <section class="page" aria-labelledby="h-gate">
+      <h2 id="h-gate">Jev gate · shadow mode</h2>
+      <div id="gate"></div>
+    </section>
+
+    <section class="page wide" aria-labelledby="h-vad">
+      <h2 id="h-vad">Speech detector</h2>
+      <div id="vad"></div>
+    </section>
+
+    <section class="page wide" aria-labelledby="h-accounts">
+      <h2 id="h-accounts">Accounts</h2>
+      <div class="table-scroll"><table class="accounts" id="accounts"></table></div>
+    </section>
+
+    <section class="page wide" aria-labelledby="h-traces">
+      <h2 id="h-traces">Behind the scenes</h2>
+      <p class="hint">One line per radio clip or digest. Open a line to see each call on its own timeline.</p>
+      <ol class="traces" id="traces"></ol>
+    </section>
+  </main>
+</div>
+<script src="costs.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+[
+ {
+  "id": "s01",
+  "style": "dispatcher",
+  "source_id": "mobile-fire",
+  "text": "Engine twelve, Ladder three, Battalion two, respond to a structure fire at thirty three hundred Cottage Hill Road at Schillinger Road, caller reports smoke showing."
+ },
+ {
+  "id": "s02",
+  "style": "dispatcher",
+  "source_id": "mobile-fire",
+  "text": "Medic twenty seven, respond to four forty one Dauphin Street at Broad Street for a fall, elderly female, conscious and breathing, time of call oh two fifteen."
+ },
+ {
+  "id": "s03",
+  "style": "dispatcher",
+  "source_id": "mobile-fire",
+  "text": "Rescue two, Engine eighteen, vehicle accident with entrapment on Interstate ten eastbound at the Bayway, before the Wallace Tunnel, two vehicles blocking the right lane."
+ },
+ {
+  "id": "s04",
+  "style": "field unit",
+  "source_id": "mobile-fire",
+  "text": "Battalion two on scene, two story residential, fire showing from the second floor at ninety one twenty Moffett Road in Tillmans Corner, establishing command, Engine twelve lay a supply line."
+ },
+ {
+  "id": "s05",
+  "style": "field unit",
+  "source_id": "baldwin-fire-ems",
+  "text": "Medic seven en route to Thomas Hospital in Fairhope with one patient, chest pain, ETA eight minutes, coming down Greeno Road from Spanish Fort."
+ },
+ {
+  "id": "s06",
+  "style": "dispatcher",
+  "source_id": "saraland-fire",
+  "text": "Saraland Engine one, respond to a vehicle versus train, Saraland Boulevard at the CSX crossing, one vehicle, patient trapped, Mobile Rescue also responding."
+ },
+ {
+  "id": "s07",
+  "style": "ATC",
+  "source_id": "kbfm-tower",
+  "text": "Cessna four five seven Delta Kilo, Brookley tower, wind three one zero at eight, runway three three, cleared for takeoff, left turn approved."
+ },
+ {
+  "id": "s08",
+  "style": "ATC",
+  "source_id": "kbfm-tower",
+  "text": "Piper two two six Lima Charlie, Brookley tower, enter right downwind runway one five, altimeter three zero one one, report midfield, traffic is a Cessna on the Bay Bridge."
+ },
+ {
+  "id": "s09",
+  "style": "ATC",
+  "source_id": "kbfm-tower",
+  "text": "Brookley tower, Bonanza niner one seven Foxtrot Mike, ten miles west, inbound for landing with information Bravo, requesting the full stop at Brookley Aeroplex."
+ },
+ {
+  "id": "s10",
+  "style": "coast guard",
+  "source_id": "mobile-marine",
+  "text": "Mayday mayday mayday, this is the motor vessel Miss Lucille, taking on water two miles south of Dauphin Island, four persons on board, position thirty degrees one four north."
+ },
+ {
+  "id": "s11",
+  "style": "coast guard",
+  "source_id": "mobile-marine",
+  "text": "Vessel Second Wind, Coast Guard Sector Mobile, switch and answer channel two two alpha, say again your position near Fort Morgan and the number of persons aboard."
+ },
+ {
+  "id": "s12",
+  "style": "coast guard",
+  "source_id": "bay-marine",
+  "text": "Securite securite, Coast Guard Station Dauphin Island, small craft advisory for Mobile Bay and Mississippi Sound, winds out of the southeast fifteen to twenty knots until nineteen hundred."
+ },
+ {
+  "id": "s13",
+  "style": "rail",
+  "source_id": "rail-pensacola",
+  "text": "CSX Q six four one, Mobile subdivision, track warrant number eight eight five, proceed from Mobile Union Yard to Prichard, clear of the Government Street crossing by twenty one fifteen."
+ },
+ {
+  "id": "s14",
+  "style": "rail",
+  "source_id": "rail-pensacola",
+  "text": "Dispatcher, AGR local one two, we are stopped at the Moffett Road crossing, blocked by a vehicle, requesting police to Schillinger Road and Airport Boulevard to assist."
+ }
+]

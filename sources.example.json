@@ -1,0 +1,55 @@
+{
+  "_help": "Copy this file to sources.json and edit it. Full guide: docs/ADD-YOUR-REGION.md. A complete real-world example lives in examples/gulf-coast.json.",
+  "station": {
+    "script": "Squelch",
+    "caps": "Monitor",
+    "badge": "Scanner radio, transcribed",
+    "timezone": "America/New_York"
+  },
+  "regions": [
+    {
+      "id": "home",
+      "name": "My County",
+      "short": "Home",
+      "badge": "My County · State",
+      "bbox": [40.55, -74.30, 40.95, -73.65],
+      "center": [40.75, -73.98],
+      "zoom": 10,
+      "nwsPoint": [40.75, -73.98],
+      "tide": false,
+      "vocab": "Main Street, Broadway, Route 9, County Hospital, Exit 12"
+    }
+  ],
+  "sources": [
+    {
+      "id": "county-fire",
+      "name": "County Fire Dispatch",
+      "short": "CO FIRE",
+      "dial": "P25",
+      "band": "fire",
+      "kind": "stream",
+      "streamUrl": "https://audio.broadcastify.com/FEED_ID.mp3",
+      "listenUrl": "https://www.broadcastify.com/listen/feed/FEED_ID",
+      "coverage": "Who and what this feed carries — the triage model reads this.",
+      "lat": 40.75,
+      "lng": -73.98,
+      "region": "home",
+      "area": "My County, ST"
+    },
+    {
+      "id": "airport-tower",
+      "name": "Regional Airport Tower — LiveATC",
+      "short": "TOWER",
+      "dial": "118.7",
+      "band": "air",
+      "kind": "link",
+      "streamUrl": "",
+      "listenUrl": "https://www.liveatc.net/search/?icao=KXYZ",
+      "coverage": "Listen-only link: shown on the dial, opens in a new tab, never recorded.",
+      "lat": 40.7,
+      "lng": -74.1,
+      "region": "home",
+      "area": "My County, ST"
+    }
+  ]
+}
