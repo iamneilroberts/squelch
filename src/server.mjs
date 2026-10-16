@@ -71,13 +71,24 @@ function brand(html) {
     .replace(/(id="badge-sub">)[^<]*/, `$1${escHtml(station.badge)}`);
 }
 
-function serveFile(res, root, rel) {
+function serveFile(res, root, rel, range) {
   const path = normalize(join(root, rel));
   if (!path.startsWith(normalize(root)) || !existsSync(path) || statSync(path).isDirectory()) {
     res.writeHead(404); return res.end('not found');
   }
   // no-cache: browsers and Cloudflare's edge revalidate, so tunnel visitors never run a stale app.js.
-  res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+  const head = { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'Accept-Ranges': 'bytes' };
+  // Byte ranges let the browser seek in recordings (without them, setting currentTime is ignored).
+  const size = statSync(path).size;
+  const m = /^bytes=(\d*)-(\d*)$/.exec(range || '');
+  if (m && (m[1] || m[2])) {
+    const start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]));
+    const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+    if (start > end || start >= size) { res.writeHead(416, { 'Content-Range': `bytes */${size}` }); return res.end(); }
+    res.writeHead(206, { ...head, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': end - start + 1 });
+    return createReadStream(path, { start, end }).pipe(res);
+  }
+  res.writeHead(200, head);
   if (extname(path) === '.html') {
     const html = versionAssets(readFileSync(path, 'utf8'), dirname(path));
     return res.end(path.endsWith('index.html') ? brand(html) : html);
@@ -252,8 +263,8 @@ createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/vtt; charset=utf-8', 'Cache-Control': 'no-cache' });
       return res.end(toVtt(cues));
     }
-    if (p.startsWith('/audio/')) return serveFile(res, join('data', 'audio'), decodeURIComponent(p.slice(7)));
-    if (p.startsWith('/reels/')) return serveFile(res, join('data', 'digests'), decodeURIComponent(p.slice(7)));
+    if (p.startsWith('/audio/')) return serveFile(res, join('data', 'audio'), decodeURIComponent(p.slice(7)), req.headers.range);
+    if (p.startsWith('/reels/')) return serveFile(res, join('data', 'digests'), decodeURIComponent(p.slice(7)), req.headers.range);
     return serveFile(res, 'public', p === '/' ? 'index.html' : p.slice(1));
   } catch (e) {
     json(res, { error: e.message }, 502);
