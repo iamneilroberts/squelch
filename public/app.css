@@ -364,7 +364,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* Transport: two small piano keys and a tape-counter style progress strip. */
 .transport { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; min-height: 36px; }
-.tkey { min-width: 0; width: 36px; padding: 8px 0 6px; font-size: 13px; letter-spacing: 0; line-height: 1; }
+.tkey { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; width: 36px; padding: 8px 0 6px; font-size: 13px; letter-spacing: 0; line-height: 1; }
+/* Engraved symbols: ink-filled with a light lip below, like lettering stamped into bakelite. */
+.ico { width: 1em; height: 1em; fill: currentColor; vertical-align: -.12em; flex: none; }
+.key .ico { width: 12px; height: 12px; filter: drop-shadow(0 1px 0 oklch(1 0 0 / .8)); }
+.scan-key .ico { width: 10px; height: 10px; }
 .tkey:disabled { opacity: .45; cursor: default; transform: translateY(1px); box-shadow: 0 1px 0 var(--bakelite-3); }
 .progress {
   position: relative; width: clamp(90px, 16vw, 200px); height: 10px; cursor: pointer;
@@ -457,7 +461,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .cc-src[data-band="ham"] { --c: oklch(0.76 0.13 310); }
 
 /* Title line → channel story */
-.story-link { border: 0; padding: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; border-bottom: 1px dotted currentColor; }
+.story-link { display: inline; border: 0; padding: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
 /* Channel story: a typed card over the desk */
 .story {
   width: min(560px, calc(100vw - 32px)); max-height: min(80vh, 720px); box-sizing: border-box;
@@ -469,7 +473,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .story-head { display: flex; align-items: flex-start; gap: 10px; padding-bottom: 8px; border-bottom: 2px solid var(--red-ink); }
 .story-head h2 { flex: 1; margin: 0; font: 700 16px/1.4 var(--font-type); }
 .story-head .cc-src { background: oklch(0.16 0.01 60); }
-.story-close { border: 0; background: none; padding: 0 4px; font-size: 26px; line-height: 1; color: var(--ink-soft); cursor: pointer; }
+.story-close { flex: none; width: 36px; }
 .story-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 12px 0; font-size: 13.5px; }
 .story-facts dt { padding-top: 2px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
 .story-facts dd { margin: 0; }

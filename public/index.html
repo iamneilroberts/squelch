@@ -60,11 +60,11 @@
         </div>
       </div>
       <div class="transport" role="group" aria-label="Playback">
-        <button class="key tkey" id="btn-stop" aria-label="Stop" title="Stop (Esc)" disabled>■</button>
-        <button class="key tkey" id="btn-pause" aria-label="Pause" title="Pause" disabled>❚❚</button>
+        <button class="key tkey" id="btn-stop" aria-label="Stop" title="Stop (Esc)" disabled><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2h8v8H2z"/></svg></button>
+        <button class="key tkey" id="btn-pause" aria-label="Pause" aria-pressed="false" title="Pause" disabled><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.2 1.5h2.8v9H2.2zM7 1.5h2.8v9H7z"/></svg></button>
         <button class="key tkey scan-key" id="btn-scan" aria-pressed="false" title="Scan: play each new transmission from the channels shown, back to back">Scan</button>
         <button class="key tkey scan-key" id="btn-hold" aria-pressed="false" disabled title="Hold the scan on this channel (press again to resume scanning)">Hold</button>
-        <button class="key tkey scan-key" id="btn-prev" disabled aria-label="Previous channel" title="Back to the previous channel the scan stopped on — press again to go further back">◁ Prev</button>
+        <button class="key tkey scan-key" id="btn-prev" disabled aria-label="Previous channel" title="Back to the previous channel the scan stopped on — press again to go further back"><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 1.5h1.8v9H1.5zM10.5 1.2v9.6L3.8 6z"/></svg>Prev</button>
         <div class="progress" id="progress" hidden title="Seek"><span id="progress-bar"></span></div>
         <span class="elapsed" id="elapsed"></span>
         <p class="now-playing" id="now-playing" aria-live="polite">Tune a station on the dial to listen live.</p>
@@ -119,7 +119,7 @@
 
 </div>
 <dialog class="story" id="story" aria-labelledby="story-title">
-  <header class="story-head"><h2 id="story-title"></h2><button type="button" class="story-close" id="story-close" aria-label="Close">×</button></header>
+  <header class="story-head"><h2 id="story-title"></h2><button type="button" class="key tkey story-close" id="story-close" aria-label="Close"><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
   <dl class="story-facts" id="story-facts"></dl>
   <ol class="story-log" id="story-log"></ol>
 </dialog>

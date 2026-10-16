@@ -1,6 +1,8 @@
 // Squelch — client.
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Engraved key symbols. Inline SVG, so phones can't swap in colour emoji for ▶ and friends.
+const ICON_PLAY = '<svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 1.2v9.6L10.5 6z"/></svg>';
 let TZ = Intl.DateTimeFormat().resolvedOptions().timeZone; // replaced by the station's time zone at boot
 const hhmm = (iso) => new Date(iso).toLocaleTimeString('en-US', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false });
 const ago = (iso) => {
@@ -536,7 +538,7 @@ function syncTransport() {
   const seekable = loaded && Number.isFinite(radio.duration) && radio.duration > 0;
   $('btn-stop').disabled = !loaded;
   $('btn-pause').disabled = !loaded;
-  $('btn-pause').textContent = radio.paused ? '▶' : '❚❚';
+  $('btn-pause').setAttribute('aria-pressed', String(loaded && radio.paused && !radio.ended)); // latches down while paused, like a tape-deck pause key
   $('btn-pause').setAttribute('aria-label', radio.paused ? 'Resume' : 'Pause');
   $('btn-pause').title = radio.paused ? 'Resume' : 'Pause';
   $('progress').hidden = !seekable;
@@ -754,7 +756,7 @@ function refreshOverlays() {
 
 /* ───────── Log ───────── */
 const typeLabel = (t) => ({ medical: 'Medical', crash: 'Crash', fire: 'Fire', rescue: 'Rescue', hazmat: 'Hazmat', police: 'Police', aviation: 'Aviation', marine: 'Marine', rail: 'Rail', weather: 'Weather' }[t] || 'Other');
-const playButton = (audio, label, text = '▶ play') => (audio ? `<button class="play" data-src="/audio/${encodeURIComponent(audio)}" data-label="${esc(label)}">${text}</button>` : '');
+const playButton = (audio, label, text = 'play') => (audio ? `<button class="play" data-src="/audio/${encodeURIComponent(audio)}" data-label="${esc(label)}">${ICON_PLAY} ${text}</button>` : '');
 
 function renderLog() {
   const log = $('log');
@@ -793,7 +795,7 @@ function renderLog() {
       <div class="entry-more">
         ${updates.map((u) => `<div class="update"><time>${hhmm(u.at)}</time> ${esc(u.summary)}
           ${u.transcript ? `<p class="transcript">“${esc(u.transcript)}”</p>` : ''}
-          ${playButton(u.audio, `${hhmm(u.at)} ${s?.short}`, '▶ play transmission')}</div>`).join('')}
+          ${playButton(u.audio, `${hhmm(u.at)} ${s?.short}`, 'play transmission')}</div>`).join('')}
         <div class="entry-meta" style="margin-top:6px"><span>Updated ${ago(inc.updated_at)}</span><span>Confidence ${Math.round((inc.confidence || 0) * 100)}%</span></div>
       </div>
     </li>`;
@@ -864,7 +866,7 @@ function renderDigest() {
       <div class="bulletin-dateline"><span>${longDate(d.date)}</span><span>${esc(region?.name)}</span><span>${d.calls} transmissions read</span></div>
       <h2>${esc(b.headline)}</h2>
       <p class="bulletin-overview">${esc(b.overview)}</p>
-      ${d.reel ? `<button class="reel play" data-src="/reels/${encodeURIComponent(d.reel)}" data-label="${esc(region?.short)} highlight reel, ${d.date}">▶ Play highlight reel</button>` : ''}
+      ${d.reel ? `<button class="reel play" data-src="/reels/${encodeURIComponent(d.reel)}" data-label="${esc(region?.short)} highlight reel, ${d.date}">${ICON_PLAY} Play highlight reel</button>` : ''}
       ${b.highlights.map((h) => `<div class="highlight">
         <div class="highlight-kind ${h.kind}">${esc(h.kind)} · ${h.calls?.[0] ? hhmm(h.calls[0].at) : ''}</div>
         <h3>${esc(h.title)}</h3>
@@ -972,7 +974,7 @@ async function renderStory() {
   const notes = t.events.filter((e) => e.note);
   const quiet = t.events.length - notes.length;
   $('story-log').innerHTML = notes.map((e) => `<li><time>${hhmm(e.at)}</time><span>${esc(e.note)}</span>${e.audio
-    ? `<button class="play" data-src="/audio/${encodeURIComponent(e.audio)}" data-label="${esc(`${hhmm(e.at)} ${state.byId.get(t.source_id)?.short || ''}`)}" aria-label="Play">▶\uFE0E</button>` : ''}</li>`).join('')
+    ? `<button class="play" data-src="/audio/${encodeURIComponent(e.audio)}" data-label="${esc(`${hhmm(e.at)} ${state.byId.get(t.source_id)?.short || ''}`)}" aria-label="Play">${ICON_PLAY}</button>` : ''}</li>`).join('')
     + (quiet ? `<li class="story-more">+ ${quiet} more transmission${quiet > 1 ? 's' : ''} with nothing new</li>` : '');
 }
 document.addEventListener('click', (e) => {
