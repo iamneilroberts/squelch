@@ -195,4 +195,4 @@ export function updateScan(sid, body) {
 // timers were stopped, e.g. with the phone locked).
 export const scanPlays = (sid) => (sessions.has(sid) ? { epoch: sessions.get(sid).start, plays: sessions.get(sid).plays } : null);
 
-bus.on('call', (c) => { for (const s of sessions.values()) enqueue(s, c); });
+bus.on('clip-ready', (c) => { for (const s of sessions.values()) enqueue(s, c); });

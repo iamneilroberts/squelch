@@ -100,6 +100,8 @@ async function handleClip(source, clip) {
   }
   const callId = insertCall({ source_id: source.id, at: clip.at, duration: clip.duration, audio: clip.audio, transcript });
   linkTraceToCall(callId);
+  // The scan (src/scan.mjs) can play it now; its story and incident follow with the 'call' event.
+  bus.emit('clip-ready', { id: callId, source_id: source.id, at: clip.at, duration: clip.duration, audio: clip.audio, transcript, subject: null, thread_id: null, incident_id: null });
   // The channel's story runs beside triage. On failure the call just isn't added to it.
   const current = currentThread(source.id);
   const threadP = nextThread({ source, current, transcript }).then(
