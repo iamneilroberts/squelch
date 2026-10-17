@@ -1174,6 +1174,16 @@ function renderLog() {
 
 /* ───────── Stories: each channel conversation of the last few hours, latest first ───────── */
 const STORY_HOURS = 3;
+// A tap on a transmission's line shows all of it (again folds it); it stays open through live re-renders.
+const unclamped = new Set();
+const openCls = (key) => (unclamped.has(key) ? ' open' : '');
+document.addEventListener('click', (e) => {
+  const p = e.target.closest('.follow-log p, .story-line');
+  if (!p?.dataset.key) return;
+  e.stopPropagation(); // not the row's story card
+  if (!unclamped.delete(p.dataset.key)) unclamped.add(p.dataset.key);
+  p.classList.toggle('open');
+}, true);
 const isLive = (iso) => Date.now() - new Date(iso) < 5 * 60e3;
 const storyOf = ({ events, ...t }) => ({ ...t, count: events.length, last: events.at(-1) || null }); // a story card's thread as a Stories row
 function storyRow(t) {
@@ -1182,7 +1192,7 @@ function storyRow(t) {
     <div class="entry-meta"><span>${hhmm(t.last?.at || t.updated_at)}</span><span>${t.count} transmission${t.count === 1 ? '' : 's'}</span>
       ${isLive(t.updated_at) ? '<span class="live">● live</span>' : ''}${t.alert >= 0.9 ? '<span class="flag">** Breaking **</span>' : ''}${followKey(t.id)}</div>
     <div class="entry-head">${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}</div>
-    ${line ? `<p class="story-line">${line}</p>` : ''}
+    ${line ? `<p class="story-line${openCls(`s${t.last?.id}`)}" data-key="s${t.last?.id}">${line}</p>` : ''}
   </li>`;
 }
 // A transmission on a story bumps it to the top. A story new to this page is fetched, and so is one whose
@@ -1224,7 +1234,7 @@ function renderFollow() {
       ${isLive(last) ? '<span class="live">● live</span>' : Date.now() - new Date(last) > 2 * 3600e3 ? `<span class="quiet">quiet since ${hhmm(last)}</span>` : ''}</div>
     <ol class="follow-log">${shown.map((e) => {
       const fresh = Date.now() - (follow.fresh.get(e.id) || 0) < 20e3;
-      return `<li${fresh ? ' class="fresh"' : ''}><time>${hhmm(e.at)}</time><p>${fresh ? '<span class="new">New</span> ' : ''}${ccOff() || !e.transcript ? esc(e.note) : `“${esc(e.transcript)}”`}</p></li>`;
+      return `<li${fresh ? ' class="fresh"' : ''}><time>${hhmm(e.at)}</time><p class="${openCls(`e${e.id}`)}" data-key="e${e.id}">${fresh ? '<span class="new">New</span> ' : ''}${ccOff() || !e.transcript ? esc(e.note) : `“${esc(e.transcript)}”`}</p></li>`;
     }).join('')}</ol>
     <div class="follow-keys"><button type="button" class="follow-key" data-thread="${t.id}">Open</button><button type="button" class="follow-key" data-follow="${t.id}">Unfollow</button></div>`;
 }

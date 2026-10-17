@@ -552,7 +552,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .follow-log li { display: grid; grid-template-columns: 44px 1fr; gap: 8px; }
 :is(.follow-log, .story-log) li.fresh { margin: 0 -6px; padding: 0 6px; background: oklch(0.93 0.08 90 / .8); }
 .follow-log time { font-weight: 700; color: var(--red-ink); }
-.follow-log p { margin: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.follow-log p { margin: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; cursor: pointer; }
+.follow-log p.open, .story-line.open { display: block; -webkit-line-clamp: none; }
 .new { padding: 0 4px; border-radius: 2px; background: var(--red-ink); color: var(--paper); font: 700 10px/1.4 var(--font-type); letter-spacing: .08em; text-transform: uppercase; font-style: normal; }
 .follow-keys { display: flex; justify-content: flex-end; gap: 8px; }
 
@@ -812,7 +813,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* Follow / Following / Open / Unfollow: printed keys like Story › and play */
 .follow-key { display: inline-flex; align-items: center; padding: 3px 9px; border: 1px solid var(--ink); border-radius: 2px; background: none; color: var(--ink); font: 700 11px var(--font-type); letter-spacing: .05em; text-transform: uppercase; }
 .follow-key:hover, .follow-key[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
-.story-line { margin: 4px 0 0; font-size: 13.5px; line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.story-line { margin: 4px 0 0; font-size: 13.5px; line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; cursor: pointer; }
 
 .traffic { padding: 9px 0; border-bottom: 1px dotted oklch(0.75 0.03 90); font-size: 13px; line-height: 1.4; }
 .traffic .entry-meta { font-size: 11px; }
