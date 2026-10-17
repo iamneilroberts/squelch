@@ -101,7 +101,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-radius: 10px;
   background: linear-gradient(180deg, oklch(0.93 0.01 90), oklch(0.72 0.02 80) 48%, oklch(0.86 0.015 85) 52%, oklch(0.68 0.02 75));
   box-shadow: 0 2px 0 oklch(0.4 0.03 60), 0 6px 14px oklch(0.15 0.03 50 / .45), inset 0 1px 0 oklch(1 0 0 / .8);
-  transform: rotate(-2deg);
 }
 .badge-script {
   font-family: var(--font-script);
@@ -870,7 +869,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .tuner { gap: 10px; }
   /* Badge sits on a slim strip of grille cloth instead of a tall panel. */
   .grille { min-height: 0; padding: 8px; }
-  .badge { padding: 6px 16px 5px; transform: rotate(-1.5deg); }
+  .badge { padding: 6px 16px 5px; }
   .badge-script { font-size: 26px; }
   .badge-sub { display: none; } /* the region name costs a line the phone needs */
   .grille-keys .bell span { display: none; } /* just the icons beside the badge */
