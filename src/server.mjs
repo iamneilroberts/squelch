@@ -13,6 +13,7 @@ import { buildDigest, dayBounds, localDate } from './digest.mjs';
 import { llmReady } from './ai/llm.mjs';
 import { costSummary, recentTraces, gateAgreement, vadReport, squelchReport } from './meter.mjs';
 import { station, regions, sources, configFile } from './config.mjs';
+import { scanStream, updateScan, scanPlays } from './scan.mjs';
 
 const PORT = Number(process.env.PORT || 8077);
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.ico': 'image/x-icon' };
@@ -284,6 +285,13 @@ createServer(async (req, res) => {
       return json(res, { ok: true });
     }
     if (p.startsWith('/listen/')) return relayStream(req, res, p.slice('/listen/'.length));
+    // Scan as one stream that keeps playing with a phone locked (src/scan.mjs).
+    if (p === '/scan/stream') return scanStream(req, res, url.searchParams, (play) => broadcast('scan', play));
+    const sc = p.match(/^\/api\/scan\/([\w-]{1,64})$/);
+    if (sc) {
+      const r = req.method === 'POST' ? updateScan(sc[1], await readJson(req)) : scanPlays(sc[1]);
+      return r ? json(res, r) : json(res, { error: 'no such scan' }, 404);
+    }
     const th = p.match(/^\/api\/threads\/(\d+)$/);
     if (th) { const t = getThread(Number(th[1])); return t ? json(res, t) : (res.writeHead(404), res.end()); }
     const cc = p.match(/^\/api\/captions\/([\w.-]+)\.vtt$/);

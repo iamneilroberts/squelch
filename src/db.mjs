@@ -134,6 +134,11 @@ for (const col of ['keep INTEGER NOT NULL DEFAULT 0', 'jev_speech REAL', 'jev_ne
 // Caption cues (JSON [{start,end,text}]) are built on first playback and cached here.
 db.exec('CREATE INDEX IF NOT EXISTS calls_audio ON calls (audio)');
 export const callByAudio = (audio) => db.prepare('SELECT id, audio, transcript, cues FROM calls WHERE audio = ?').get(audio);
+// Transmissions as the scan announces them (src/scan.mjs): what the page shows, without the caption cues.
+const SCAN_COLS = 'id, source_id, at, duration, audio, transcript, incident_id, category, subject, thread_id';
+export const scanCall = (id) => db.prepare(`SELECT ${SCAN_COLS} FROM calls WHERE id = ?`).get(id);
+export const scanCallsSince = (since) => db.prepare(`SELECT ${SCAN_COLS} FROM calls
+  WHERE audio IS NOT NULL AND transcript IS NOT NULL AND transcript != '' AND at >= ? ORDER BY at DESC LIMIT 30`).all(since);
 /* Channel stories (src/ai/thread.mjs): a thread is one conversation on one channel. Its calls carry
    the subject at that moment and a one-line chronology note. */
 db.exec(`CREATE TABLE IF NOT EXISTS threads (
