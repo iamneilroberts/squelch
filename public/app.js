@@ -516,7 +516,7 @@ function scanConnect() {
   radio.querySelectorAll('track').forEach((t) => t.remove());
   radio.src = `/scan/stream?${new URLSearchParams({ sid: scan.sid, page: pageId, ...scanSettings() })}`;
   radio.dataset.kind = 'scan';
-  radio.play().catch((e) => {
+  radio.play().then(() => { if (scan.on) scanIdle(); }).catch((e) => { // replaces "tap anywhere to listen"
     if (e.name !== 'NotAllowedError') return;
     radio.removeAttribute('src'); // don't let audio pile up behind the tap: connect fresh when it comes
     radio.load();
