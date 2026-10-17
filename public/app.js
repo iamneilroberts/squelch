@@ -137,6 +137,9 @@ function buildDial() {
     </button>`;
   $('dial-stations').innerHTML = present.map((b) =>
     `<div class="dial-group" data-band="${b.id}"><span class="dial-group-label">${b.label}</span>${order.filter((s) => s.band === b.id).map(key).join('')}</div>`).join('');
+  $('chbar-lamps').innerHTML = present.map((b) =>
+    `<span class="chbar-group" data-band="${b.id}"><span>${order.filter((s) => s.band === b.id).map((s) => `<i data-id="${s.id}"></i>`).join('')}</span><small>${b.key}</small></span>`).join('');
+  renderBar();
 
   $('keys').innerHTML = [{ id: 'all', key: 'All' }, ...present].map((b) =>
     `<button class="key" data-band="${b.id}" aria-pressed="${b.id === state.band}">${b.key}</button>`).join('');
@@ -158,6 +161,7 @@ $('keys').addEventListener('click', (e) => {
   for (const el of $('dial-stations').querySelectorAll('.station')) {
     el.classList.toggle('dimmed', state.band !== 'all' && state.byId.get(el.dataset.id).band !== state.band);
   }
+  renderBar();
   renderLog();
   renderIncidentMarkers();
   scanSync();
@@ -183,7 +187,7 @@ addEventListener('resize', () => moveNeedle(state.tuned || visibleSources().find
 const narrow = matchMedia('(max-width: 720px)');
 function applyDialStyle() {
   const pick = store.get('pcm.dial') || 'auto';
-  document.documentElement.dataset.dial = pick === 'auto' ? (narrow.matches ? 'presets' : 'rule') : pick;
+  document.documentElement.dataset.dial = pick === 'auto' ? (narrow.matches ? 'bar' : 'rule') : pick;
   if (state.byId.size) buildDial();
 }
 applyDialStyle();
@@ -200,6 +204,29 @@ $('look').addEventListener('change', (e) => {
 $('look-close').addEventListener('click', () => $('look').close());
 $('look').addEventListener('click', (e) => { if (e.target === $('look')) $('look').close(); }); // tap on the backdrop
 
+/* ───────── Channel bar (a phone's dial): what's on, and a lamp per channel; tap it for the preset keys ───────── */
+const TRAFFIC_MS = 3 * 60e3; // a lamp stays lit this long after its channel's last transmission
+function renderBar() {
+  const heard = new Map(); // channel → its newest transmission (state.calls is newest first)
+  for (const c of state.calls) if (!heard.has(c.source_id)) heard.set(c.source_id, Date.parse(c.at));
+  const air = scan.on ? scan.shown && scan.current : state.tuned?.id || onAirCall?.source_id;
+  let lit = 0, first = 0, skipped = 0;
+  for (const el of $('chbar-lamps').querySelectorAll('i')) {
+    const id = el.dataset.id, on = Date.now() - (heard.get(id) || 0) < TRAFFIC_MS;
+    lit += el.classList.toggle('lit', on);
+    first += el.classList.toggle('pri', scan.priority.has(id));
+    skipped += el.classList.toggle('locked', scan.lockouts.has(id));
+    el.classList.toggle('air', id === air);
+    el.classList.toggle('dimmed', state.band !== 'all' && state.byId.get(id)?.band !== state.band);
+  }
+  const s = state.byId.get(air), n = scanChannels().length;
+  $('chbar-now').innerHTML = s ? `▸ <strong>${esc(s.short)}</strong> ${esc(s.dial || '')}`
+    : scan.on ? `<strong>SCANNING</strong> ${n} channel${n === 1 ? '' : 's'}` : '<strong>Off</strong> · tap to pick a channel';
+  $('chbar-mode').textContent = scan.on && s ? (scan.hold ? 'HOLD' : `SCAN ${n} ch`) : '';
+  $('chbar-sum').textContent = [`${lit} channel${lit === 1 ? '' : 's'} with traffic`, first && `${first} first`, skipped && `${skipped} skipped`].filter(Boolean).join(', ');
+}
+$('chbar').addEventListener('click', () => $('chbar').setAttribute('aria-expanded', $('chbar').getAttribute('aria-expanded') !== 'true'));
+
 /* ───────── Audio ───────── */
 const radio = $('radio');
 radio.volume = 0.7;
@@ -215,6 +242,7 @@ function tune(s) {
   state.tuned = s;
   moveNeedle(s);
   buttons.forEach((b) => b.setAttribute('aria-pressed', b.dataset.id === s.id));
+  renderBar();
   if (!playable(s)) {
     radio.pause();
     radio.removeAttribute('src');
@@ -254,6 +282,7 @@ function powerOff() {
   radio.load(); // drop the connection to a live stream instead of buffering it in the background
   state.tuned = null;
   for (const b of $('dial-stations').querySelectorAll('.station')) b.setAttribute('aria-pressed', 'false');
+  renderBar();
   setLit(false);
   $('now-playing').textContent = 'Off the air. Tune a station on the dial to listen live.';
   ccIdle();
@@ -515,6 +544,7 @@ function syncScanKeys() {
     : `<span>Catch up</span>${story && !k.disabled ? `<small>${shortOf(story.source)}</small>` : ''}`;
   k.title = scan.catchup ? 'Stop the catch-up and carry on scanning' : story ? `Hear the story so far: ${state.byId.get(story.source)?.short || story.source}: ${story.subject}` : 'Catch up: hear the story so far of the channel just heard';
   k.setAttribute('aria-label', k.title);
+  renderBar();
 }
 // The story Catch up plays: the one running, else the story of the channel heard last.
 function catchupStory() {
@@ -687,6 +717,7 @@ function cycleStation(id) {
   const el = $('dial-stations').querySelector(`[data-id="${id}"]`);
   el?.classList.toggle('locked', scan.lockouts.has(id));
   el?.classList.toggle('pri', scan.priority.has(id));
+  renderBar();
   scanSync();
   if (scan.idle) scanIdle();
 }
@@ -820,7 +851,7 @@ function tick() {
   $('clock').innerHTML = [...t].map((c) => c === ':' ? '<span class="sep">:</span>' : `<span>${c}</span>`).join('');
 }
 tick();
-setInterval(tick, 10e3);
+setInterval(() => { tick(); renderBar(); }, 10e3); // the bar's lamps go out as traffic ages
 
 /* ───────── Map ───────── */
 const map = L.map('map', { zoomControl: true, attributionControl: true, zoomSnap: 0.25 }).setView([20, 0], 2); // fitted to the regions at boot
@@ -887,6 +918,7 @@ const onAirLayer = L.layerGroup().addTo(map);
 function showOnAir() {
   onAirLayer.clearLayers();
   const c = onAirCall;
+  renderBar();
   renderIncidentMarkers();
   map.getContainer().classList.toggle('on-air-mode', Boolean(c));
   if (!c || folded()) return;
@@ -1362,8 +1394,10 @@ function connect() {
     if (storyId && c.thread_id === storyId) renderStory();
     if (c.thread_id) storyCall(c);
     if (c.thread_id && c.thread_id === follow.id) followCall(c);
-    const lamp = $(`lamp-${c.source_id}`);
-    if (lamp) { lamp.classList.remove('blink'); void lamp.offsetWidth; lamp.classList.add('blink'); }
+    renderBar();
+    for (const lamp of [$(`lamp-${c.source_id}`), $('chbar-lamps').querySelector(`[data-id="${c.source_id}"]`)]) {
+      if (lamp) { lamp.classList.remove('blink'); void lamp.offsetWidth; lamp.classList.add('blink'); }
+    }
     if (inRegion(c.source_id)) flickEye();
     if (state.tab === 'traffic') renderLog();
   });

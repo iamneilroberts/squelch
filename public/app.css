@@ -223,19 +223,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ───────────── Dial styles (the Look panel; app.js sets <html data-dial>) ───────────── */
 /* Preset keys: every station in view, grouped by band, instead of a strip to scroll sideways. */
-[data-dial="presets"] .dial { min-width: 0 !important; height: auto; padding: 6px 8px 8px; } /* !important: buildDial sizes the slide rule inline */
-[data-dial="presets"] :is(.dial-bands, .dial-scale, .needle) { display: none; }
-[data-dial="presets"] .dial-stations { position: relative; inset: auto; display: flex; flex-wrap: wrap; gap: 5px 10px; }
-[data-dial="presets"] .dial-group { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px; flex: 1 1 auto; }
-[data-dial="presets"] .dial-group-label {
+:is([data-dial="presets"], [data-dial="bar"]) .dial { min-width: 0 !important; height: auto; padding: 6px 8px 8px; } /* !important: buildDial sizes the slide rule inline */
+:is([data-dial="presets"], [data-dial="bar"]) :is(.dial-bands, .dial-scale, .needle) { display: none; }
+:is([data-dial="presets"], [data-dial="bar"]) .dial-stations { position: relative; inset: auto; display: flex; flex-wrap: wrap; gap: 5px 10px; }
+:is([data-dial="presets"], [data-dial="bar"]) .dial-group { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px; flex: 1 1 auto; }
+:is([data-dial="presets"], [data-dial="bar"]) .dial-group-label {
   display: block; flex: 0 0 100%; padding-bottom: 2px; border-bottom: 1.5px solid currentColor;
   font-size: 9px; font-weight: 700; letter-spacing: .24em; line-height: 1.2; text-transform: uppercase; color: var(--walnut-900);
 }
-[data-dial="presets"] .dial-group[data-band="fire"] .dial-group-label { color: var(--red-ink); }
-[data-dial="presets"] .station { position: static; transform: none; gap: 0; padding: 2px 5px 3px; line-height: 1.25; background: oklch(1 0 0 / .3); box-shadow: inset 0 0 0 1px oklch(0.3 0.06 60 / .22); }
-[data-dial="presets"] .station::before { display: none; }
-[data-dial="presets"] .station.at { box-shadow: inset 0 0 0 1.5px var(--needle); } /* the scan stepping past */
-[data-dial="presets"] .station[aria-pressed="true"] { background: oklch(1 0 0 / .65); box-shadow: inset 0 0 0 2px var(--needle); }
+:is([data-dial="presets"], [data-dial="bar"]) .dial-group[data-band="fire"] .dial-group-label { color: var(--red-ink); }
+:is([data-dial="presets"], [data-dial="bar"]) .station { position: static; transform: none; gap: 0; padding: 2px 5px 3px; line-height: 1.25; background: oklch(1 0 0 / .3); box-shadow: inset 0 0 0 1px oklch(0.3 0.06 60 / .22); }
+:is([data-dial="presets"], [data-dial="bar"]) .station::before { display: none; }
+:is([data-dial="presets"], [data-dial="bar"]) .station.at { box-shadow: inset 0 0 0 1.5px var(--needle); } /* the scan stepping past */
+:is([data-dial="presets"], [data-dial="bar"]) .station[aria-pressed="true"] { background: oklch(1 0 0 / .65); box-shadow: inset 0 0 0 2px var(--needle); }
 /* Tuning drum: the needle stays put and the dial scrolls under it, snapping station to station. */
 .dial-frame { position: relative; }
 .drum-needle { display: none; }
@@ -249,6 +249,37 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [data-dial="drum"] .dial-scroll { scroll-snap-type: x mandatory; }
 [data-dial="drum"] .dial { overflow: clip; } /* hidden would make the dial its own scroller and swallow the snap points */
 [data-dial="drum"] .station { scroll-snap-align: center; }
+/* Channel bar: the dial in one slim strip. What's on, then a lamp per channel grouped by band; tapping it
+   opens the preset keys underneath (aria-expanded). */
+.chbar { display: none; }
+[data-dial="bar"] .chbar {
+  position: relative; display: grid; gap: 3px; width: 100%; min-height: 44px; padding: 5px 10px; text-align: left;
+  border: 4px solid transparent; border-radius: 12px; color: var(--walnut-900);
+  background: linear-gradient(180deg, var(--dial-off), oklch(0.74 0.07 75)) padding-box, linear-gradient(180deg, var(--brass), var(--brass-dark)) border-box;
+  box-shadow: inset 0 2px 6px oklch(0.3 0.06 60 / .5), 0 2px 4px oklch(0.2 0.03 50 / .4);
+}
+.chbar-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; font: 14px/1.25 var(--font-type); }
+.chbar-line::after { content: '▾'; font-size: 14px; }
+.chbar[aria-expanded="true"] .chbar-line::after { content: '▴'; }
+.chbar-now { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chbar-now strong { font: 700 15px var(--font-caps); letter-spacing: .08em; }
+.chbar-mode { font: 700 11px var(--font-caps); letter-spacing: .14em; color: var(--needle); white-space: nowrap; }
+.chbar-lamps { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; padding-top: 3px; }
+.chbar-group { display: grid; justify-items: center; gap: 3px; }
+.chbar-group > span { display: flex; gap: 3px; }
+.chbar-group small { font: 700 8.5px/1 var(--font-caps); letter-spacing: .1em; text-transform: uppercase; color: color-mix(in oklch, var(--c), var(--walnut-950) 50%); }
+.chbar-lamps i { position: relative; width: 9px; height: 9px; border-radius: 50%; background: oklch(0.38 0.03 60 / .45); box-shadow: inset 0 -1px 2px oklch(0 0 0 / .45); }
+.chbar-lamps i.lit { background: var(--c); box-shadow: 0 0 6px var(--c), inset 0 0 0 1px oklch(0.3 0.05 60 / .45); }
+.chbar-lamps i.air { outline: 1.5px solid var(--needle); outline-offset: 1.5px; } /* on air, or tuned */
+.chbar-lamps i.pri::after { content: ''; position: absolute; left: 1px; right: 1px; top: -5px; height: 2px; border-radius: 1px; background: var(--blue-ink); } /* put first */
+.chbar-lamps i.locked { background: none; box-shadow: inset 0 0 0 1.5px var(--ink-soft); opacity: .6; } /* skipped: ⊘ */
+.chbar-lamps i.locked::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1.5px; margin-left: -.75px; background: var(--ink-soft); transform: rotate(45deg); }
+.chbar-lamps i.dimmed { opacity: .3; }
+.chbar-sum { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+[data-dial="bar"] .chbar[aria-expanded="false"] + .dial-frame { display: none; }
+[data-dial="bar"] .chbar[aria-expanded="true"] + .dial-frame { animation: sheet .2s var(--ease-out); }
+@keyframes sheet { from { opacity: 0; transform: translateY(-8px); } }
+[data-dial="bar"] .station { min-width: 44px; min-height: 44px; align-content: center; } /* touch targets */
 
 /* ───────────── Controls row ───────────── */
 .controls {
@@ -494,13 +525,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font: 700 10px/1 var(--font-type); letter-spacing: .06em; font-style: normal; color: var(--c);
 }
 .cc-src svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.cc-src[data-band="police"] { --c: oklch(0.74 0.13 250); }
-.cc-src[data-band="fire"] { --c: oklch(0.7 0.19 32); }
-.cc-src[data-band="air"] { --c: oklch(0.82 0.11 220); }
-.cc-src[data-band="marine"] { --c: oklch(0.8 0.11 185); }
-.cc-src[data-band="rail"] { --c: oklch(0.82 0.14 75); }
-.cc-src[data-band="weather"] { --c: oklch(0.85 0.15 110); }
-.cc-src[data-band="ham"] { --c: oklch(0.76 0.13 310); }
+.cc-src[data-band="police"], .chbar-group[data-band="police"] { --c: oklch(0.74 0.13 250); }
+.cc-src[data-band="fire"], .chbar-group[data-band="fire"] { --c: oklch(0.7 0.19 32); }
+.cc-src[data-band="air"], .chbar-group[data-band="air"] { --c: oklch(0.82 0.11 220); }
+.cc-src[data-band="marine"], .chbar-group[data-band="marine"] { --c: oklch(0.8 0.11 185); }
+.cc-src[data-band="rail"], .chbar-group[data-band="rail"] { --c: oklch(0.82 0.14 75); }
+.cc-src[data-band="weather"], .chbar-group[data-band="weather"] { --c: oklch(0.85 0.15 110); }
+.cc-src[data-band="ham"], .chbar-group[data-band="ham"] { --c: oklch(0.76 0.13 310); }
 
 /* Title line → channel story */
 /* Follow strip: a slip of printout with the followed story's newest transmissions. Under the radio on a
@@ -841,7 +872,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .lamp[data-state="receiving"] { background: var(--lamp-green); box-shadow: 0 0 6px var(--lamp-green); }
 .lamp[data-state="tuning"], .lamp[data-state="standby"] { background: var(--lamp-amber); box-shadow: 0 0 5px var(--lamp-amber); }
 .lamp[data-state="offline"] { background: var(--lamp-red); box-shadow: 0 0 6px var(--lamp-red); }
-.lamp.blink { animation: blink .25s 2; }
+.lamp.blink, .chbar-lamps i.blink { animation: blink .25s 2; }
 @keyframes blink { 50% { background: oklch(1 0.05 100); } }
 
 .gauges { display: flex; gap: 18px; font-family: var(--font-type); font-size: 12px; }
@@ -886,8 +917,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   [data-dial="rule"] .station-name { font-size: 9.5px; letter-spacing: .08em; }
   [data-dial="rule"] .station.pri .station-name::before { content: 'FIRST '; color: var(--blue-ink); }
   [data-dial="rule"] .station.locked .station-name::before { content: 'SKIP '; color: var(--needle); }
-  [data-dial="presets"] .station-freq { font-size: 11px; }
-  [data-dial="presets"] .station-name { font-size: 9px; letter-spacing: .06em; }
+  :is([data-dial="presets"], [data-dial="bar"]) .station-freq { font-size: 11px; }
+  :is([data-dial="presets"], [data-dial="bar"]) .station-name { font-size: 9px; letter-spacing: .06em; }
   .cc { font-size: 13px; padding-left: 40px; }
   .controls { flex-direction: column; align-items: stretch; gap: 10px; }
   /* Band keys: one swipeable row. */

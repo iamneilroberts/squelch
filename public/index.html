@@ -40,7 +40,12 @@
     </div>
 
     <div class="tuner">
-      <div class="dial-frame">
+      <button type="button" class="chbar" id="chbar" aria-expanded="false" aria-controls="dial-frame">
+        <span class="chbar-line"><span class="chbar-now" id="chbar-now"></span><span class="chbar-mode" id="chbar-mode"></span></span>
+        <span class="chbar-lamps" id="chbar-lamps" aria-hidden="true"></span>
+        <span class="chbar-sum" id="chbar-sum"></span>
+      </button>
+      <div class="dial-frame" id="dial-frame">
       <div class="dial-scroll">
         <div class="dial" id="dial" aria-label="Station dial">
           <div class="dial-bands" id="dial-bands"></div>
@@ -156,7 +161,8 @@
 <dialog class="story notify" id="look" aria-labelledby="look-title">
   <header class="story-head"><h2 id="look-title">Look</h2><button type="button" class="key tkey story-close" id="look-close" aria-label="Close"><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
   <fieldset class="notify-level"><legend>Tuning dial</legend>
-    <label><input type="radio" name="dial-style" value="auto"> <strong>Automatic</strong> — preset keys on a phone, slide rule on a wide screen</label>
+    <label><input type="radio" name="dial-style" value="auto"> <strong>Automatic</strong> — channel bar on a phone, slide rule on a wide screen</label>
+    <label><input type="radio" name="dial-style" value="bar"> <strong>Channel bar</strong> — one line with a lamp per channel; tap it for the presets</label>
     <label><input type="radio" name="dial-style" value="presets"> <strong>Preset keys</strong> — every station in view, grouped by band</label>
     <label><input type="radio" name="dial-style" value="drum"> <strong>Tuning drum</strong> — swipe the dial under a fixed needle</label>
     <label><input type="radio" name="dial-style" value="rule"> <strong>Slide rule</strong> — the classic dial, tighter on a phone</label>
