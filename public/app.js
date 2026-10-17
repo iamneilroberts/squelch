@@ -1154,8 +1154,22 @@ function renderDigest() {
   }).join('');
 }
 
+// Incidents from the list come without transcripts; opening one fetches them (live ones arrive whole).
+const withTranscripts = new Map(); // incident id → updated_at it was loaded at
+async function loadTranscripts(id) {
+  const inc = state.incidents.get(id);
+  if (!inc || !state.viewer?.transcripts || withTranscripts.get(id) === inc.updated_at) return;
+  withTranscripts.set(id, inc.updated_at);
+  try {
+    const full = await getJson(`/api/incidents/${id}`);
+    if (state.incidents.get(id)?.updated_at === inc.updated_at) state.incidents.set(id, full);
+    renderLog();
+  } catch { withTranscripts.delete(id); }
+}
+
 function select(id, fly = true) {
   state.selected = state.selected === id && fly ? null : id;
+  if (state.selected) loadTranscripts(id);
   renderLog();
   renderIncidentMarkers();
   const el = $('log').querySelector(`[data-id="${id}"]`);
@@ -1208,6 +1222,7 @@ function connect() {
   es.addEventListener('incident', (e) => {
     const inc = JSON.parse(e.data);
     state.incidents.set(inc.id, inc);
+    withTranscripts.set(inc.id, inc.updated_at);
     state.fresh.add(inc.id);
     renderIncidentMarkers();
     renderLog();

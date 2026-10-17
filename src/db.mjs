@@ -98,7 +98,11 @@ export function getIncident(id) {
 export function recentIncidents(hours = 12) {
   const since = new Date(Date.now() - hours * 3600e3).toISOString();
   return db.prepare(`SELECT id FROM incidents WHERE updated_at >= ? ORDER BY updated_at DESC LIMIT 300`)
-    .all(since).map((r) => getIncident(r.id));
+    .all(since).map((r) => {
+      const inc = getIncident(r.id);
+      for (const u of inc.updates) delete u.transcript; // fetched per incident when opened (/api/incidents/<id>)
+      return inc;
+    });
 }
 
 export function openIncidentsFor(sourceId, minutes = 45) {

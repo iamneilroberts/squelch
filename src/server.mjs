@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { readFileSync, writeFileSync, createReadStream, existsSync, statSync } from 'node:fs';
 import { join, extname, normalize, dirname } from 'node:path';
-import { recentIncidents, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues, getThread } from './db.mjs';
+import { recentIncidents, getIncident, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues, getThread } from './db.mjs';
 import { buildCues, toVtt } from './ingest/captions.mjs';
 import { startListeners } from './listeners.mjs';
 import { pushReady, publicKey, LEVELS, configureNotify, subscription, subscribe, setPrefs, unsubscribe, sendTest, recordOpened, recordDwell, recordFeedback, learnedFor, resetLearning } from './notify.mjs';
@@ -257,6 +257,8 @@ createServer(async (req, res) => {
       return json(res, { error: 'unknown' }, 404);
     }
     if (p === '/api/incidents') return out(recentIncidents(Number(url.searchParams.get('hours') || 12)));
+    const ic = p.match(/^\/api\/incidents\/(\d+)$/);
+    if (ic) { const i = getIncident(Number(ic[1])); return i ? out(i) : json(res, { error: 'no such incident' }, 404); }
     if (p === '/api/calls') return json(res, hidden ? [] : recentCalls(Number(url.searchParams.get('limit') || 150)));
     if (p.startsWith('/api/overlays/')) {
       const fn = overlays[p.slice('/api/overlays/'.length)];
