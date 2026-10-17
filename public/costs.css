@@ -143,3 +143,12 @@ table.accounts { width: 100%; border-collapse: collapse; font-size: 13px; }
 .flow span { white-space: nowrap; padding: 1px 6px; border: 1px solid var(--ink-soft); border-radius: 3px; background: oklch(0.97 0.02 90); }
 .flow b { color: var(--red-ink); font-weight: 400; }
 .tag-sample { padding: 0 5px; border: 1.5px solid oklch(0.55 0.11 220); border-radius: 3px; font-size: 11px; font-weight: 700; color: oklch(0.45 0.11 220); }
+
+.manual .toc h3 { margin: 12px 0 4px; font-family: var(--font-caps); font-size: 13px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-soft); }
+.manual .part { grid-column: 1 / -1; margin: 18px 0 0; font-family: var(--font-caps); font-size: 22px; letter-spacing: .3em; text-transform: uppercase; color: var(--bakelite); }
+.manual h3 { margin: 14px 0 4px; font-family: var(--font-caps); font-size: 15px; letter-spacing: .12em; text-transform: uppercase; }
+.manual .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0 28px; }
+.manual ol { padding-left: 3.4ch; }
+.cmd { overflow-x: auto; margin: 8px 0; padding: 10px 12px; font-size: 12.5px; line-height: 1.5; background: oklch(0.93 0.025 88); border-radius: 3px; }
+.faq dt { margin-top: 10px; font-weight: 700; }
+.faq dd { margin: 2px 0 0 0; }

@@ -31,6 +31,7 @@
   <main class="book manual" id="how" role="tabpanel" aria-labelledby="tab-how">
     <nav class="page wide toc" aria-label="Contents">
       <h2>Contents</h2>
+      <h3>How it works</h3>
       <ol>
         <li><a href="#pipeline">From radio to map</a></li>
         <li><a href="#squelch">Capture and squelch</a></li>
@@ -44,6 +45,15 @@
         <li><a href="#digest">Daily log</a></li>
         <li><a href="#privacy">Sharing and privacy</a></li>
         <li><a href="#models">Models and cost</a></li>
+      </ol>
+      <h3>Set up</h3>
+      <ol start="13">
+        <li><a href="#install">Install and run</a></li>
+        <li><a href="#feeds">Find and add feeds</a></li>
+        <li><a href="#enable-notify">Turn on notifications</a></li>
+        <li><a href="#remote">Remote access</a></li>
+        <li><a href="#settings">Settings</a></li>
+        <li><a href="#trouble">Troubleshooting</a></li>
       </ol>
     </nav>
 
@@ -168,6 +178,166 @@
         </tbody>
       </table></div>
       <p>Models were picked with the bench (<code>npm run bench</code>) and can be overridden in <code>.env</code>. The <a href="#ledger">Ledger</a> tab shows actual spend, call by call.</p>
+    </section>
+
+    <h2 class="part">Set up</h2>
+
+    <section class="page wide" id="install">
+      <h2>Install and run</h2>
+      <p>You need Node.js 22.13 or newer, <code>ffmpeg</code> and <code>ffprobe</code>, an <a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter</a> API key, and a <a href="https://www.broadcastify.com/premium/" target="_blank" rel="noopener">Broadcastify Premium</a> account. Premium costs $15 for 6 months or $30 a year; a free account gets <code>401</code> from the stream server.</p>
+<pre class="cmd">git clone https://github.com/iamneilroberts/squelch &amp;&amp; cd squelch
+npm install
+cp .env.example .env
+cp sources.example.json sources.json
+npm start</pre>
+      <ol>
+        <li>In <code>.env</code>, set <code>OPENROUTER_API_KEY</code>, <code>BROADCASTIFY_LOGIN</code> and <code>BROADCASTIFY_PASSWORD</code>. The login is your RadioReference/Broadcastify <strong>username</strong>, not your email.</li>
+        <li>Describe your area in <code>sources.json</code>; see <a href="#feeds">Find and add feeds</a>.</li>
+        <li>Open <code>http://localhost:8077</code>. Green lamps along the bottom mean a feed is being received.</li>
+      </ol>
+      <p>No keys yet? <code>examples/gulf-coast.json</code> is a complete real setup, and <code>scripts/seed-demo.mjs</code> fills a demo database so the map and log have something to show. To keep it running after reboots on Linux, use the systemd units in <a href="https://github.com/iamneilroberts/squelch/blob/main/docs/SHARING.md" target="_blank" rel="noopener">docs/SHARING.md</a>. To update: <code>git pull &amp;&amp; npm install</code>, then restart.</p>
+    </section>
+
+    <section class="page wide" id="feeds">
+      <h2>Find and add feeds</h2>
+      <ol>
+        <li><strong>Find feeds.</strong> Open Broadcastify's directory for your state, then your county (<code>broadcastify.com/listen/ctid/&lt;county id&gt;</code>). Each feed shows an ID, what it covers, whether it's online, and how many people are listening. Prefer feeds that are online and have listeners.</li>
+        <li><strong>Check encryption.</strong> <a href="https://www.radioreference.com/db/" target="_blank" rel="noopener">RadioReference</a> lists each county's talkgroups. Encrypted police talkgroups aren't on any feed; fire and EMS usually are in the clear.</li>
+        <li><strong>Look beyond public safety.</strong> Airport tower and marine VHF feeds, amateur repeaters (SKYWARN nets) and rail feeds are all on Broadcastify. LiveATC and NOAA Weather Radio work as listen-only links.</li>
+        <li><strong>Add each feed to <code>sources.json</code>.</strong> The feed ID from the Broadcastify URL goes into both addresses:
+<pre class="cmd">{ "id": "county-fire", "name": "County Fire Dispatch", "short": "CO FIRE", "dial": "P25",
+  "band": "fire", "kind": "stream",
+  "streamUrl": "https://audio.broadcastify.com/12345.mp3",
+  "listenUrl": "https://www.broadcastify.com/listen/feed/12345",
+  "coverage": "County fire and EMS dispatch; mutual aid with City FD.",
+  "lat": 40.75, "lng": -73.98, "region": "home", "area": "My County, ST" }</pre>
+          <ul>
+            <li><code>band</code>: one of <code>police fire air marine rail weather ham</code>. It picks the band key, the dial group and the caption tag.</li>
+            <li><code>kind</code>: <code>stream</code> is recorded and transcribed; <code>link</code> is listen-only.</li>
+            <li><code>coverage</code>: the triage and story models read it, so be specific.</li>
+            <li><code>id</code>: never rename it once there's history.</li>
+            <li>Optional <code>squelchDb</code> (default −42): raise it toward −35 for a feed with a loud background.</li>
+          </ul>
+        </li>
+        <li><strong>Regions</strong> are the Location knob positions. Each needs a map box (<code>bbox</code>: south, west, north, east), a weather point, an optional NOAA tide station, and a short <code>vocab</code> list of 20–50 local street and town names that help the transcriber. Keep the list certain: on a noisy clip, the transcriber may echo names it was given.</li>
+        <li><strong>Check it.</strong> Restart and watch for an hour. Green lamp = receiving; red = refused (check the login and feed ID); grey = listen-only. The Ledger's Speech detector panel shows how much each feed's squelch dropped. A feed that stays green but never produces a transcript may be dead air: remove it.</li>
+      </ol>
+      <p>Every field is explained in <a href="https://github.com/iamneilroberts/squelch/blob/main/docs/ADD-YOUR-REGION.md" target="_blank" rel="noopener">docs/ADD-YOUR-REGION.md</a>.</p>
+    </section>
+
+    <section class="page wide" id="enable-notify">
+      <h2>Turn on notifications</h2>
+      <p><strong>Once, on the receiver:</strong> run <code>npm run vapid &gt;&gt; .env</code>, set <code>VAPID_SUBJECT</code> to your email (<code>mailto:</code>) or site address (<code>https://</code>), and restart. Push only works on a secure page: <code>https://</code> (a Cloudflare Tunnel or Tailscale Serve address, see <a href="#remote">Remote access</a>) or <code>http://localhost</code>. A plain <code>http://192.168…</code> address won't do.</p>
+      <div class="cols">
+        <div>
+          <h3>iPhone and iPad</h3>
+          <ol>
+            <li>Open the receiver in <strong>Safari</strong>.</li>
+            <li><strong>Share → Add to Home Screen</strong>. iOS only delivers web push to Home Screen apps (iOS 16.4+).</li>
+            <li>Open it <strong>from the Home Screen icon</strong>.</li>
+            <li>Tap the bell on the grille → <strong>Turn on</strong> → <strong>Allow</strong>.</li>
+            <li><strong>Send a test.</strong></li>
+          </ol>
+          <p>iPhone notifications have no buttons; give More/Fewer feedback on the story card that opens.</p>
+        </div>
+        <div>
+          <h3>Android</h3>
+          <ol>
+            <li>Open the receiver in <strong>Chrome</strong> (Firefox and Samsung Internet work too). No install needed.</li>
+            <li>Tap the bell → <strong>Turn on</strong> → <strong>Allow</strong>.</li>
+            <li><strong>Send a test.</strong></li>
+            <li>Optional: Chrome menu <strong>⋮ → Add to Home screen</strong> (or <em>Install app</em>) for an app window of its own.</li>
+          </ol>
+          <p>Expand a notification for <strong>More like this / Fewer like this</strong>. If notifications arrive late or not at all, check <em>Settings → Apps → Chrome → Notifications</em>, and that battery saving isn't set to <em>Restricted</em> for Chrome.</p>
+        </div>
+        <div>
+          <h3>Desktop</h3>
+          <ol>
+            <li>Chrome, Edge, Firefox, or Safari on macOS 13+: tap the bell → <strong>Turn on</strong> → <strong>Allow</strong>.</li>
+            <li><strong>Send a test.</strong></li>
+          </ol>
+          <p>On a Mac, also allow your browser in <em>System Settings → Notifications</em>. More/Fewer appear as buttons on the notification, or under its options menu, depending on the browser and system.</p>
+        </div>
+      </div>
+      <p><strong>Then tune it:</strong> pick a sensitivity (Quiet, Normal or Chatty) and star favourite channels in the same card. <strong>Guests</strong> can try it only while the owner ticks <em>Let guests turn on notifications</em>; each guest's browser keeps its own settings. How notifications are chosen is under <a href="#notify">Notifications</a>.</p>
+    </section>
+
+    <section class="page wide" id="remote">
+      <h2>Remote access</h2>
+      <p>Squelch is built to run at home. Never forward port 8077 on your router: anyone who reaches it directly is treated as being on your LAN, which means full owner access. Use one of these instead.</p>
+      <div class="cols">
+        <div>
+          <h3>Cloudflare Tunnel + Access</h3>
+          <p>Best for <strong>sharing with invited people</strong>. You need a domain on Cloudflare; Access is free for small teams.</p>
+          <ol>
+            <li>Install <code>cloudflared</code>.</li>
+            <li><em>Zero Trust → Access → Applications → Add → Self-hosted</em>: your hostname, a policy allowing the invited emails, login by one-time PIN. Do this first, so the site is never public.</li>
+            <li><em>Zero Trust → Networks → Tunnels → Create</em>: public hostname → <code>http://127.0.0.1:8077</code>. Save the token to a private file.</li>
+            <li><code>cloudflared tunnel --no-autoupdate run --token-file /path/to/token</code></li>
+            <li>Put your own email in <code>OWNER_EMAILS</code> in <code>.env</code>, so you keep owner powers when away from home.</li>
+          </ol>
+          <p>Visitors get the map, incidents, stories and Scan. Raw transcripts appear only while the owner's <em>Remote transcripts</em> switch is on. To listen live, guests use their own Broadcastify Premium login.</p>
+        </div>
+        <div>
+          <h3>Tailscale</h3>
+          <p>Best for <strong>just you</strong> (and people you fully trust): a private network between your own devices, with no domain needed.</p>
+          <ol>
+            <li>Install Tailscale on the receiver and on your phone, signed in to the same account.</li>
+            <li>In the Tailscale admin console, turn on <em>MagicDNS</em> and <em>HTTPS certificates</em>.</li>
+            <li>On the receiver: <code>tailscale serve --bg 8077</code>.</li>
+            <li>Open <code>https://&lt;machine&gt;.&lt;tailnet&gt;.ts.net</code> on your phone. It's HTTPS, so notifications work, including Add to Home Screen on iPhone.</li>
+          </ol>
+          <p>Squelch treats Tailscale visitors like your LAN: full owner access, raw transcripts, and live audio on your Broadcastify account. So only share the machine with people you'd hand your receiver to. Don't use <em>Tailscale Funnel</em>, which makes it public.</p>
+        </div>
+      </div>
+      <div class="table-scroll"><table class="accounts">
+        <thead><tr><th></th><th>Your LAN / Tailscale</th><th>Owners via Cloudflare</th><th>Invited guests</th></tr></thead>
+        <tbody>
+          <tr><td>Map, incidents, stories, Scan, daily log</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Raw transcripts, Raw traffic tab</td><td>✓</td><td>✓</td><td>while <em>Remote transcripts</em> is on</td></tr>
+          <tr><td>Live audio on the dial</td><td>your account</td><td>your account</td><td>their own Premium login</td></tr>
+          <tr><td>Notifications</td><td>✓</td><td>✓</td><td>while guests are allowed</td></tr>
+          <tr><td>Change switches</td><td>✓</td><td>✓</td><td>—</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="page wide" id="settings">
+      <h2>Settings</h2>
+      <p>All in <code>.env</code>; restart after changing.</p>
+      <div class="table-scroll"><table class="accounts">
+        <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENROUTER_API_KEY</code></td><td>—</td><td>all AI calls; without it, the receiver stays in standby (map and live audio only)</td></tr>
+          <tr><td><code>BROADCASTIFY_LOGIN</code> / <code>_PASSWORD</code></td><td>—</td><td>Premium login for recording and live audio</td></tr>
+          <tr><td><code>OWNER_EMAILS</code></td><td>—</td><td>Cloudflare Access emails with owner powers</td></tr>
+          <tr><td><code>VAPID_PUBLIC_KEY</code> / <code>_PRIVATE_KEY</code> / <code>_SUBJECT</code></td><td>—</td><td>push notifications (<code>npm run vapid</code>)</td></tr>
+          <tr><td><code>LISTENER_POLL_S</code></td><td>180</td><td>listener-count polling for surge alerts; 0 = off</td></tr>
+          <tr><td><code>JEV_GATE</code></td><td>active</td><td>speech gate: <code>active</code>, <code>shadow</code> (record only) or <code>off</code></td></tr>
+          <tr><td><code>ADAPTIVE_SQUELCH</code></td><td>on</td><td><code>0</code> keeps hum and carrier (costs more transcription)</td></tr>
+          <tr><td><code>RECORD_DAYS</code></td><td>7</td><td>how long clips are kept</td></tr>
+          <tr><td><code>SEGMENT_SECONDS</code></td><td>45</td><td>length of recorded pieces</td></tr>
+          <tr><td><code>TRANSCRIBE_MODEL</code>, <code>TRIAGE_MODEL</code>, <code>THREAD_MODEL</code>, <code>DIGEST_MODEL</code></td><td>see <a href="#models">Models</a></td><td>swap a model</td></tr>
+          <tr><td><code>AISSTREAM_API_KEY</code></td><td>—</td><td>ship positions on the map (free key at aisstream.io)</td></tr>
+          <tr><td><code>PORT</code></td><td>8077</td><td>web port</td></tr>
+          <tr><td><code>INGEST</code></td><td>on</td><td><code>0</code> serves the map only, with no recording</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="page wide" id="trouble">
+      <h2>Troubleshooting</h2>
+      <dl class="faq">
+        <dt>A lamp is red</dt><dd>The stream refused the connection. Check <code>BROADCASTIFY_LOGIN</code> is your username, not your email; that the account is Premium; and the feed ID.</dd>
+        <dt>Green lamp, but no transcripts</dt><dd>The feed may be dead air or constant hum, which the squelch drops on purpose. The Ledger's Speech detector panel shows drops per feed.</dd>
+        <dt>"Receiver in standby"</dt><dd>No <code>OPENROUTER_API_KEY</code>. Add it and restart.</dd>
+        <dt>Tapping a station asks for a Broadcastify login</dt><dd>You're a guest: live audio needs your own Premium login. Owners and the LAN use the receiver's account.</dd>
+        <dt>No sound on Scan</dt><dd>Browsers won't play audio before you touch the page: tap anywhere once.</dd>
+        <dt>No bell on the grille</dt><dd>Guests only see it while the owner allows guest notifications.</dd>
+        <dt>Notifications don't arrive</dt><dd>Use <em>Send a test</em> in the bell's card. Check the page is HTTPS; on iPhone, that it was opened from the Home Screen; and that the OS allows notifications for the browser. If it still fails, turn notifications off and on again.</dd>
+        <dt>Wrong place on the map</dt><dd>Markers marked "approx." had no usable address and sit at the feed's home. Tighten the region's <code>bbox</code> and set each source's <code>area</code>.</dd>
+        <dt>Transcripts invent street names</dt><dd>Shorten the region's <code>vocab</code> to names you're sure of.</dd>
+      </dl>
     </section>
   </main>
 
