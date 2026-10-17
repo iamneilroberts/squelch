@@ -38,7 +38,7 @@ const state = {
   digest: null,
   digestBusy: false,
   region: 'all',
-  band: 'all',
+  bands: new Set((() => { try { return JSON.parse(store.get('pcm.bands') || '[]'); } catch { return []; } })()), // empty = All
   tab: 'stories',
   stories: new Map(), // thread id → story, with its transmission count and newest transmission (last)
   tuned: null,
@@ -48,7 +48,8 @@ const state = {
 
 const regionOf = (sourceId) => state.byId.get(sourceId)?.region;
 const inRegion = (sourceId) => state.region === 'all' || regionOf(sourceId) === state.region;
-const inView = (sourceId) => inRegion(sourceId) && (state.band === 'all' || state.byId.get(sourceId)?.band === state.band);
+const bandOn = (band) => !state.bands.size || state.bands.has(band);
+const inView = (sourceId) => inRegion(sourceId) && bandOn(state.byId.get(sourceId)?.band);
 const visibleSources = () => state.sources.filter((s) => inRegion(s.id));
 
 /* ───────── Location selector ───────── */
@@ -79,7 +80,7 @@ function setRegion(id, { fly = true } = {}) {
   for (const b of $('selector').children) if (b.dataset.region) b.setAttribute('aria-checked', b.dataset.region === id);
   const region = state.regions.find((r) => r.id === id);
   $('badge-sub').textContent = region ? region.badge : state.station?.badge || '';
-  if (state.band !== 'all' && !visibleSources().some((s) => s.band === state.band)) state.band = 'all';
+  if (state.bands.size && !visibleSources().some((s) => state.bands.has(s.band))) state.bands.clear();
   buildDial();
   renderLamps();
   renderIncidentMarkers();
@@ -130,7 +131,7 @@ function buildDial() {
   // Grouped by band: on a phone the groups become rows of preset keys (app.css); on a wide screen
   // they vanish (display: contents) and each station sits at its place on the slide rule.
   const key = (s) => `
-    <button class="station ${playable(s) ? '' : 'link'} ${state.band !== 'all' && s.band !== state.band ? 'dimmed' : ''} ${scan.lockouts.has(s.id) ? 'locked' : ''} ${scan.priority.has(s.id) ? 'pri' : ''}" data-id="${s.id}" style="left:${s.x}%"
+    <button class="station ${playable(s) ? '' : 'link'} ${bandOn(s.band) ? '' : 'dimmed'} ${scan.lockouts.has(s.id) ? 'locked' : ''} ${scan.priority.has(s.id) ? 'pri' : ''}" data-id="${s.id}" style="left:${s.x}%"
       aria-pressed="${state.tuned?.id === s.id}" title="${esc(s.name)} — ${esc(s.coverage)}">
       <span class="station-freq">${esc(s.dial || '')}</span>
       <span class="station-name">${esc(s.short)}</span>
@@ -142,7 +143,7 @@ function buildDial() {
   renderBar();
 
   $('keys').innerHTML = [{ id: 'all', key: 'All' }, ...present].map((b) =>
-    `<button class="key" data-band="${b.id}" aria-pressed="${b.id === state.band}">${b.key}</button>`).join('');
+    `<button class="key" data-band="${b.id}" aria-pressed="${b.id === 'all' ? !state.bands.size : state.bands.has(b.id)}">${b.key}</button>`).join('');
   moveNeedle(state.tuned && order.includes(state.tuned) ? state.tuned : order[0]);
   scanSync(); // the location changed what's scanned
 }
@@ -156,10 +157,15 @@ $('dial-stations').addEventListener('click', (e) => {
 $('keys').addEventListener('click', (e) => {
   const k = e.target.closest('.key');
   if (!k) return;
-  state.band = k.dataset.band;
-  for (const el of $('keys').children) el.setAttribute('aria-pressed', el === k);
+  // Band keys add up (Law + Fire, say); All clears them, and picking every band is the same as All.
+  const band = k.dataset.band, keys = [...$('keys').children].filter((el) => el.dataset.band !== 'all');
+  if (band === 'all') state.bands.clear();
+  else if (!state.bands.delete(band)) state.bands.add(band);
+  if (state.bands.size === keys.length) state.bands.clear();
+  store.set('pcm.bands', JSON.stringify([...state.bands]));
+  for (const el of $('keys').children) el.setAttribute('aria-pressed', el.dataset.band === 'all' ? !state.bands.size : state.bands.has(el.dataset.band));
   for (const el of $('dial-stations').querySelectorAll('.station')) {
-    el.classList.toggle('dimmed', state.band !== 'all' && state.byId.get(el.dataset.id).band !== state.band);
+    el.classList.toggle('dimmed', !bandOn(state.byId.get(el.dataset.id).band));
   }
   renderBar();
   renderLog();
@@ -316,7 +322,7 @@ function renderBar() {
     first += el.classList.toggle('pri', scan.priority.has(id));
     skipped += el.classList.toggle('locked', scan.lockouts.has(id));
     el.classList.toggle('air', id === air);
-    el.classList.toggle('dimmed', state.band !== 'all' && state.byId.get(id)?.band !== state.band);
+    el.classList.toggle('dimmed', !bandOn(state.byId.get(id)?.band));
   }
   const s = state.byId.get(air), n = scanChannels().length;
   $('chbar-now').innerHTML = s ? `▸ <strong>${esc(s.short)}</strong> ${esc(s.dial || '')}`
@@ -608,7 +614,7 @@ const scan = {
   priority: loadSet('pcm.priority'),
 };
 const scanChannels = () => visibleSources().filter((s) => s.kind === 'stream'
-  && (state.band === 'all' || s.band === state.band) && !scan.lockouts.has(s.id)
+  && bandOn(s.band) && !scan.lockouts.has(s.id)
   && (!scan.hold || s.id === scan.hold));
 const shortOf = (id) => esc(state.byId.get(id)?.short || id);
 
@@ -1202,7 +1208,7 @@ let logPage = 0;
 let logView = '';
 function paginate(items, keepVisible) {
   const size = matchMedia('(max-width: 720px)').matches ? 8 : 30;
-  const view = `${state.tab}|${state.band}|${state.region}`;
+  const view = `${state.tab}|${[...state.bands]}|${state.region}`;
   if (view !== logView) { logView = view; logPage = 0; } // new list: back to the newest
   const at = keepVisible ? items.indexOf(keepVisible) : -1;
   if (at >= 0) logPage = Math.floor(at / size);
@@ -1226,7 +1232,7 @@ function renderLog() {
     const since = new Date(Date.now() - STORY_HOURS * 3600e3).toISOString();
     const { items, pager } = paginate([...state.stories.values()].filter((t) => t.updated_at >= since && inView(t.source_id)).sort((a, b) => b.updated_at.localeCompare(a.updated_at)));
     log.innerHTML = items.length ? items.map(storyRow).join('') + pager
-      : `<li class="notice"><h2>Quiet on the air</h2>No conversation on ${state.band !== 'all' ? 'this band' : 'any channel'} in the last ${STORY_HOURS} hours.</li>`;
+      : `<li class="notice"><h2>Quiet on the air</h2>No conversation on ${state.bands.size > 1 ? 'these bands' : state.bands.size ? 'this band' : 'any channel'} in the last ${STORY_HOURS} hours.</li>`;
     return;
   }
 
@@ -1351,7 +1357,7 @@ function notice() {
       The map is still live: aircraft, Amtrak, NWS alerts and the tide gauge need no key, and you can tune any station on the dial to listen.</li>`;
   }
   return `<li class="notice"><h2>Quiet on the air</h2>
-    Nothing newsworthy in the last 12 hours${state.band !== 'all' ? ' on this band' : ''}. Every transmission is still transcribed; switch to <em>Raw traffic</em> to read it.
+    Nothing newsworthy in the last 12 hours${state.bands.size ? (state.bands.size > 1 ? ' on these bands' : ' on this band') : ''}. Every transmission is still transcribed; switch to <em>Raw traffic</em> to read it.
     Green lamps below mean a feed is being received.</li>`;
 }
 
