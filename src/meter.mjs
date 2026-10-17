@@ -223,6 +223,13 @@ export function squelchReport(hours) {
   return { dropped, byFeed, transcribed: transcribed.n, avgStt: avg, saved: dropped * avg, share: dropped / ((dropped + transcribed.n) || 1) };
 }
 
+// STITCH=1: segments that ended mid-transmission. joined = the next segment completed it; still-cut = the pair
+// still ran to its end; stalled = no next segment came, so it went out alone. Each row is a transmission cut in two.
+db.exec('CREATE TABLE IF NOT EXISTS stitches (at TEXT NOT NULL, source_id TEXT NOT NULL, outcome TEXT NOT NULL)');
+export function noteStitch(sourceId, outcome) {
+  try { db.prepare('INSERT INTO stitches (at, source_id, outcome) VALUES (?,?,?)').run(new Date().toISOString(), sourceId, outcome); } catch { /* never break ingest */ }
+}
+
 // Speech-detector scorecard: per cutoff, what skipping STT below it saves and what it would lose.
 // "Lost" = clips that, once transcribed, survived the filters (a call row) or became an incident.
 export function vadReport(hours) {
