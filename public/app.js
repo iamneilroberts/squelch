@@ -475,6 +475,7 @@ const scan = {
   back: 0,            // how many steps PREV has walked back
   last: new Map(),    // channel id → its most recent transmission (for PREV replay)
   catchup: null,      // thread id of the story Catch up is playing, or null
+  asked: null,        // the same, from the tap until its first transmission is on air
   lockouts: loadSet('pcm.lockouts'),
   priority: loadSet('pcm.priority'),
 };
@@ -507,8 +508,21 @@ function syncScanKeys() {
   $('btn-hold').setAttribute('aria-pressed', Boolean(scan.hold));
   $('btn-hold').textContent = scan.hold ? 'Resume' : 'Hold';
   $('btn-prev').disabled = !scan.on || scan.history.length < 1;
-  $('btn-catchup').disabled = !scan.on || !(scan.catchup || scan.lastCall?.thread_id);
-  $('btn-catchup').setAttribute('aria-pressed', Boolean(scan.catchup));
+  const k = $('btn-catchup'), story = catchupStory();
+  k.disabled = !scan.on || !story;
+  k.setAttribute('aria-pressed', Boolean(scan.catchup));
+  k.innerHTML = scan.catchup ? '<span>Stop</span><span>catch-up</span>'
+    : `<span>Catch up</span>${story && !k.disabled ? `<small>${shortOf(story.source)}</small>` : ''}`;
+  k.title = scan.catchup ? 'Stop the catch-up and carry on scanning' : story ? `Hear the story so far: ${state.byId.get(story.source)?.short || story.source}: ${story.subject}` : 'Catch up: hear the story so far of the channel just heard';
+  k.setAttribute('aria-label', k.title);
+}
+// The story Catch up plays: the one running, else the story of the channel heard last.
+function catchupStory() {
+  const id = scan.catchup || scan.lastCall?.thread_id;
+  if (!id) return null;
+  const c = scan.lastCall?.thread_id === id ? scan.lastCall : null;
+  const t = state.stories.get(id);
+  return { id, source: t?.source_id || c?.source_id, subject: t?.subject || (c ? subjectOf(c) : '') };
 }
 
 // The scan's audio is one stream from the server (src/scan.mjs), so it keeps playing with a phone locked.
@@ -569,6 +583,7 @@ function scanShow() {
     onAirCall = null;
     showOnAir();
   }
+  if (scan.asked) return; // "Catching up · …" stays until the catch-up starts
   if (p && !scan.hold && t < end + DELAY_MS / 1000) {
     scan.idle = false;
     $('now-playing').innerHTML = `Next in ${Math.max(1, Math.ceil(end + DELAY_MS / 1000 - t))} s · ${titleOf(scan.lastCall || p.call)}`; // countdown first: a long title is cut off at two lines
@@ -579,6 +594,7 @@ radio.addEventListener('timeupdate', scanShow);
 function scanPlaying(p) {
   const c = state.calls.find((x) => x.id === p.call.id) ?? p.call; // the page's copy has the latest subject
   scan.shown = p;
+  scan.asked = null;
   clearInterval(scan.stepper);
   scan.stepper = null;
   scan.idle = false;
@@ -713,8 +729,11 @@ function scanCatchup() {
   if (!scan.on) return;
   const id = scan.catchup ? 0 : scan.lastCall?.thread_id;
   if (id === undefined || id === null) return;
+  const story = id && catchupStory();
   scan.catchup = id || null;
+  scan.asked = id || null; // until its first announcement
   syncScanKeys();
+  if (story) $('now-playing').innerHTML = `Catching up · <strong>${shortOf(story.source)}</strong>: ${esc(story.subject)}…`;
   scanSync({ catchup: id });
   if (id) openStory(id);
 }
@@ -1338,7 +1357,7 @@ function connect() {
     state.calls.length = Math.min(state.calls.length, 200);
     if (c.source_id === state.tuned?.id) ccLive();
     if (ccShown.some((s) => s.audio === c.audio)) ccRender(ccShown); // its story is known now
-    if (scan.lastCall?.id === c.id) { scan.lastCall = c; scan.last.set(c.source_id, c); } // scanned before its story was assigned
+    if (scan.lastCall?.id === c.id) { scan.lastCall = c; scan.last.set(c.source_id, c); syncScanKeys(); } // scanned before its story was assigned
     if (scan.shown?.call.id === c.id) scanTitle(scan.shown, c);
     if (storyId && c.thread_id === storyId) renderStory();
     if (c.thread_id) storyCall(c);
