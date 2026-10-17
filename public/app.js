@@ -607,7 +607,7 @@ function ccLive() {
 radio.addEventListener('playing', () => {
   if (radio.dataset.kind === 'scan') { // the stream plays silence between transmissions
     scan.idle = false; // redraw: replaces "tap anywhere to listen"
-    if (!scan.live) { scan.live = true; scanSync(); } // settings changed while connecting
+    if (!scan.live) { scan.live = true; const p = scan.pending; scan.pending = null; scanSync(p || {}); } // settings (or a story's catch-up) asked for while connecting
     return scanShow();
   }
   setLit(true);
@@ -655,6 +655,7 @@ const scan = {
   last: new Map(),    // channel id → its most recent transmission (for PREV replay)
   catchup: null,      // thread id of the story Catch up is playing, or null
   asked: null,        // the same, from the tap until its first transmission is on air
+  pending: null,      // a catch-up asked for before the stream was playing, sent once it is (or played as files if the stream can't start)
   lockouts: loadSet('pcm.lockouts'),
   priority: loadSet('pcm.priority'),
 };
@@ -676,7 +677,7 @@ function stopScan() {
   if (!scan.on) return;
   clearTimeout(scan.retry);
   clearInterval(scan.stepper);
-  Object.assign(scan, { on: false, stepper: null, hold: null, idle: true, sid: null, plays: [], shown: null });
+  Object.assign(scan, { on: false, stepper: null, hold: null, idle: true, sid: null, plays: [], shown: null, pending: null });
   $('dial').classList.remove('scanning');
   syncScanKeys();
 }
@@ -724,7 +725,7 @@ function scanConnect() {
   radio.src = `/scan/stream?${new URLSearchParams({ sid: scan.sid, page: pageId, ...scanSettings() })}`;
   radio.dataset.kind = 'scan';
   radio.play().then(() => { if (scan.on) scanIdle(); }).catch((e) => { // replaces "tap anywhere to listen"
-    if (e.name !== 'NotAllowedError') return;
+    if (e.name !== 'NotAllowedError') return scan.pending && playStoryFiles(); // the stream can't play here: a story still plays as files
     radio.removeAttribute('src'); // don't let audio pile up behind the tap: connect fresh when it comes
     radio.load();
     awaitTap(scanConnect);
@@ -737,6 +738,7 @@ function scanReconnect() {
 }
 // Channels, priority or hold changed (or PREV wants a replay, or Catch up a story): tell the server's scan.
 function scanSync(extra = {}) {
+  if (scan.on && scan.sid && !scan.live && extra.catchup !== undefined) scan.pending = extra; // sent when the stream starts playing
   if (scan.on && scan.sid && scan.live) {
     postJson(`/api/scan/${scan.sid}`, { ...scanSettings(), ...extra }).then((r) => {
       for (const q of extra.skip && r?.plays || []) { const x = scan.plays.find((y) => y.offset === q.offset); if (x) x.duration = q.duration; } // the skipped play now ends where the server cut it
@@ -969,7 +971,7 @@ addEventListener('keydown', (e) => {
 syncTransport();
 radio.addEventListener('error', () => {
   if (!radio.getAttribute('src')) return;
-  if (radio.dataset.kind === 'scan') return scanReconnect(); // the stream dropped
+  if (radio.dataset.kind === 'scan') return scan.pending ? playStoryFiles() : scanReconnect(); // the stream dropped, or never started
   if (radio.dataset.kind === 'clip' && playlist.length) return playNext();
   clearTimeout(tuneTimer);
   noSignal(radio.dataset.kind === 'clip' ? null : state.tuned);
@@ -1619,13 +1621,27 @@ async function openStory(id, { play = false } = {}) {
   if (play) playStory();
 }
 // The whole story, or (ids) a wider catch-up's transmissions.
+// Always inside the scan stream (one continuous stream, so it keeps playing with the phone locked); a cold
+// page, a paused scan or another source starts the stream first, and the catch-up is sent once it plays.
 function playStory(ids) {
-  if (scan.on && storyId && radio.dataset.kind === 'scan' && !radio.paused) { // inside the scan stream, so it keeps playing with the phone locked
-    scan.catchup = storyId;
-    syncScanKeys();
-    return scanSync({ catchup: ids ?? storyId, all: true });
+  if (!storyId || !(ids ? widerClips : storyClips).length) return;
+  if (!(scan.on && radio.dataset.kind === 'scan' && !radio.paused)) {
+    if (scan.on) scanConnect(); else startScan();
+    scan.asked = storyId; // until its first announcement
+    const story = catchupStory();
+    if (story?.source) $('now-playing').innerHTML = `Catching up · <strong>${shortOf(story.source)}</strong>: ${esc(story.subject)}…`;
   }
-  const [first, ...rest] = ids ? widerClips : storyClips;
+  scan.catchup = storyId;
+  syncScanKeys();
+  scanSync({ catchup: ids ?? storyId, all: true });
+  if (scan.pending) scan.pending.wider = Boolean(ids); // kept for the fallback
+}
+// Fallback when the scan stream can't start: the story's recordings one after another.
+function playStoryFiles() {
+  const wider = scan.pending?.wider;
+  const [first, ...rest] = wider ? widerClips : storyClips;
+  stopScan();
+  scan.catchup = scan.asked = null;
   if (first) playRecording(first.src, first.label, 'clip', rest);
 }
 function playNext() {
