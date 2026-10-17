@@ -108,9 +108,10 @@ export function costSummary(hours) {
 
 export function recentTraces(limit = 40, kind = null) {
   const traces = db.prepare(`SELECT t.*, c.transcript, c.category, c.jev_speech, c.jev_news,
+      c.audio, c.duration, c.subject, c.thread_id, c.incident_id, i.headline,
       (SELECT SUM(cost) FROM spans s WHERE s.trace_id = t.id) AS cost,
       (SELECT MAX(offset_ms + ms) FROM spans s WHERE s.trace_id = t.id) AS ms
-    FROM traces t LEFT JOIN calls c ON c.id = t.call_id
+    FROM traces t LEFT JOIN calls c ON c.id = t.call_id LEFT JOIN incidents i ON i.id = c.incident_id
     WHERE EXISTS (SELECT 1 FROM spans s WHERE s.trace_id = t.id) ${kind ? 'AND t.kind = ?' : ''}
     ORDER BY t.id DESC LIMIT ?`).all(...(kind ? [kind, limit] : [limit]));
   const spans = db.prepare('SELECT * FROM spans WHERE trace_id = ? ORDER BY offset_ms');

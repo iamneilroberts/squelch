@@ -84,19 +84,26 @@ table.accounts { width: 100%; border-collapse: collapse; font-size: 13px; }
 
 /* Traces */
 .traces { list-style: none; margin: 0; padding: 0; }
-.trace { border-bottom: 1px solid var(--ledger-rule); }
-.trace summary {
+.trace {
   display: grid; grid-template-columns: 52px 92px minmax(0, 1fr) 70px 82px; gap: 10px; align-items: baseline;
-  padding: 4px 0; cursor: pointer; list-style: none; font-size: 13px; line-height: 18px;
+  width: 100%; padding: 4px 0; border: 0; background: none; text-align: left; cursor: pointer;
+  font: 13px/18px var(--font-type); color: var(--ink);
 }
-.trace summary::-webkit-details-marker { display: none; }
-.trace summary:hover .snip { text-decoration: underline; text-underline-offset: 3px; }
+.trace:hover .snip { text-decoration: underline; text-underline-offset: 3px; }
 .trace .feed { font-weight: 700; text-transform: uppercase; font-size: 12px; }
 .trace .snip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-soft); }
 .trace .snip b { color: var(--ink); font-weight: 700; }
+.trace.notable .snip { color: var(--red-ink); }
+.snip-feed { display: none; } /* the feed has its own column, except on a phone */
 .trace .ms, .trace .usd { text-align: right; }
-.trace[open] summary { background: oklch(0.93 0.05 88 / .7); }
-
+.traces li { border-bottom: 1px solid var(--ledger-rule); }
+/* Trace card */
+.trace-card .waterfall { padding-top: 4px; }
+.trace-audio { width: 100%; margin: 12px 0 4px; }
+.trace-story { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; font-size: 13px; }
+.trace-story .key { min-width: 0; padding: 8px 12px 6px; font-size: 11px; text-decoration: none; }
+.trace-words { margin: 10px 0; font-size: 13px; line-height: 1.5; }
+.trace-h { margin: 14px 0 4px; font-family: var(--font-caps); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-soft); }
 .waterfall { padding: 8px 0 14px; display: grid; gap: 5px; }
 .span-row { display: grid; grid-template-columns: 210px minmax(0, 1fr) 170px; gap: 10px; align-items: center; font-size: 12px; }
 .span-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -113,7 +120,7 @@ table.accounts { width: 100%; border-collapse: collapse; font-size: 13px; }
 @media (max-width: 900px) {
   .book { grid-template-columns: 1fr; }
   .page { padding-left: 46px; }
-  .trace summary { grid-template-columns: 44px 70px minmax(0, 1fr) 64px; }
+  .trace { grid-template-columns: 44px 70px minmax(0, 1fr) 64px; }
   .trace .ms { display: none; }
   .span-row { grid-template-columns: 1fr; gap: 2px; }
   .span-meta { text-align: left; }
@@ -126,8 +133,9 @@ table.accounts { width: 100%; border-collapse: collapse; font-size: 13px; }
   .leaders div::after { min-width: 12px; }
   .gate-table { display: block; max-width: 100%; overflow-x: auto; font-size: 12px; }
   .gate-table th, .gate-table td { padding-right: 10px; white-space: nowrap; }
-  .trace summary { grid-template-columns: 40px minmax(0, 1fr) 64px; }
+  .trace { grid-template-columns: 40px minmax(0, 1fr) 64px; }
   .trace .feed { display: none; }
+  .snip-feed { display: inline; }
 }
 
 /* Station Manual: the "How it works" pages share the ledger book's paper. */

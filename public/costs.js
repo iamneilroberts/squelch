@@ -8,7 +8,7 @@ const usd = (x) => (x == null ? '<span class="na">price n/a</span>' : x === 0 ? 
 const ms = (x) => (x == null ? '—' : x < 1000 ? `${x} ms` : `${(x / 1000).toFixed(1)} s`);
 const num = (x) => (x == null ? '—' : x.toLocaleString('en-US'));
 const pct = (x) => `${Math.round(x * 100)}%`;
-const PURPOSE = { transcribe: 'Speech-to-text', triage: 'Incident triage', gate: 'Jev gate', digest: 'Daily digest', geocode: 'Geocoder', vad: 'Speech detector (local)' };
+const PURPOSE = { transcribe: 'Speech-to-text', triage: 'Incident triage', gate: 'Jev gate', digest: 'Daily digest', geocode: 'Geocoder', vad: 'Speech detector (local)', thread: 'Channel story', push: 'Push notification', 'listener-surge': 'Listener-surge look' };
 const label = (p) => PURPOSE[p] || (p.startsWith('overlay:') ? `Map layer · ${p.slice(8)}` : p);
 const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -16,7 +16,6 @@ const store = {
 };
 
 let hours = Number(store.get('ledger.hours')) || 24;
-const open = new Set();
 
 async function getJson(url) {
   const r = await fetch(url);
@@ -104,29 +103,62 @@ function renderVad(v) {
     <p class="hint" style="margin-top:8px">Measured on clips that were transcribed. "Lost" counts clips under the cutoff that still produced a transcript kept after filtering, or an incident.</p>`;
 }
 
-function renderTraces(traces) {
-  if (!traces.length) { $('traces').innerHTML = '<li class="empty">No traces yet. They appear as soon as a clip is transcribed.</li>'; return; }
-  $('traces').innerHTML = traces.map((t) => {
-    const total = Math.max(1, t.ms || 0);
-    const snip = t.kind === 'digest' ? `<b>Digest</b> ${esc(t.label)}` : t.transcript ? `${t.category && t.category !== 'routine' ? `<b>${esc(t.category)}</b> ` : ''}${esc(t.transcript)}` : '<i>no speech kept</i>';
-    return `<li><details class="trace" data-id="${t.id}" ${open.has(String(t.id)) ? 'open' : ''}>
-      <summary><span>${hhmm(t.at)}</span><span class="feed">${esc(t.kind === 'digest' ? 'digest' : t.label)}</span><span class="snip">${snip}</span><span class="ms">${ms(t.ms)}</span><span class="usd">${usd(t.cost)}</span></summary>
-      <div class="waterfall">
-        ${t.spans.map((s) => `<div class="span-row">
-          <span class="span-name"><span class="kind ${s.kind}">${s.kind}</span> ${esc(label(s.purpose))}</span>
-          <span class="span-track" title="starts at ${ms(s.offset_ms)}"><span class="span-bar ${s.kind} ${s.ok ? '' : 'failed'}" style="left:${((s.offset_ms || 0) / total) * 100}%;width:${(s.ms / total) * 100}%"></span></span>
-          <span class="span-meta" title="${esc(s.error || s.model || '')}">${s.ok ? '' : '<span class="err">failed</span> · '}${esc(s.model || s.provider || '')} · ${ms(s.ms)}${s.in_tok ? ` · ${num(s.in_tok)}→${num(s.out_tok)} tok` : ''} · ${s.kind === 'http' || s.kind === 'local' ? 'free' : usd(s.cost)}</span>
-        </div>`).join('')}
-        ${t.jev_news != null ? `<div class="verdicts">Jev: speech <strong>${t.jev_speech?.toFixed(2)}</strong> · newsworthy <strong>${t.jev_news.toFixed(2)}</strong> &nbsp;·&nbsp; LLM: <strong>${esc(t.category || '—')}</strong></div>` : ''}
-      </div>
-    </details></li>`;
+// One line per trace, saying what the transmission was about: its story or incident, else the start
+// of what was said. Tapping a line opens its card.
+let traces = [];
+const what = (t) => t.subject || t.headline || t.transcript || null;
+
+function renderTraces(list) {
+  traces = list;
+  if (!list.length) { $('traces').innerHTML = '<li class="empty">No traces yet. They appear as soon as a clip is transcribed.</li>'; return; }
+  $('traces').innerHTML = list.map((t) => {
+    const desc = t.kind === 'digest' ? `<b>Daily log</b> ${esc(t.label)}`
+      : `<b class="snip-feed">${esc(t.label)}</b> ${what(t) ? esc(what(t)) : '<i>no speech kept</i>'}`;
+    const notable = t.category && t.category !== 'routine';
+    return `<li><button type="button" class="trace${notable ? ' notable' : ''}" data-id="${t.id}">
+      <span>${hhmm(t.at)}</span><span class="feed">${esc(t.kind === 'digest' ? 'digest' : t.label)}</span><span class="snip">${desc}</span><span class="ms">${ms(t.ms)}</span><span class="usd">${usd(t.cost)}</span>
+    </button></li>`;
   }).join('');
 }
 
-$('traces').addEventListener('toggle', (e) => {
-  const id = e.target.dataset?.id;
-  if (id) e.target.open ? open.add(id) : open.delete(id);
-}, true);
+function waterfall(t) {
+  const total = Math.max(1, t.ms || 0);
+  return `<div class="waterfall">${t.spans.map((s) => `<div class="span-row">
+    <span class="span-name"><span class="kind ${s.kind}">${s.kind}</span> ${esc(label(s.purpose))}</span>
+    <span class="span-track" title="starts at ${ms(s.offset_ms)}"><span class="span-bar ${s.kind} ${s.ok ? '' : 'failed'}" style="left:${((s.offset_ms || 0) / total) * 100}%;width:${(s.ms / total) * 100}%"></span></span>
+    <span class="span-meta" title="${esc(s.error || s.model || '')}">${s.ok ? '' : '<span class="err">failed</span> · '}${esc(s.model || s.provider || '')} · ${ms(s.ms)}${s.in_tok ? ` · ${num(s.in_tok)}→${num(s.out_tok)} tok` : ''} · ${s.kind === 'http' || s.kind === 'local' ? 'free' : usd(s.cost)}</span>
+  </div>`).join('')}</div>`;
+}
+
+function openTrace(t) {
+  $('trace-title').innerHTML = t.kind === 'digest' ? `Daily log · ${esc(t.label)}` : `${esc(t.label)} · ${hhmm(t.at)}${t.subject || t.headline ? `: ${esc(t.subject || t.headline)}` : ''}`;
+  const facts = [
+    ['When', `${new Date(t.at).toLocaleString('en-US', { timeZone: TZ, dateStyle: 'medium', timeStyle: 'short' })}${t.duration ? ` · ${Math.round(t.duration)} s of audio` : ''}`],
+    ['Cost', `${usd(t.cost)} · ${ms(t.ms)} end to end`],
+    t.headline && ['Incident', esc(t.headline)],
+    t.category && ['Triage', esc(t.category)],
+    t.jev_news != null && ['Jev gate', `speech ${t.jev_speech?.toFixed(2)} · newsworthy ${t.jev_news.toFixed(2)}`],
+  ].filter(Boolean);
+  $('trace-body').innerHTML = `
+    ${t.audio ? `<audio class="trace-audio" controls preload="none" src="/audio/${encodeURIComponent(t.audio)}"></audio>` : ''}
+    ${t.thread_id ? `<p class="trace-story"><a class="key" href="/?story=${t.thread_id}">Open story ›</a> ${esc(t.subject || '')}</p>` : ''}
+    <dl class="story-facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+    ${t.transcript ? `<p class="trace-words">“${esc(t.transcript)}”</p>` : ''}
+    <h3 class="trace-h">Behind the scenes</h3>
+    ${waterfall(t)}`;
+  // Clips are kept for RECORD_DAYS; an expired one says so instead of a dead player.
+  $('trace-body').querySelector('.trace-audio')?.addEventListener('error', (e) => { e.target.outerHTML = '<p class="na">The recording has expired.</p>'; });
+  $('trace-card').showModal();
+}
+
+$('traces').addEventListener('click', (e) => {
+  const row = e.target.closest('.trace');
+  const t = row && traces.find((x) => String(x.id) === row.dataset.id);
+  if (t) openTrace(t);
+});
+$('trace-close').addEventListener('click', () => $('trace-card').close());
+$('trace-card').addEventListener('click', (e) => { if (e.target === $('trace-card')) $('trace-card').close(); });
+$('trace-card').addEventListener('close', () => $('trace-card').querySelector('audio')?.pause());
 
 for (const b of $('period').children) b.setAttribute('aria-pressed', Number(b.dataset.h) === hours);
 $('period').addEventListener('click', (e) => {

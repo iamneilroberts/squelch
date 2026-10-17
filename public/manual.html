@@ -364,11 +364,15 @@ npm start</pre>
 
     <section class="page wide" aria-labelledby="h-traces">
       <h2 id="h-traces">Behind the scenes</h2>
-      <p class="hint">One line per radio clip or digest. Open a line to see each call on its own timeline.</p>
+      <p class="hint">One line per radio clip or digest. Tap a line for the details: the recording, its story, and each AI and API call on a timeline.</p>
       <ol class="traces" id="traces"></ol>
     </section>
   </main>
 </div>
+<dialog class="story trace-card" id="trace-card" aria-labelledby="trace-title">
+  <header class="story-head"><h2 id="trace-title"></h2><button type="button" class="key tkey story-close" id="trace-close" aria-label="Close"><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
+  <div id="trace-body"></div>
+</dialog>
 <script src="manual.js" type="module"></script>
 </body>
 </html>
