@@ -274,14 +274,21 @@ function playRecording(src, label, kind = 'clip', rest = []) {
 }
 
 // Browsers won't start sound before the visitor touches the page. The page opens scanning, so the
-// first transmission waits here, and the first tap or key anywhere starts it.
+// first transmission waits here, and the first tap or key anywhere starts it. Only the latest wait
+// counts: a story opened from a link replaces the scan the page opened with.
+let tapWait = null;
 function awaitTap(start = () => { if (radio.getAttribute('src') && radio.paused) radio.play().catch(() => {}); }) {
-  $('now-playing').innerHTML = '<strong>SCAN</strong> · traffic waiting — <strong>tap anywhere to listen</strong>';
+  $('now-playing').innerHTML = radio.dataset.kind === 'clip'
+    ? `<strong>${esc(radio.dataset.label || 'Recording')}</strong> · <strong>tap anywhere to play</strong>`
+    : '<strong>SCAN</strong> · traffic waiting — <strong>tap anywhere to listen</strong>';
   const go = () => {
     removeEventListener('pointerdown', go, true);
     removeEventListener('keydown', go, true);
+    if (tapWait === go) tapWait = null;
     start();
   };
+  if (tapWait) { removeEventListener('pointerdown', tapWait, true); removeEventListener('keydown', tapWait, true); }
+  tapWait = go;
   addEventListener('pointerdown', go, true);
   addEventListener('keydown', go, true);
 }
