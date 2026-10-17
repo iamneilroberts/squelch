@@ -492,7 +492,7 @@ function stopScan() {
 
 function syncScanKeys() {
   $('btn-scan').setAttribute('aria-pressed', scan.on);
-  $('btn-hold').disabled = !scan.on;
+  $('btn-hold').disabled = !scan.on || !scan.lastCall; // nothing to hold on until something has played
   $('btn-hold').setAttribute('aria-pressed', Boolean(scan.hold));
   $('btn-hold').textContent = scan.hold ? 'Resume' : 'Hold';
   $('btn-prev').disabled = !scan.on || scan.history.length < 1;
