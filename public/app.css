@@ -1000,3 +1000,14 @@ button.report-open { font: inherit; cursor: pointer; background: none; border: 0
 
 /* The LCD skin's own parts (skin-lcd.css shows them); Classic has none of them. */
 .lcd-only, .lcd-readout, .look-lcd { display: none; }
+
+/* Notifications set-up banner: shown until this browser has notifications on. */
+.notify-cta {
+  display: flex; align-items: center; gap: 10px; margin: 10px 10px 0; padding: 8px 8px 8px 12px; border-radius: 3px;
+  background: var(--paper); color: var(--ink); font-family: var(--font-type); font-size: 14px; line-height: 1.3;
+  box-shadow: inset 0 0 0 2px var(--red-ink), 0 6px 12px -8px oklch(0.1 0.03 45 / .8);
+}
+.notify-cta[hidden] { display: none; }
+.notify-cta svg { flex: none; width: 22px; height: 22px; fill: none; stroke: var(--red-ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.notify-cta a { flex: 1; min-width: 0; color: var(--red-ink); font-weight: 700; }
+.notify-cta .key { flex: none; min-height: 44px; }

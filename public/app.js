@@ -1733,7 +1733,23 @@ async function notifyInit() {
   const st = notify.status;
   $('btn-notify').hidden = !st || !(st.allowed || st.owner); // the owner sees it even before setup, to find the instructions
   $('btn-notify').setAttribute('aria-pressed', String(Boolean(st?.sub)));
+  notifyCta();
 }
+
+// A banner pointing at the set-up steps, until this browser has notifications on (or "Not now" hides it for a week).
+function notifyCta() {
+  const st = notify.status;
+  let snoozed = false;
+  try { snoozed = Date.now() < Number(localStorage.getItem('pcm.notifyCtaUntil') || 0); } catch {}
+  $('notify-cta').hidden = snoozed || !st?.ready || !(st.allowed || st.owner) || Boolean(st.sub);
+  $('notify-cta-link').textContent = needsHomeScreen
+    ? 'Get alerts on your iPhone: add Squelch to your Home Screen, then turn on notifications'
+    : 'Get alerts on this device: how to turn on notifications';
+}
+$('notify-cta-close').addEventListener('click', () => {
+  try { localStorage.setItem('pcm.notifyCtaUntil', String(Date.now() + 7 * 864e5)); } catch {}
+  $('notify-cta').hidden = true;
+});
 
 function renderNotify() {
   const st = notify.status;
@@ -1781,6 +1797,7 @@ async function notifyToggle() {
   }
   $('btn-notify').setAttribute('aria-pressed', String(Boolean(st.sub)));
   renderNotify();
+  notifyCta();
 }
 
 async function notifySavePrefs() {
