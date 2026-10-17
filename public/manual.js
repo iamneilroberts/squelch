@@ -19,3 +19,11 @@ $('tab-how').addEventListener('click', () => { history.replaceState(null, '', lo
 $('tab-ledger').addEventListener('click', () => { location.hash = 'ledger'; });
 addEventListener('hashchange', show);
 show();
+
+// A phone can bring this page back from memory after an update; check, and reload if anything changed.
+let version = null;
+const latest = () => fetch('/api/version', { cache: 'no-store' }).then((r) => r.json()).then((j) => j.version).catch(() => null);
+latest().then((v) => { version = v; });
+const recheck = async () => { const v = await latest(); if (v && version && v !== version) location.reload(); };
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') recheck(); });
+addEventListener('pageshow', (e) => { if (e.persisted) recheck(); });

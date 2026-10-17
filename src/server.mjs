@@ -52,7 +52,8 @@ const canEdit = (req) => !isRemote(req) || settings.owners.includes(String(req.h
 configureNotify({ allowGuests: () => settings.guestNotifications });
 // The page's own files, newest change first. An open page (often a Home Screen app, which has no
 // reload button) compares it with the version it loaded and offers to reload.
-const appVersion = () => String(Math.round(Math.max(...['index.html', 'app.js', 'app.css', 'sw.js'].map((f) => statSync(join('public', f)).mtimeMs))));
+const appVersion = () => String(Math.round(Math.max(...['index.html', 'app.js', 'app.css', 'sw.js', 'manual.html', 'manual.js', 'costs.js', 'costs.css']
+  .map((f) => statSync(join('public', f)).mtimeMs))));
 
 const json = (res, body, code = 200) => {
   res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -95,6 +96,8 @@ function serveFile(res, root, rel, range) {
     res.writeHead(206, { ...head, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': end - start + 1 });
     return createReadStream(path, { start, end }).pipe(res);
   }
+  // Pages are never stored: iOS otherwise shows a kept copy of an open page, still pointing at old scripts.
+  if (extname(path) === '.html') head['Cache-Control'] = 'no-store';
   res.writeHead(200, head);
   if (extname(path) === '.html') {
     const html = versionAssets(readFileSync(path, 'utf8'), dirname(path));

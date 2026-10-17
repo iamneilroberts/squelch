@@ -139,7 +139,15 @@ function openTrace(t) {
     t.category && ['Triage', esc(t.category)],
     t.jev_news != null && ['Jev gate', `speech ${t.jev_speech?.toFixed(2)} · newsworthy ${t.jev_news.toFixed(2)}`],
   ].filter(Boolean);
+  // A clip with no saved call was discarded on the way; say where, so the missing player makes sense.
+  const did = (p) => t.spans.some((s) => s.purpose === p);
+  const discarded = t.kind === 'clip' && !t.call_id && (did('gate')
+    ? 'Discarded: the Jev gate judged it not to be real speech, so no recording or story was kept.'
+    : did('transcribe')
+      ? 'Discarded: the transcriber heard no usable speech (static, tones or silence), so no recording or story was kept.'
+      : 'Discarded before transcription by the speech detector, so no recording or story was kept.');
   $('trace-body').innerHTML = `
+    ${discarded ? `<p class="na trace-why">${discarded}</p>` : ''}
     ${t.audio ? `<audio class="trace-audio" controls preload="none" src="/audio/${encodeURIComponent(t.audio)}"></audio>` : ''}
     ${t.thread_id ? `<p class="trace-story"><a class="key" href="/?story=${t.thread_id}">Open story ›</a> ${esc(t.subject || '')}</p>` : ''}
     <dl class="story-facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>

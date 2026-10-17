@@ -102,6 +102,7 @@ table.accounts { width: 100%; border-collapse: collapse; font-size: 13px; }
 .trace-audio { width: 100%; margin: 12px 0 4px; }
 .trace-story { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; font-size: 13px; }
 .trace-story .key { min-width: 0; padding: 8px 12px 6px; font-size: 11px; text-decoration: none; }
+.trace-why { margin: 12px 0 0; font-size: 13px; line-height: 1.5; }
 .trace-words { margin: 10px 0; font-size: 13px; line-height: 1.5; }
 .trace-h { margin: 14px 0 4px; font-family: var(--font-caps); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-soft); }
 .waterfall { padding: 8px 0 14px; display: grid; gap: 5px; }
