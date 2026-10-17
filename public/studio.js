@@ -107,9 +107,13 @@ async function loadJobs() {
 }
 
 /* ───────── Library ───────── */
-// An installed phone app has no back button, so a download there opens in a browser sheet (with Done) instead of stranding the app.
-const dlAttr = matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'target="_blank" rel="noopener"' : 'download';
-const fileUrl = (a, f, dl) =>`/api/studio/animations/${a.id}/files/${encodeURIComponent(f.name)}${dl ? '?download' : ''}`;
+// An installed phone app has no back button, and a plain download there strands it on a blank or file page.
+// So there the key fetches the file first, then a second tap hands it to the share sheet (Save Video, Save to Files…).
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+const dlKey = (a, f) => standalone
+  ? `<button type="button" class="key" data-save="${fileUrl(a, f)}" data-name="squelch-${a.id}-${esc(f.name)}">${f.kind === 'mp4' ? 'MP4' : 'HTML'} <span class="na">${mb(f.bytes)}</span></button>`
+  : `<a class="key" href="${fileUrl(a, f, true)}" download>${f.kind === 'mp4' ? 'MP4' : 'HTML'} <span class="na">${mb(f.bytes)}</span></a>`;
+const fileUrl = (a, f, dl) => `/api/studio/animations/${a.id}/files/${encodeURIComponent(f.name)}${dl ? '?download' : ''}`;
 const playable = (a) => ({ mp4: a.files.find((f) => f.kind === 'mp4'), web: a.files.find((f) => f.kind === 'web') });
 
 function player(a) {
@@ -143,7 +147,7 @@ function card(a) {
         <dt>Asked by</dt><dd>${esc(a.requested_by || 'owner')}</dd>
       </dl>
       <div class="anim-actions">
-        ${a.files.filter((f) => f.kind === 'mp4' || f.kind === 'web').map((f) => `<a class="key" href="${fileUrl(a, f, true)}" ${dlAttr}>${f.kind === 'mp4' ? 'MP4' : 'HTML'} <span class="na">${mb(f.bytes)}</span></a>`).join('')}
+        ${a.files.filter((f) => f.kind === 'mp4' || f.kind === 'web').map((f) => dlKey(a, f)).join('')}
         ${ACCESS === 'owner' ? '<button type="button" class="key danger" data-delete>Delete</button>' : ''}
       </div>
     </div>
@@ -171,6 +175,23 @@ $('library').addEventListener('click', async (e) => {
     const cur = li.querySelectorAll('[data-rate][aria-pressed="true"]').length;
     const a = await api(`animations/${id}/rate`, { method: 'POST', body: JSON.stringify({ rating: n === cur ? null : n }) });
     li.querySelector('.stars').outerHTML = stars(a);
+    return;
+  }
+  const save = e.target.closest('[data-save]');
+  if (save) {
+    if (save.file) { navigator.share({ files: [save.file] }).catch(() => {}); return; }
+    const label = save.innerHTML;
+    save.disabled = true;
+    save.textContent = 'Getting it…';
+    try {
+      const r = await fetch(save.dataset.save);
+      if (!r.ok) throw new Error(r.status);
+      const blob = await r.blob();
+      const file = new File([blob], save.dataset.name, { type: blob.type });
+      if (!navigator.canShare?.({ files: [file] })) { location.href = save.dataset.save; return; }
+      save.file = file;
+      save.textContent = 'Tap to save';
+    } catch { save.innerHTML = label; } finally { save.disabled = false; }
     return;
   }
   if (e.target.closest('[data-delete]')) {
