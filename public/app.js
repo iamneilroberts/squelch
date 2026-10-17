@@ -449,6 +449,7 @@ const loadSet = (key) => new Set((() => { try { return JSON.parse(store.get(key)
 const scan = {
   on: false,
   sid: null,          // this page's scan on the server (src/scan.mjs)
+  epoch: null,        // when the server started that scan's stream: a new one means the stream restarted under us
   plays: [],          // the server's announcements: where each transmission starts in the stream
   shown: null,        // the announcement on air now
   retry: null,
@@ -500,15 +501,17 @@ function syncScanKeys() {
 // The scan's audio is one stream from the server (src/scan.mjs), so it keeps playing with a phone locked.
 // The server picks each transmission and says where in the stream it starts ('scan' events); the page
 // shows whatever the playback position has reached.
+const pageId = Math.random().toString(36).slice(2, 10); // the server sends this page's scan announcements only here
 const scanSettings = () => ({ channels: scanChannels().map((s) => s.id).join(','), pri: [...scan.priority].join(','), hold: scan.hold || '' });
 function scanConnect() {
   clearTimeout(scan.retry);
   scan.sid = Math.random().toString(36).slice(2, 10);
+  scan.epoch = null;
   scan.plays = [];
   scan.shown = null;
   playlist = [];
   radio.querySelectorAll('track').forEach((t) => t.remove());
-  radio.src = `/scan/stream?${new URLSearchParams({ sid: scan.sid, ...scanSettings() })}`;
+  radio.src = `/scan/stream?${new URLSearchParams({ sid: scan.sid, page: pageId, ...scanSettings() })}`;
   radio.dataset.kind = 'scan';
   radio.play().catch((e) => {
     if (e.name !== 'NotAllowedError') return;
@@ -525,6 +528,13 @@ function scanReconnect() {
 // Channels, priority or hold changed (or PREV wants a replay, or Catch up a story): tell the server's scan.
 function scanSync(extra = {}) {
   if (scan.on && scan.sid) postJson(`/api/scan/${scan.sid}`, { ...scanSettings(), ...extra }).catch(() => {});
+}
+// The browser re-requested the scan's stream by itself and the server started it over, so the stream's
+// positions no longer match the page's: connect afresh.
+function newEpoch(epoch) {
+  if (!scan.epoch || scan.epoch === epoch) { scan.epoch = epoch; return false; }
+  scanConnect();
+  return true;
 }
 const resume = () => (scan.on && radio.dataset.kind === 'scan' ? scanConnect() : radio.play().catch(() => {}));
 
@@ -596,6 +606,7 @@ document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState !== 'visible' || !scan.on || !scan.sid || radio.paused) return;
   const r = await getJson(`/api/scan/${scan.sid}`).catch(() => null);
   if (!r?.plays) return scanReconnect();
+  if (newEpoch(r.epoch)) return;
   scan.plays = r.plays;
   scanShow();
 });
@@ -1189,7 +1200,7 @@ function renderLamps() {
 
 /* ───────── Live updates ───────── */
 function connect() {
-  const es = new EventSource('/api/events');
+  const es = new EventSource(`/api/events?page=${pageId}`);
   es.addEventListener('incident', (e) => {
     const inc = JSON.parse(e.data);
     state.incidents.set(inc.id, inc);
@@ -1210,7 +1221,7 @@ function connect() {
   });
   es.addEventListener('scan', (e) => {
     const p = JSON.parse(e.data);
-    if (p.sid !== scan.sid) return;
+    if (p.sid !== scan.sid || newEpoch(p.epoch)) return;
     scan.plays.push(p);
     if (scan.plays.length > 30) scan.plays.shift();
   });

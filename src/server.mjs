@@ -167,11 +167,12 @@ async function relayStream(req, res, id) {
   }
 }
 
-const clients = new Map(); // SSE response → is a tunnel visitor
-const broadcast = (ev, data) => {
+const clients = new Map(); // SSE response → { remote: is a tunnel visitor, page: the page's id }
+// Everyone, or only the page with that id (its scan's announcements).
+const broadcast = (ev, data, page = null) => {
   const full = `event: ${ev}\ndata: ${JSON.stringify(data)}\n\n`;
   const safe = `event: ${ev}\ndata: ${JSON.stringify(scrub(data))}\n\n`;
-  for (const [c, remote] of clients) c.write(hideFrom(remote) ? safe : full);
+  for (const [c, v] of clients) if (!page || v.page === page) c.write(hideFrom(v.remote) ? safe : full);
 };
 for (const ev of ['incident', 'call', 'status']) bus.on(ev, (data) => broadcast(ev, data));
 
@@ -260,7 +261,7 @@ createServer(async (req, res) => {
     if (p === '/api/events') {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
       res.write('retry: 5000\n\n');
-      clients.set(res, remote);
+      clients.set(res, { remote, page: url.searchParams.get('page') });
       const ping = setInterval(() => res.write(': ping\n\n'), 25e3);
       req.on('close', () => { clients.delete(res); clearInterval(ping); });
       return;
@@ -287,7 +288,7 @@ createServer(async (req, res) => {
     }
     if (p.startsWith('/listen/')) return relayStream(req, res, p.slice('/listen/'.length));
     // Scan as one stream that keeps playing with a phone locked (src/scan.mjs).
-    if (p === '/scan/stream') return scanStream(req, res, url.searchParams, (play) => broadcast('scan', play));
+    if (p === '/scan/stream') return scanStream(req, res, url.searchParams, (play) => broadcast('scan', play, url.searchParams.get('page')));
     const sc = p.match(/^\/api\/scan\/([\w-]{1,64})$/);
     if (sc) {
       const r = req.method === 'POST' ? updateScan(sc[1], await readJson(req)) : scanPlays(sc[1]);

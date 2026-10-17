@@ -111,7 +111,7 @@ function pick(s) {
   if (!q) return;
   s.queue = s.queue.filter((x) => x !== q);
   s.current = { call: q.call, frames: q.frames, tag: q.tag, i: 0 };
-  const play = { sid: s.sid, offset: s.written, duration: q.frames.length * FRAME_S, tag: q.tag || (s.hold ? 'HOLD' : s.pri.has(q.call.source_id) ? 'PRI' : ''), call: q.call };
+  const play = { sid: s.sid, epoch: s.start, offset: s.written, duration: q.frames.length * FRAME_S, tag: q.tag || (s.hold ? 'HOLD' : s.pri.has(q.call.source_id) ? 'PRI' : ''), call: q.call };
   s.plays.push(play);
   if (s.plays.length > 30) s.plays.shift();
   s.announce(play);
@@ -170,11 +170,11 @@ export function updateScan(sid, body) {
     if (s.current?.tag?.startsWith('CATCH UP')) s.current = null;
     enqueueList(s, calls, (i, n) => `CATCH UP ${i + 1}/${n}`);
   }
-  return { plays: s.plays };
+  return { epoch: s.start, plays: s.plays };
 }
 
 // GET /api/scan/<sid> — where each recent transmission sits in the stream (a page catching up after its
 // timers were stopped, e.g. with the phone locked).
-export const scanPlays = (sid) => (sessions.has(sid) ? { plays: sessions.get(sid).plays } : null);
+export const scanPlays = (sid) => (sessions.has(sid) ? { epoch: sessions.get(sid).start, plays: sessions.get(sid).plays } : null);
 
 bus.on('call', (c) => { for (const s of sessions.values()) enqueue(s, c); });
