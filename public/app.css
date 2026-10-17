@@ -501,12 +501,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .cc-src[data-band="ham"] { --c: oklch(0.76 0.13 310); }
 
 /* Title line → channel story */
-/* Follow strip: a slip of printout under the radio with the followed story's newest transmissions */
+/* Follow strip: a slip of printout with the followed story's newest transmissions. Under the radio on a
+   phone; on a wider screen it's pinned to the speaker grille, so the map and printout keep their height. */
 .follow {
+  position: absolute; grid-area: 1 / 1 / 2 / 2; left: 10px; right: 10px; bottom: 10px; z-index: 1;
   display: grid; gap: 6px; padding: 9px 14px 10px; border-radius: 2px;
   background: repeating-linear-gradient(180deg, var(--greenbar) 0 52px, var(--paper) 52px 104px);
   color: var(--ink); font-family: var(--font-type); box-shadow: 0 8px 16px -8px oklch(0.1 0.03 45 / .8);
 }
+.faceplate:has(.follow:not([hidden])) { position: relative; }
+.faceplate:has(.follow:not([hidden])) .grille { place-items: start center; padding-top: 52px; }
 .follow-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 13.5px; font-weight: 700; }
 .follow-label { font: 600 12px var(--font-caps); letter-spacing: .18em; text-transform: uppercase; color: var(--red-ink); }
 .follow .live { color: var(--needle); }
@@ -893,6 +897,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .tkey { width: 44px; padding: 10px 0 8px; } /* 44 px touch targets */
   .tkey.scan-key { width: auto; min-width: 44px; padding: 10px 8px 8px; letter-spacing: .08em; }
   .follow-key { min-height: 44px; padding: 0 12px; }
+  .follow { position: static; grid-area: auto; }
+  .faceplate:has(.follow:not([hidden])) .grille { place-items: center; padding: 8px; }
   .story .play, .story-close { min-width: 44px; min-height: 44px; }
   .story-play, .story-feedback .key, .story-quiet summary { min-height: 44px; }
   .story-quiet summary { display: flex; align-items: center; gap: 6px; }
