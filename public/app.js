@@ -122,12 +122,16 @@ function buildDial() {
     return `<span class="dial-band" data-band="${b.id}" style="left:${left}%;width:${right - left}%">${b.label}</span>`;
   }).join('');
 
-  $('dial-stations').innerHTML = order.map((s) => `
+  // Grouped by band: on a phone the groups become rows of preset keys (app.css); on a wide screen
+  // they vanish (display: contents) and each station sits at its place on the slide rule.
+  const key = (s) => `
     <button class="station ${playable(s) ? '' : 'link'} ${state.band !== 'all' && s.band !== state.band ? 'dimmed' : ''} ${scan.lockouts.has(s.id) ? 'locked' : ''} ${scan.priority.has(s.id) ? 'pri' : ''}" data-id="${s.id}" style="left:${s.x}%"
       aria-pressed="${state.tuned?.id === s.id}" title="${esc(s.name)} — ${esc(s.coverage)}">
       <span class="station-freq">${esc(s.dial || '')}</span>
       <span class="station-name">${esc(s.short)}</span>
-    </button>`).join('');
+    </button>`;
+  $('dial-stations').innerHTML = present.map((b) =>
+    `<div class="dial-group" data-band="${b.id}"><span class="dial-group-label">${b.label}</span>${order.filter((s) => s.band === b.id).map(key).join('')}</div>`).join('');
 
   $('keys').innerHTML = [{ id: 'all', key: 'All' }, ...present].map((b) =>
     `<button class="key" data-band="${b.id}" aria-pressed="${b.id === state.band}">${b.key}</button>`).join('');
@@ -145,7 +149,7 @@ $('keys').addEventListener('click', (e) => {
   if (!k) return;
   state.band = k.dataset.band;
   for (const el of $('keys').children) el.setAttribute('aria-pressed', el === k);
-  for (const el of $('dial-stations').children) {
+  for (const el of $('dial-stations').querySelectorAll('.station')) {
     el.classList.toggle('dimmed', state.band !== 'all' && state.byId.get(el.dataset.id).band !== state.band);
   }
   renderLog();
@@ -158,6 +162,7 @@ function moveNeedle(s, { scroll = true } = {}) {
   const px = (s.x / 100) * dial.clientWidth;
   dial.style.setProperty('--needle-px', `${px}px`);
   dial.style.setProperty('--needle-x', `${s.x}%`);
+  for (const b of dial.querySelectorAll('.station')) b.classList.toggle('at', b.dataset.id === s.id); // the phone's preset keys show the needle this way
   // On a scrolling (phone-width) dial, keep the tuned station in view.
   const scroller = dial.parentElement;
   if (scroll && scroller.scrollWidth > scroller.clientWidth + 4) {
@@ -176,7 +181,7 @@ let tuneTimer = null;
 const playable = (s) => Boolean(s.streamUrl && state.viewer?.canListen);
 
 function tune(s) {
-  const buttons = [...$('dial-stations').children];
+  const buttons = [...$('dial-stations').querySelectorAll('.station')];
   if (state.tuned === s && !radio.paused) return powerOff();
   state.tuned = s;
   moveNeedle(s);
@@ -219,7 +224,7 @@ function powerOff() {
   radio.removeAttribute('src');
   radio.load(); // drop the connection to a live stream instead of buffering it in the background
   state.tuned = null;
-  for (const b of $('dial-stations').children) b.setAttribute('aria-pressed', 'false');
+  for (const b of $('dial-stations').querySelectorAll('.station')) b.setAttribute('aria-pressed', 'false');
   setLit(false);
   $('now-playing').textContent = 'Off the air. Tune a station on the dial to listen live.';
   ccIdle();
