@@ -1,0 +1,141 @@
+/* Squelch — the LCD skin on the Station Manual (How it works, Ledger, Studio, What's new).
+   Loaded after skin-lcd.css, which supplies the tokens, backlight colours and rubber keys; everything is scoped under
+   [data-skin="lcd"], so Classic is untouched. The backlight (data-backlight) drives the accents, as on the receiver. */
+
+[data-skin="lcd"] {
+  --ledger: #22252b;
+  --ledger-rule: rgba(255, 255, 255, .13);
+  --ledger-margin: transparent;
+  --k-stt: var(--accent); --k-llm: #ffb45e; --k-jev: #7fdc9a; --k-http: #aab1bc;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --glass: repeating-linear-gradient(0deg, rgba(0, 0, 0, .035) 0 1px, transparent 1px 3px), var(--lcd-bg);
+}
+[data-skin="lcd"] body { font-family: var(--body); }
+
+/* ───────── Header and tab row: rubber keys with an LED on the active one ───────── */
+[data-skin="lcd"] .ledger-wrap { padding-top: 12px; }
+[data-skin="lcd"] .ledger-head { padding: 0; gap: 8px 16px; background: none; box-shadow: none; border-radius: 0; }
+[data-skin="lcd"] .ledger-head h1 { font: 700 20px/1 var(--cond); letter-spacing: 5px; text-transform: uppercase; color: var(--ink); }
+[data-skin="lcd"] .ledger-head h1 .badge-script { font: 700 20px/1 var(--cond); letter-spacing: 5px; text-transform: uppercase; color: var(--ink); text-shadow: none; margin: 0 4px 0 0; }
+[data-skin="lcd"] .back { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; font: 600 14px var(--cond); letter-spacing: 1px; text-transform: uppercase; color: var(--accent); text-decoration: none; }
+[data-skin="lcd"] .ledger-head .keys { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 100%; }
+[data-skin="lcd"] .ledger-head .keys .key { flex: 1 1 auto; padding: 12px 14px 0; }
+[data-skin="lcd"] .ledger-head [role="tab"]::before {
+  content: ''; position: absolute; top: 6px; left: 50%; width: 14px; height: 3px; margin-left: -7px; border-radius: 2px; background: #101114;
+}
+[data-skin="lcd"] .ledger-head [role="tab"][aria-selected="true"] {
+  transform: translateY(2px); color: #fff;
+  box-shadow: 0 1px 0 #0b0c0e, 0 2px 4px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .1);
+}
+[data-skin="lcd"] .ledger-head [role="tab"][aria-selected="true"]::before { background: var(--led); box-shadow: 0 0 6px var(--led-glow), 0 0 2px #fff; }
+[data-skin="lcd"] .ledger-head .key[aria-pressed="true"] { color: var(--accent); }
+[data-skin="lcd"][data-backlight="red"] :is(.ledger-head, .make, .quote, #guest-control, .suggest-tools) .key[aria-pressed="true"] { color: #ff9a8c; } /* the red accent is 4.0:1 on a pressed key; this clears 4.5 */
+/* the unseen dot on What's new is an LED too */
+[data-skin="lcd"] .has-news::after, [data-skin="lcd"] .has-changes::after { background: var(--led); box-shadow: 0 0 6px var(--led-glow), 0 0 2px #fff; }
+[data-skin="lcd"] #tab-changes.has-news { padding-right: 24px; }
+
+/* ───────── Section cards: dark panels instead of lined paper ───────── */
+[data-skin="lcd"] .book { gap: 14px; }
+[data-skin="lcd"] .page {
+  padding: 18px; border-radius: 12px; background: var(--ledger);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+[data-skin="lcd"] .page h2 { font: 700 19px/1.2 var(--cond); letter-spacing: .16em; color: var(--accent); text-shadow: var(--lcd-glow); }
+[data-skin="lcd"] .manual h3, [data-skin="lcd"] .chg-day h3, [data-skin="lcd"] .anim-meta h3 { font-family: var(--cond); font-size: 19px; letter-spacing: .1em; color: var(--ink); }
+[data-skin="lcd"] .chg-day h3 { color: var(--accent); }
+[data-skin="lcd"] .manual .part { font: 700 24px/1.1 var(--cond); letter-spacing: .2em; color: var(--ink); }
+[data-skin="lcd"] .manual .toc h3, [data-skin="lcd"] .money-h, [data-skin="lcd"] .trace-h, [data-skin="lcd"] .accounts th, [data-skin="lcd"] .gate-table th { font-family: var(--cond); font-size: 13px; color: var(--ink-soft); }
+[data-skin="lcd"] .traces .t-group { font-family: var(--cond); font-size: 14px; color: var(--accent); border-bottom-color: var(--ledger-rule); }
+
+/* ───────── Prose stays readable: system font, sentence case ───────── */
+[data-skin="lcd"] .manual { font: 15px/1.65 var(--body); }
+[data-skin="lcd"] .manual a, [data-skin="lcd"] .chg a, [data-skin="lcd"] .anim-sub a, [data-skin="lcd"] .kept-out a { color: var(--accent); }
+[data-skin="lcd"] .manual code, [data-skin="lcd"] .tip-hint code { background: #14161a; color: var(--ink); border-radius: 3px; font-family: var(--mono); }
+[data-skin="lcd"] .cmd { background: #14161a; color: var(--ink); font-family: var(--mono); }
+[data-skin="lcd"] .flow span { background: #14161a; border-color: var(--bakelite-3); }
+[data-skin="lcd"] .flow b { color: var(--accent); }
+[data-skin="lcd"] .tag-sample { color: var(--accent); border-color: var(--accent); }
+[data-skin="lcd"] .manual .toc a { display: inline-block; min-width: 44px; padding: 10px 0; }
+[data-skin="lcd"] .na, [data-skin="lcd"] .empty { color: var(--ink-soft); }
+[data-skin="lcd"] .err, [data-skin="lcd"] .st-failed { color: #ff8a7a; }
+
+/* ───────── Figures and readouts: small backlit glass windows ───────── */
+[data-skin="lcd"] :is(.money-head b, .leaders .total dd, .quote > p > b, #suggest-note b) {
+  display: inline-block; padding: 2px 8px 0; border-radius: 4px; font-family: var(--lcdfont); font-weight: 400; color: var(--lcd-ink); text-shadow: var(--lcd-glow);
+  background: var(--glass); box-shadow: inset 0 0 0 2px var(--lcd-bezel);
+}
+[data-skin="lcd"] .money-head b { font-size: 40px; line-height: 1; padding: 4px 10px 0; margin-right: 8px; }
+[data-skin="lcd"] .leaders .total dd { font-size: 24px; line-height: 1.1; }
+[data-skin="lcd"] .leaders div::after { border-bottom-color: rgba(255, 255, 255, .28); }
+[data-skin="lcd"] .tip-usd { color: var(--accent); }
+[data-skin="lcd"] .tip-usd small, [data-skin="lcd"] .chan .c-usd small, [data-skin="lcd"] .tip-hint { color: var(--ink-soft); }
+[data-skin="lcd"] .share span, [data-skin="lcd"] .chan .c-bar { opacity: 1; }
+[data-skin="lcd"] .share span { background: var(--accent); }
+[data-skin="lcd"] .gate-line strong { color: var(--k-jev); }
+[data-skin="lcd"] .trace.notable .t-desc { color: var(--accent); }
+[data-skin="lcd"] .flag { stroke: var(--accent); }
+[data-skin="lcd"] .flag.breaking { fill: var(--accent); }
+[data-skin="lcd"] .span-track { background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(255, 255, 255, .14) calc(10% - 1px) 10%); }
+[data-skin="lcd"] .span-bar.failed { background: repeating-linear-gradient(45deg, #ff8a7a 0 3px, transparent 3px 6px); }
+[data-skin="lcd"] .trace, [data-skin="lcd"] .chan { color: var(--ink); }
+[data-skin="lcd"] .trace { min-height: 44px; padding: 7px 0; }
+
+/* ───────── Tables on dark ───────── */
+[data-skin="lcd"] .accounts th { border-bottom: 1.5px solid var(--accent); }
+[data-skin="lcd"] .accounts td, [data-skin="lcd"] .gate-table td, [data-skin="lcd"] .gate-table th { border-bottom-color: var(--ledger-rule); }
+[data-skin="lcd"] .accounts tfoot td { border-top: 1.5px double var(--accent); }
+[data-skin="lcd"] .accounts tbody tr:nth-child(even) td { background: rgba(255, 255, 255, .03); }
+[data-skin="lcd"] .manual table { color: var(--ink); }
+[data-skin="lcd"] .manual td, [data-skin="lcd"] .manual th { border-color: var(--ledger-rule); }
+[data-skin="lcd"] .trace-tools select { background: #0d0e10; color: var(--ink); border: 1px solid var(--bakelite-3); border-radius: 8px; font-family: var(--body); }
+
+/* ───────── Studio ───────── */
+[data-skin="lcd"] .anim { border-bottom-color: var(--ledger-rule); }
+[data-skin="lcd"] .anim-video, [data-skin="lcd"] .anim-frame, [data-skin="lcd"] .anim-poster { background: #0d0e10; box-shadow: 0 0 0 1px rgba(255, 255, 255, .1); }
+[data-skin="lcd"] .anim-poster { background: radial-gradient(circle, rgba(255, 255, 255, .08) 2px, transparent 2.5px) 0 0 / 14px 14px, #0d0e10; }
+[data-skin="lcd"] .anim-poster .key { min-width: 88px; }
+[data-skin="lcd"] .linkish { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); }
+[data-skin="lcd"] .anim-actions .key, [data-skin="lcd"] .make .key, [data-skin="lcd"] .quote .key, [data-skin="lcd"] .suggest-tools .key, [data-skin="lcd"] #guest-control .key {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 14px; font-size: 14px; text-decoration: none;
+}
+[data-skin="lcd"] .anim-actions .key .na { color: var(--ink-soft); font: 12px var(--body); text-transform: none; letter-spacing: 0; }
+[data-skin="lcd"] .key.danger { color: #ff8a7a; }
+[data-skin="lcd"] .make .keys, [data-skin="lcd"] .quote .keys, [data-skin="lcd"] #guest-control .keys, [data-skin="lcd"] .suggest-tools .keys { display: flex; flex-wrap: wrap; gap: 8px; }
+[data-skin="lcd"] :is(.make, .quote, #guest-control, .suggest-tools) .key[aria-pressed="true"] { color: var(--accent); box-shadow: 0 1px 0 #0b0c0e, 0 2px 4px rgba(0, 0, 0, .55), inset 0 -3px 0 var(--led), inset 0 1px 0 rgba(255, 255, 255, .1); text-shadow: var(--lcd-glow); }
+/* rating stars: 44px keys, lit in the backlight when chosen */
+[data-skin="lcd"] .stars { gap: 4px; }
+[data-skin="lcd"] .stars button { min-width: 44px; min-height: 44px; padding: 0; border-radius: 10px; font-size: 22px; color: var(--ink-soft); background: var(--rubber); box-shadow: var(--rubber-shadow); }
+[data-skin="lcd"] .stars button[aria-pressed="true"] { color: var(--led); text-shadow: 0 0 6px var(--led-glow); }
+/* suggestion score: a small glass gauge */
+[data-skin="lcd"] .humor { border: 2px solid var(--lcd-bezel); border-radius: 4px; background: var(--glass); }
+[data-skin="lcd"] .humor span { background: var(--lcd-ghost); opacity: 3; filter: none; background: color-mix(in srgb, var(--lcd-ink) 22%, transparent); }
+[data-skin="lcd"] .humor b { font: 400 24px/1 var(--lcdfont); color: var(--lcd-ink); text-shadow: var(--lcd-glow); }
+[data-skin="lcd"] .pitch { font-family: var(--cond); font-size: 21px; letter-spacing: .02em; color: var(--ink); }
+[data-skin="lcd"] .suggest { border-bottom-color: var(--ledger-rule); }
+[data-skin="lcd"] .why { color: var(--ink-soft); }
+[data-skin="lcd"] .kept-out summary, [data-skin="lcd"] .chg-docs > summary { display: flex; align-items: center; min-height: 44px; color: var(--ink-soft); }
+[data-skin="lcd"] .quote { border-color: var(--bakelite-3); background: #1a1c20; border-radius: 8px; }
+[data-skin="lcd"] .job { border-bottom-color: var(--ledger-rule); }
+[data-skin="lcd"] .job-step { color: var(--accent); }
+[data-skin="lcd"] .job-bar { border: 0; border-radius: 3px; background: #0b0c0e; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .9); }
+[data-skin="lcd"] .job-bar span { background: var(--led); box-shadow: 0 0 6px var(--led-glow); }
+[data-skin="lcd"] .st-running, [data-skin="lcd"] .st-queued { color: var(--accent); }
+
+/* ───────── What's new ───────── */
+[data-skin="lcd"] .chg { border-bottom-color: var(--ledger-rule); }
+[data-skin="lcd"] .chg summary { display: block; padding: 12px 0; }
+[data-skin="lcd"] .chg details p { color: var(--ink-soft); }
+[data-skin="lcd"] .sha { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; font-family: var(--mono); color: var(--ink-soft); }
+[data-skin="lcd"] .chg-before { border-top-color: var(--accent); }
+
+/* ───────── Story card (opened from a trace) ───────── */
+[data-skin="lcd"] .trace-card { color: var(--ink); }
+[data-skin="lcd"] .trace-card .trace-story .key { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; }
+
+/* ───────── Phones ───────── */
+@media (max-width: 520px) {
+  [data-skin="lcd"] .ledger-wrap { padding: 8px 16px 24px; }
+  [data-skin="lcd"] .page { padding: 16px 14px 18px; }
+  [data-skin="lcd"] .ledger-head .keys .key { padding-inline: 8px; }
+  [data-skin="lcd"] .money-head b { font-size: 34px; }
+}
