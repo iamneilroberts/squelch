@@ -11,6 +11,8 @@ export const MODELS = {
   director: () => process.env.STUDIO_DIRECTOR_MODEL || 'anthropic/claude-sonnet-5.5',
 };
 export const dailyCap = () => Number(process.env.STUDIO_DAILY_USD || 2);
+// The part of the day's cap guests share between them (spent plus queued), so they can't use it all up.
+export const guestCap = () => (process.env.STUDIO_GUEST_USD ? Number(process.env.STUDIO_GUEST_USD) : dailyCap() / 2);
 
 // $ per token from OpenRouter's model list, read once a day. These are its prices on 2026-10-17,
 // used when the list can't be reached or doesn't have the model.

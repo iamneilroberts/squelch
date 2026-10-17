@@ -59,12 +59,23 @@ const hideFrom = (remote) => remote && !settings.tunnelTranscripts;
 const canEdit = (req) => !isRemote(req) || settings.owners.includes(String(req.headers['cf-access-authenticated-user-email'] || '').toLowerCase());
 
 // What this visitor may do in the Studio: 'owner', or for a guest the owner's setting. Guests who can't read
-// transcripts get at most 'watch'.
+// transcripts get nothing: the animations carry near-verbatim captions.
 const GUEST_STUDIO = ['off', 'watch', 'make'];
 const studioAccess = (req) => {
   if (canEdit(req)) return 'owner';
   const g = GUEST_STUDIO.includes(settings.guestStudio) ? settings.guestStudio : 'off';
-  return g === 'make' && hideFrom(true) ? 'watch' : g;
+  return hideFrom(true) ? 'off' : g;
+};
+// Who a guest is, for the Studio's per-guest limits and ratings: their Cloudflare Access email when there is one,
+// else their address (an IPv6 one cut to its /64, since a household has a whole range).
+const guestId = (req) => {
+  const email = String(req.headers['cf-access-authenticated-user-email'] || '').trim().toLowerCase();
+  if (email) return email;
+  const ip = String(req.headers['cf-connecting-ip'] || '');
+  if (!ip.includes(':')) return ip;
+  const [head, tail = ''] = ip.split('::');
+  const h = head ? head.split(':') : [], t = tail ? tail.split(':') : [];
+  return [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t].slice(0, 4).map((x) => x.toLowerCase().replace(/^0+(?=.)/, '')).join(':') + '::/64';
 };
 
 configureNotify({ allowGuests: () => settings.guestNotifications });
@@ -335,7 +346,7 @@ createServer(async (req, res) => {
     if (p.startsWith('/api/studio/')) {
       const access = studioAccess(req);
       return access === 'off' ? json(res, { error: 'Only the owner can use the Studio' }, 403)
-        : studioRoute(req, res, url, { json: hidden && access !== 'owner' ? (r, b, c) => json(r, scrub(b), c) : json, serveFile, readJson, access, hidden: hidden && access !== 'owner', ip: req.headers['cf-connecting-ip'] });
+        : studioRoute(req, res, url, { json: hidden && access !== 'owner' ? (r, b, c) => json(r, scrub(b), c) : json, serveFile, readJson, access, hidden: hidden && access !== 'owner', ip: guestId(req) });
     }
     if (p.startsWith('/listen/')) return relayStream(req, res, p.slice('/listen/'.length));
     // Scan as one stream that keeps playing with a phone locked (src/scan.mjs).

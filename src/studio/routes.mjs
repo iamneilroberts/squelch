@@ -34,7 +34,7 @@ export async function studioRoute(req, res, url, { json, serveFile, readJson, ac
     const { thread_id, style, llm } = await readJson(req);
     try {
       const by = owner ? 'owner' : `guest ${ip}`;
-      return json(res, p === 'estimate' ? await estimateJob(thread_id, style, owner ? llm : 'openrouter') : view(await queueJob(thread_id, style, llm, by)), p === 'jobs' ? 202 : 200);
+      return json(res, p === 'estimate' ? await estimateJob(thread_id, style, owner ? llm : 'openrouter', by) : view(await queueJob(thread_id, style, llm, by)), p === 'jobs' ? 202 : 200);
     } catch (e) {
       return json(res, { error: e.message }, e instanceof JobError ? e.code : 502);
     }

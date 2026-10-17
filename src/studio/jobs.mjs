@@ -5,9 +5,9 @@ import { join } from 'node:path';
 import { db, getThread } from '../db.mjs';
 import { withTrace } from '../meter.mjs';
 import { sources } from '../config.mjs';
-import { createAnimation, updateAnimation, getAnimation, animDir, scanFiles, guestJobsToday } from './library.mjs';
+import { createAnimation, updateAnimation, getAnimation, animDir, scanFiles, guestJobsToday, queuedUsd, guestUsd } from './library.mjs';
 import { guard, safeScore } from './humor.mjs';
-import { MODELS, estimate, checkCap, spentToday, dailyCap } from './spend.mjs';
+import { MODELS, estimate, checkCap, spentToday, dailyCap, guestCap } from './spend.mjs';
 import { dayBounds, localDate } from '../digest.mjs';
 import { STYLES, SCRIPT_SCHEMA, scriptPrompt } from './script.mjs';
 import { pickClips, buildTrack } from './track.mjs';
@@ -39,7 +39,7 @@ function storyFor(threadId) {
 
 // What a job should cost, call by call, from per-token prices.
 // Text steps on the Claude subscription cost $0 here (and don't count against the cap).
-export async function estimateJob(threadId, style, llm) {
+export async function estimateJob(threadId, style, llm, by = 'owner') {
   if (!STYLES[style]) throw new JobError('unknown style', 400);
   const t = storyFor(threadId);
   const kind = STYLES[style].kind, provider = pickProvider(llm), sub = provider === 'claude';
@@ -54,9 +54,12 @@ export async function estimateJob(threadId, style, llm) {
     lines.push({ purpose: 'studio:render', model: 'library + headless Chrome', usd: 0 });
   }
   const usd = lines.reduce((a, l) => a + l.usd, 0);
-  const today = spentToday();
+  const today = spentToday(), queued = queuedUsd(); // queued jobs haven't spent anything yet but will
+  const dailyOk = today + queued + usd <= dailyCap();
+  const guestSpent = by === 'owner' ? 0 : guestUsd(dayBounds(localDate())[0]);
+  const guestOk = by === 'owner' || guestSpent + usd <= guestCap();
   return {
-    kind, style, usd, lines, today, cap: dailyCap(), fits: today + usd <= dailyCap(), llm: provider, llmName: PROVIDERS[provider],
+    kind, style, usd, lines, today: today + queued, cap: dailyCap(), dailyOk, guestOk, fits: dailyOk && guestOk, llm: provider, llmName: PROVIDERS[provider],
     format: kind === 'comic' ? 'mp4+web' : chromePath() ? 'mp4+web' : 'web',
     note: kind === 'comic' ? 'A panel that comes back without a picture is redrawn once.'
       : cartoonMode() === 'oneshot' ? 'A cartoon that fails its check is rewritten once, which can roughly double its cost.'
@@ -66,15 +69,16 @@ export async function estimateJob(threadId, style, llm) {
 
 export const GUEST_JOBS_PER_DAY = 2;
 
-// `by` is 'owner' or 'guest <ip>'. A guest's job always plans with OpenRouter (never the owner's Claude subscription)
-// and is limited to GUEST_JOBS_PER_DAY a day per IP.
+// `by` is 'owner' or 'guest <email or address>'. A guest's job always plans with OpenRouter (never the owner's Claude subscription)
+// and is limited to GUEST_JOBS_PER_DAY a day per guest and to the guests' share of the daily cap.
 export async function queueJob(threadId, style, llm, by = 'owner') {
   const guest = by !== 'owner';
-  const est = await estimateJob(threadId, style, guest ? 'openrouter' : llm);
-  if (!est.fits) throw new JobError(`That would pass today’s Studio cap: $${est.today.toFixed(3)} spent, about $${est.usd.toFixed(3)} more, cap $${est.cap.toFixed(2)} (STUDIO_DAILY_USD)`, 429);
+  const est = await estimateJob(threadId, style, guest ? 'openrouter' : llm, by);
+  if (!est.guestOk) throw new JobError(`Guests have used their share of today’s Studio budget (STUDIO_GUEST_USD, $${guestCap().toFixed(2)}). Try again tomorrow.`, 429);
+  if (!est.dailyOk) throw new JobError(`That would pass today’s Studio cap: $${est.today.toFixed(3)} spent, about $${est.usd.toFixed(3)} more, cap $${est.cap.toFixed(2)} (STUDIO_DAILY_USD)`, 429);
   if (guest && guestJobsToday(by, dayBounds(localDate())[0]) >= GUEST_JOBS_PER_DAY) throw new JobError(`Guests can make ${GUEST_JOBS_PER_DAY} animations a day each, and you’ve made them for today. Try again tomorrow.`, 429);
   const t = getThread(Number(threadId));
-  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind](), llm: est.llm, requested_by: by });
+  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind](), llm: est.llm, requested_by: by, est_usd: est.usd });
   setImmediate(pump);
   return getAnimation(id);
 }
