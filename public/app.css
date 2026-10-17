@@ -997,3 +997,6 @@ button.report-open { font: inherit; cursor: pointer; background: none; border: 0
 .report-reply footer { margin-top: 4px; font-size: 11px; font-style: italic; color: var(--ink-soft); white-space: normal; }
 .report-link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--blue-ink); }
 .has-news::after, .has-changes::after { content: ''; display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; vertical-align: middle; background: var(--lamp-red); box-shadow: 0 0 5px var(--lamp-red); }
+
+/* The LCD skin's own parts (skin-lcd.css shows them); Classic has none of them. */
+.lcd-only, .lcd-readout, .look-lcd { display: none; }

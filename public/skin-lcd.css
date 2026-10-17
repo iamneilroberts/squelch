@@ -1,0 +1,381 @@
+/* Squelch — the LCD skin: a backlit scanner display on charcoal, with rubber keys.
+   Everything is scoped under [data-skin="lcd"] (set on <html> by index.html and app.js), so Classic is untouched.
+   data-backlight picks the glass: blue, night, red or daylight (Auto in the Look card resolves to blue or red).
+   data-wide picks the wide-screen layout: "lcd" (the phone's window, stretched) or "base" (a desktop faceplate). */
+
+/* ───────── Tokens ───────── */
+[data-skin="lcd"] {
+  --pix: 'Silkscreen', 'Courier New', monospace;
+  --lcdfont: 'VT323', 'Courier New', monospace;
+  --cond: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* The existing components read these tokens, so the dark surfaces come for free. */
+  --font-type: var(--body);
+  --font-caps: var(--cond);
+  --font-script: var(--cond);
+  --ink: #e9ecf1;
+  --ink-soft: #aab1bc;
+  --paper: #1c1e22;
+  --greenbar: #22252b;
+  --bakelite-3: #3a3f48;
+  --red-ink: var(--accent);
+  --blue-ink: var(--accent);
+  --needle: var(--accent);
+  --panel: #1c1e22;
+  --card: #22252b;
+  --rubber: linear-gradient(180deg, #3a3d43 0%, #2a2c31 55%, #232529 100%);
+  --rubber-shadow: 0 3px 0 #0b0c0e, 0 5px 8px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .14);
+  --pad: 9px; /* the bezel around the glass */
+  color-scheme: dark;
+}
+[data-skin="lcd"][data-backlight="blue"] {
+  --lcd-bg: radial-gradient(120% 100% at 50% 35%, #7db0ff 0%, #6aa0f8 55%, #5a90ee 100%);
+  --lcd-ink: #0b1650; --lcd-inv: #9ec3ff; --lcd-ghost: rgba(11, 22, 80, .09); --lcd-glow: none; --lcd-bezel: #07080a;
+  --led: #7fb3ff; --led-glow: #5a93f4; --accent: #8fbaff;
+}
+[data-skin="lcd"][data-backlight="night"] {
+  --lcd-bg: radial-gradient(120% 100% at 50% 35%, #0c1938 0%, #071026 60%, #040915 100%);
+  --lcd-ink: #80b3ff; --lcd-inv: #06102a; --lcd-ghost: rgba(128, 179, 255, .09); --lcd-glow: 0 0 6px rgba(96, 156, 255, .55); --lcd-bezel: #030406;
+  --led: #7fb3ff; --led-glow: #5a93f4; --accent: #8fbaff;
+}
+[data-skin="lcd"][data-backlight="red"] {
+  --lcd-bg: radial-gradient(120% 100% at 50% 35%, #2a0705 0%, #1a0403 60%, #0f0202 100%);
+  --lcd-ink: #ff6a58; --lcd-inv: #1a0403; --lcd-ghost: rgba(255, 86, 68, .09); --lcd-glow: 0 0 6px rgba(255, 70, 50, .5); --lcd-bezel: #050101;
+  --led: #ff5a48; --led-glow: #ff3b2a; --accent: #ff7060;
+}
+[data-skin="lcd"][data-backlight="daylight"] {
+  --lcd-bg: radial-gradient(120% 100% at 50% 35%, #c5cbb2 0%, #b0b89b 60%, #98a184 100%);
+  --lcd-ink: #1c2215; --lcd-inv: #c5cbb2; --lcd-ghost: rgba(28, 34, 21, .09); --lcd-glow: none; --lcd-bezel: #141513;
+  --led: #b8e07a; --led-glow: #8fc23a; --accent: #cfe8a0;
+}
+
+/* ───────── Page ───────── */
+[data-skin="lcd"] body {
+  color: var(--ink);
+  background: linear-gradient(180deg, #1d1f23 0%, #141518 100%) fixed;
+  background-color: #141518;
+}
+[data-skin="lcd"] .lcd-only, [data-skin="lcd"] .look-lcd { display: revert; }
+[data-skin="lcd"] :is(.scroll-knob, .rx-led) { display: none; }
+[data-skin="lcd"] .look-wide { display: none; }
+[data-skin="lcd"] :focus-visible { outline-color: var(--led); }
+[data-skin="lcd"] .cabinet { gap: 14px; }
+
+/* ───────── Faceplate: top bar, then the window and its keys ───────── */
+[data-skin="lcd"] .faceplate {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 0;
+  background: none; box-shadow: none; border-radius: 0;
+}
+[data-skin="lcd"] .grille {
+  position: static; display: flex; align-items: center; justify-content: space-between; gap: 4px;
+  min-height: 56px; padding: 0; border-radius: 0; background: none; box-shadow: none;
+}
+[data-skin="lcd"] .badge { display: block; padding: 0; background: none; box-shadow: none; }
+[data-skin="lcd"] .badge-script { font: 700 20px/1 var(--cond); letter-spacing: 5px; text-transform: uppercase; color: var(--ink); text-shadow: none; }
+[data-skin="lcd"] .badge-sub { display: none; }
+[data-skin="lcd"] .grille-keys { position: static; display: flex; gap: 4px; margin-left: auto; }
+[data-skin="lcd"] .bell {
+  position: static; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  width: 44px; height: 44px; padding: 0; border-radius: 10px; background: none; box-shadow: none; color: #cdd2da;
+}
+[data-skin="lcd"] .bell:hover { background: rgba(255, 255, 255, .07); }
+[data-skin="lcd"] .bell svg { width: 20px; height: 20px; stroke-width: 1.8; filter: none; }
+[data-skin="lcd"] .bell span:not(.lamp) { display: none; }
+[data-skin="lcd"] .bell .lamp { position: absolute; margin: -22px -22px 0 0; width: 8px; height: 8px; }
+[data-skin="lcd"] .bell { position: relative; }
+[data-skin="lcd"] .bell[aria-pressed="true"] .lamp { background: var(--led); box-shadow: 0 0 6px var(--led-glow); }
+[data-skin="lcd"] .bell[aria-pressed="false"] .lamp { display: none; }
+[data-skin="lcd"] .update-key { width: auto; padding: 0 12px; font: 700 13px var(--cond); letter-spacing: 1px; text-transform: uppercase; color: var(--accent); }
+[data-skin="lcd"] .update-key span { display: inline; }
+[data-skin="lcd"] .has-changes::after, [data-skin="lcd"] .has-news::after { position: absolute; top: 8px; right: 8px; margin: 0; width: 8px; height: 8px; }
+
+/* The tuner: a column on a phone, in the order of the mockup (window, bands, location, keys, volume). */
+[data-skin="lcd"] .tuner { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+[data-skin="lcd"] .controls, [data-skin="lcd"] .readouts { display: contents; }
+[data-skin="lcd"] .chbar { order: 1; margin-bottom: -14px; }
+[data-skin="lcd"] .dial-frame { order: 2; margin-bottom: -14px; }
+[data-skin="lcd"] .cc { order: 3; }
+[data-skin="lcd"] #keys { order: 4; }
+[data-skin="lcd"] .selector { order: 5; }
+[data-skin="lcd"] .transport { order: 6; }
+[data-skin="lcd"] .knob-wrap { order: 7; }
+[data-skin="lcd"] .bcfy { order: 8; }
+[data-skin="lcd"] .eye, [data-skin="lcd"] .nixie { display: none; }
+
+/* ───────── The glass: channel bar (top), dial presets (when open), captions (bottom) ───────── */
+[data-skin="lcd"] :is(.chbar, .cc, .dial-frame) {
+  color: var(--lcd-ink); text-shadow: var(--lcd-glow);
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, .035) 0 1px, transparent 1px 3px),
+    linear-gradient(160deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, 0) 35%),
+    var(--lcd-bg);
+  border: var(--pad) solid var(--lcd-bezel);
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, .35);
+}
+[data-skin="lcd"] .chbar {
+  position: relative; display: grid; gap: 4px 12px; width: 100%; min-height: 0; padding: 4px 6px 6px; text-align: left;
+  border-bottom-width: 0; border-radius: 14px 14px 0 0; font-family: var(--lcdfont);
+  grid-template-areas: "top" "name" "freq" "meta" "lamps";
+}
+[data-skin="lcd"] .chbar-line { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+[data-skin="lcd"] .chbar::after { content: '▾'; position: absolute; right: 6px; bottom: 4px; font: 14px/1 var(--pix); }
+[data-skin="lcd"] .chbar[aria-expanded="true"]::after { content: '▴'; }
+[data-skin="lcd"]:not([data-dial="bar"]) .chbar::after { content: none; }
+[data-skin="lcd"] .lcd-readout { display: contents; }
+[data-skin="lcd"] .lcd-top { grid-area: top; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; font-family: var(--pix); }
+[data-skin="lcd"] .lcd-top b { font-size: 15px; letter-spacing: 1px; }
+[data-skin="lcd"] .lcd-top > span:nth-child(2) { font-size: 10px; flex: 1; text-align: center; }
+[data-skin="lcd"] .lcd-bars { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
+[data-skin="lcd"] .lcd-bars i { width: 4px; background: var(--lcd-ghost); }
+[data-skin="lcd"] .lcd-bars i:nth-child(1) { height: 5px; } [data-skin="lcd"] .lcd-bars i:nth-child(2) { height: 8px; }
+[data-skin="lcd"] .lcd-bars i:nth-child(3) { height: 11px; } [data-skin="lcd"] .lcd-bars i:nth-child(4) { height: 14px; } [data-skin="lcd"] .lcd-bars i:nth-child(5) { height: 18px; }
+/* signal: the bars light while a transmission is on air (the same cue as the magic eye) */
+[data-skin="lcd"] .faceplate:has(#eye.on) .lcd-bars i:nth-child(-n+4) { background: var(--lcd-ink); }
+[data-skin="lcd"] .lcd-name { grid-area: name; font-size: 54px; line-height: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
+[data-skin="lcd"] .lcd-freq { grid-area: freq; position: relative; justify-self: end; font-size: 48px; line-height: .85; white-space: nowrap; }
+[data-skin="lcd"] .lcd-ghost { position: absolute; right: 0; top: 0; color: var(--lcd-ghost); text-shadow: none; }
+[data-skin="lcd"] .lcd-freq #lcd-freq { position: relative; }
+[data-skin="lcd"] .lcd-meta { grid-area: meta; display: flex; justify-content: space-between; gap: 8px; margin-top: 2px; font: 10px/1.2 var(--pix); text-transform: uppercase; }
+[data-skin="lcd"] .chbar-lamps { grid-area: lamps; justify-content: flex-start; gap: 3px 12px; padding-top: 4px; font-family: var(--pix); }
+[data-skin="lcd"] .chbar-group { align-items: start; justify-items: start; }
+[data-skin="lcd"] .chbar-group > span { gap: 2px; }
+[data-skin="lcd"] .chbar-group small { font: 9px/1 var(--pix); color: var(--lcd-ink); letter-spacing: 0; text-shadow: var(--lcd-glow); }
+[data-skin="lcd"] .chbar-lamps i { width: 9px; height: 7px; border-radius: 0; background: var(--lcd-ghost); box-shadow: none; }
+[data-skin="lcd"] .chbar-lamps i.lit { background: var(--lcd-ink); box-shadow: none; }
+[data-skin="lcd"] .chbar-lamps i.air { height: 11px; outline: none; margin-top: -4px; }
+[data-skin="lcd"] .chbar-lamps i.pri::after { background: var(--lcd-ink); }
+[data-skin="lcd"] .chbar-lamps i.locked { box-shadow: inset 0 0 0 1px var(--lcd-ink); background: none; opacity: .7; }
+[data-skin="lcd"] .chbar-lamps i.locked::before { background: var(--lcd-ink); }
+
+[data-skin="lcd"] .dial-frame { border-top-width: 0; border-bottom-width: 0; margin-top: 0; padding: 0 6px 8px; }
+[data-skin="lcd"] .cc {
+  --cc-lh: 21px; position: relative; padding: 12px 6px 6px 38px; border-top-width: 0; border-radius: 0 0 14px 14px;
+  font: 21px/21px var(--lcdfont); text-transform: uppercase; color: var(--lcd-ink);
+}
+[data-skin="lcd"] .cc::before { content: ''; position: absolute; left: 6px; right: 6px; top: 0; border-top: 2px dotted var(--lcd-ink); }
+[data-skin="lcd"] .cc-tag { left: 4px; top: 13px; padding: 2px 4px; border: 0; border-radius: 0; background: var(--lcd-ink); color: var(--lcd-inv); text-shadow: none; font: 10px/1.1 var(--pix); }
+[data-skin="lcd"] .cc-line { margin: 0; }
+[data-skin="lcd"] :is(.cc-old, .cc-now, .cc-note) { color: var(--lcd-ink); }
+[data-skin="lcd"] .cc-old .cc-src { opacity: 1; }
+[data-skin="lcd"] .cc-src { --c: var(--lcd-ink) !important; height: 13px; padding: 0 4px 0 3px; border-width: 1.5px; font: 9px/1 var(--pix); letter-spacing: 0; text-shadow: none; }
+[data-skin="lcd"] .cc-story { border-color: var(--lcd-ink); color: var(--lcd-ink); font-size: 14px; }
+[data-skin="lcd"] .cc-who { color: inherit; }
+
+/* The dial styles inside the glass (the channel bar's presets, the drum and the slide rule) */
+[data-skin="lcd"] .dial-scroll { padding: 0; background: none; box-shadow: none; border-radius: 0; }
+[data-skin="lcd"] .dial { background: none; box-shadow: none; border-radius: 0; color: var(--lcd-ink); }
+[data-skin="lcd"] .dial-glass { display: none; }
+[data-skin="lcd"] :is(.dial-band, .dial-group-label) { color: var(--lcd-ink) !important; border-color: var(--lcd-ink) !important; font-family: var(--pix); letter-spacing: .12em; font-size: 9px; }
+[data-skin="lcd"] .dial-scale { background: repeating-linear-gradient(90deg, var(--lcd-ink) 0 1px, transparent 1px 8px) bottom / 100% 9px no-repeat; }
+[data-skin="lcd"] .station { color: var(--lcd-ink); font-family: var(--pix); }
+[data-skin="lcd"] .station-freq { font: 400 20px/1 var(--lcdfont); }
+[data-skin="lcd"] .station-name { font: 9px/1.2 var(--pix); letter-spacing: 0; }
+[data-skin="lcd"] .station:hover { background: var(--lcd-ghost); }
+[data-skin="lcd"] .station[aria-pressed="true"], [data-skin="lcd"] .station.at { background: var(--lcd-ink); color: var(--lcd-inv); text-shadow: none; box-shadow: none !important; }
+[data-skin="lcd"] .station.pri .station-name, [data-skin="lcd"] .station.pri .station-freq::before { color: inherit; }
+[data-skin="lcd"] .station.locked .station-freq::before { color: inherit; }
+[data-skin="lcd"] :is([data-dial="presets"], [data-dial="bar"]) .station { background: none; box-shadow: inset 0 0 0 1px var(--lcd-ink); }
+[data-skin="lcd"] :is([data-dial="presets"], [data-dial="bar"]) .station:is([aria-pressed="true"], .at) { background: var(--lcd-ink); }
+[data-skin="lcd"] .needle, [data-skin="lcd"] .drum-needle { background: var(--lcd-ink); box-shadow: none; }
+
+/* ───────── Rubber keys, each with an LED bar that lights in the backlight's colour ───────── */
+[data-skin="lcd"] .key {
+  position: relative; min-width: 0; min-height: 44px; padding: 10px 12px 0; border: 0; border-radius: 10px;
+  font: 600 14px/1.1 var(--cond); letter-spacing: 1px; text-transform: uppercase; text-shadow: none; color: var(--ink);
+  background: var(--rubber); box-shadow: var(--rubber-shadow); transform: none;
+}
+[data-skin="lcd"] .key:hover { background: linear-gradient(180deg, #43464d 0%, #30333a 55%, #282a2f 100%); }
+[data-skin="lcd"] .key[aria-pressed="true"] { transform: translateY(2px); color: #fff; box-shadow: 0 1px 0 #0b0c0e, 0 2px 4px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .1); }
+[data-skin="lcd"] .key:disabled { opacity: .5; cursor: default; transform: none; box-shadow: var(--rubber-shadow); }
+[data-skin="lcd"] :is(#keys .key, .transport .key, .sel-pos)::before {
+  content: ''; position: absolute; top: 6px; left: 50%; width: 14px; height: 3px; margin-left: -7px; border-radius: 2px; background: #101114;
+}
+[data-skin="lcd"] :is(#keys .key, .transport .key, .sel-pos):is([aria-pressed="true"], [aria-checked="true"])::before { background: var(--led); box-shadow: 0 0 6px var(--led-glow), 0 0 2px #fff; }
+[data-skin="lcd"] .key .ico { filter: none; }
+[data-skin="lcd"] .keys { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 0; background: none; box-shadow: none; overflow: visible; }
+[data-skin="lcd"] .keys .key { min-height: 48px; padding-top: 12px; }
+
+/* Location: a row of keys instead of the chicken-head knob */
+[data-skin="lcd"] .selector { display: flex; align-items: center; gap: 10px; }
+[data-skin="lcd"] .selector .knob-label, [data-skin="lcd"] .knob-wrap .knob-label { order: -1; font: 600 13px/1 var(--cond); letter-spacing: 2px; color: var(--ink-soft); }
+[data-skin="lcd"] .selector-face, [data-skin="lcd"] .selector-face.wide { display: flex; flex: 1; width: auto; height: auto; gap: 6px; }
+[data-skin="lcd"] .chicken { display: none; }
+[data-skin="lcd"] .sel-pos {
+  position: relative; left: auto; bottom: auto; transform: none; flex: 1 1 0; min-width: 0; min-height: 44px; padding: 12px 2px 0; border-radius: 10px;
+  font: 600 12px/1.1 var(--cond); letter-spacing: .5px; color: var(--ink); background: var(--rubber); box-shadow: var(--rubber-shadow);
+}
+[data-skin="lcd"] .sel-pos::before { margin: 0 0 0 -7px; opacity: 1; box-shadow: none; }
+[data-skin="lcd"] .sel-pos[aria-checked="true"] { transform: translateY(2px); color: #fff; box-shadow: 0 1px 0 #0b0c0e, inset 0 1px 0 rgba(255, 255, 255, .1); }
+[data-skin="lcd"] .selector-face.wide .sel-pos { font-size: 12px; padding-inline: 2px; letter-spacing: 0; }
+
+/* Transport: five keys across, Stop and Pause beneath */
+[data-skin="lcd"] .transport { display: grid; grid-template-columns: 1.15fr 1fr 1fr 1fr 1.4fr; gap: 8px; align-items: stretch; min-height: 0; }
+[data-skin="lcd"] .transport .key { width: auto; min-height: 48px; padding: 12px 2px 0; display: flex; align-items: center; justify-content: center; gap: 4px; }
+[data-skin="lcd"] .transport .scan-key { letter-spacing: .5px; font-size: 14px; }
+[data-skin="lcd"] #btn-scan { grid-area: 1 / 1; } [data-skin="lcd"] #btn-hold { grid-area: 1 / 2; } [data-skin="lcd"] #btn-prev { grid-area: 1 / 3; }
+[data-skin="lcd"] #btn-skip { grid-area: 1 / 4; } [data-skin="lcd"] #btn-catchup { grid-area: 1 / 5; }
+[data-skin="lcd"] #btn-stop { grid-area: 2 / 1; } [data-skin="lcd"] #btn-pause { grid-area: 2 / 2; }
+[data-skin="lcd"] #btn-catchup { flex-direction: column; gap: 1px; padding-top: 14px; }
+[data-skin="lcd"] #btn-catchup small { font: 500 9px/1 var(--cond); letter-spacing: .5px; color: var(--ink-soft); }
+[data-skin="lcd"] .transport .key .ico { width: 11px; height: 11px; }
+[data-skin="lcd"] .elapsed { grid-area: 2 / 3 / 3 / -1; align-self: center; font: 13px var(--body); color: var(--ink-soft); }
+[data-skin="lcd"] .elapsed.live { color: var(--accent); }
+[data-skin="lcd"] .progress { grid-area: 3 / 1 / 4 / -1; width: auto; height: 10px; background: #0b0c0e; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .9); }
+[data-skin="lcd"] .progress span { background: var(--led); box-shadow: 0 0 6px var(--led-glow); }
+[data-skin="lcd"] .transport .now-playing { grid-area: 4 / 1 / 5 / -1; font: 13px/1.4 var(--body); color: var(--ink-soft); }
+[data-skin="lcd"] .now-playing strong { color: var(--ink); }
+[data-skin="lcd"] .now-playing a { color: var(--accent); }
+
+/* Volume: a lit segment bar with − and + keys; the real range input still covers the bar for dragging and the keyboard */
+[data-skin="lcd"] .knob-wrap { display: flex; align-items: center; gap: 10px; cursor: default; }
+[data-skin="lcd"] .vol-face {
+  --v: 8; order: 2; flex: 1; width: auto; height: 44px; display: block; position: relative;
+}
+[data-skin="lcd"] .vol-face::before, [data-skin="lcd"] .vol-face::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 14px; margin-top: -7px; border-radius: 4px;
+  -webkit-mask: repeating-linear-gradient(90deg, #000 0 calc(9.0909% - 3px), transparent calc(9.0909% - 3px) 9.0909%);
+          mask: repeating-linear-gradient(90deg, #000 0 calc(9.0909% - 3px), transparent calc(9.0909% - 3px) 9.0909%);
+}
+[data-skin="lcd"] .vol-face::before { background: #1d2230; }
+[data-skin="lcd"] .vol-face::after { background: var(--led); clip-path: inset(0 calc(100% - var(--v) / 11 * 100%) 0 0); filter: drop-shadow(0 0 3px var(--led-glow)); }
+[data-skin="lcd"] .knob-scale, [data-skin="lcd"] .knob { display: none; }
+[data-skin="lcd"] .vol-face input { cursor: pointer; }
+[data-skin="lcd"] .knob-wrap:has(input:focus-visible) .vol-face { outline: 2px solid var(--led); outline-offset: 2px; border-radius: 6px; }
+[data-skin="lcd"] .vol-step { width: 44px; height: 44px; flex: none; border: 0; border-radius: 22px; font: 400 24px/1 var(--body); color: var(--ink); background: var(--rubber); box-shadow: var(--rubber-shadow); }
+[data-skin="lcd"] .vol-step:first-of-type { order: 1; } [data-skin="lcd"] .vol-step:last-of-type { order: 3; }
+[data-skin="lcd"] .vol-step:active { transform: translateY(2px); box-shadow: 0 1px 0 #0b0c0e; }
+
+[data-skin="lcd"] .bcfy { background: var(--card); box-shadow: inset 0 0 0 1px var(--bakelite-3); }
+[data-skin="lcd"] .bcfy-row input { background: #0d0e10; border-color: var(--bakelite-3); color: var(--ink); }
+[data-skin="lcd"] .bcfy-row input, [data-skin="lcd"] .bcfy-row .key { min-height: 44px; }
+[data-skin="lcd"] #bcfy-status button { color: var(--ink); }
+
+/* The Follow strip: a dark card under the window */
+[data-skin="lcd"] .follow {
+  position: static; grid-area: auto; left: auto; right: auto; bottom: auto; border-radius: 10px; padding: 12px;
+  background: var(--card); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+[data-skin="lcd"] .faceplate:has(.follow:not([hidden])) { position: static; }
+[data-skin="lcd"] .faceplate:has(.follow:not([hidden])) .grille { padding: 0; place-items: initial; }
+[data-skin="lcd"] :is(.follow-log, .story-log) li.fresh { background: color-mix(in srgb, var(--led) 16%, transparent); }
+[data-skin="lcd"] .follow-key { min-height: 44px; padding: 0 12px; border-color: var(--ink-soft); border-radius: 6px; }
+[data-skin="lcd"] .follow-key:hover, [data-skin="lcd"] .follow-key[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+[data-skin="lcd"] .new { color: #0b0c0e; }
+
+/* ───────── Map: a dark panel ───────── */
+[data-skin="lcd"] .chart { background: #1b2029; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
+[data-skin="lcd"] .chart-head { color: var(--ink-soft); font-family: var(--cond); font-weight: 600; letter-spacing: .25em; }
+[data-skin="lcd"] .fold-key { min-height: 44px; padding: 0 12px; box-shadow: var(--rubber-shadow); }
+[data-skin="lcd"] #map { background: #1b2029; border-radius: 8px; box-shadow: none; }
+[data-skin="lcd"] #map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.9) saturate(.55); }
+[data-skin="lcd"] #map::after { display: none; }
+[data-skin="lcd"] .leaflet-bar a, [data-skin="lcd"] .leaflet-bar a:hover { width: 44px; height: 44px; line-height: 44px; background: #2a2e36; color: var(--ink); border-color: #14161a; font-size: 20px; }
+[data-skin="lcd"] .leaflet-control-attribution { background: rgba(20, 21, 24, .8) !important; color: var(--ink-soft); }
+[data-skin="lcd"] .leaflet-control-attribution a { color: var(--ink); }
+[data-skin="lcd"] .toggles { background: #22252b; box-shadow: 0 4px 12px rgba(0, 0, 0, .5); border-radius: 10px; }
+[data-skin="lcd"] .toggle { color: var(--ink); font-family: var(--cond); font-size: 13px; letter-spacing: .12em; min-height: 36px; }
+[data-skin="lcd"] .toggle[aria-pressed="true"] .bat { background: var(--led); box-shadow: 0 0 6px var(--led-glow); }
+[data-skin="lcd"] .stamp { color: #14161a; }
+[data-skin="lcd"] .stamp.breaking { color: #c0221a; }
+[data-skin="lcd"] .tide-mark { color: #0b3d5c; background: #eef3f6; }
+[data-skin="lcd"] .plane-tag { color: #b6d1ff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+[data-skin="lcd"] .plane { color: #b6d1ff; filter: none; }
+[data-skin="lcd"] .ship { color: #8fd3e8; }
+[data-skin="lcd"] .train-mark { background: #e9ecf1; color: #14161a; }
+
+/* ───────── Tabs and story cards ───────── */
+[data-skin="lcd"] .printer { grid-template-rows: auto minmax(0, 1fr); gap: 10px; }
+[data-skin="lcd"] .tabs { gap: 4px; padding: 4px; border-radius: 10px; background: #0d0e10; }
+[data-skin="lcd"] .tabs button {
+  flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 4px; border-radius: 7px; transform: none; background: transparent; color: var(--ink-soft);
+  font: 600 14px/1.1 var(--body); letter-spacing: 0; text-transform: none;
+}
+[data-skin="lcd"] .tabs button[aria-selected="true"] { background: #2c3038; color: #fff; }
+[data-skin="lcd"] .paper {
+  padding: 0; background: #1c1e22; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
+  scrollbar-color: #3a3f48 transparent;
+}
+[data-skin="lcd"] .log { padding: 8px 8px 24px; display: grid; gap: 8px; }
+[data-skin="lcd"] .entry, [data-skin="lcd"] .traffic, [data-skin="lcd"] .bulletin, [data-skin="lcd"] .notice {
+  padding: 12px; border: 0; border-radius: 10px; background: var(--card); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+[data-skin="lcd"] .entry.selected { margin: 0; background: #262a31; box-shadow: inset 0 0 0 1px var(--led); }
+[data-skin="lcd"] .entry-head { font: 600 16px/1.3 var(--body); text-transform: none; color: #f2f4f7; }
+[data-skin="lcd"] .entry-meta { font: 12px var(--body); text-transform: none; color: var(--ink-soft); }
+[data-skin="lcd"] .entry.breaking .entry-head { color: var(--accent); }
+[data-skin="lcd"] .entry-where, [data-skin="lcd"] .entry-sum, [data-skin="lcd"] .story-line, [data-skin="lcd"] .traffic { font-family: var(--body); }
+[data-skin="lcd"] .story-row .follow-key {
+  min-height: 44px; padding: 0 14px; border: 0; border-radius: 22px; background: var(--led); color: #0b1650;
+  font: 700 14px var(--cond); letter-spacing: 1px;
+}
+[data-skin="lcd"][data-backlight="red"] .story-row .follow-key { color: #1a0403; }
+[data-skin="lcd"][data-backlight="daylight"] .story-row .follow-key { color: #1c2215; }
+[data-skin="lcd"] .story-row .follow-key[aria-pressed="true"] { background: #2c3038; color: var(--ink); }
+[data-skin="lcd"] .play, [data-skin="lcd"] .story-key { min-height: 44px; padding: 0 12px; display: inline-flex; align-items: center; border-color: var(--ink-soft); border-radius: 6px; }
+[data-skin="lcd"] :is(.digest-actions button, .reel) { min-height: 44px; }
+[data-skin="lcd"] .notice code { background: #0d0e10; }
+[data-skin="lcd"] .pager .key { min-height: 44px; }
+
+/* ───────── Footer ───────── */
+[data-skin="lcd"] .strip { background: #101114; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .05); }
+[data-skin="lcd"] .gauge strong { color: var(--accent); }
+[data-skin="lcd"] .ledger-link { color: var(--ink); }
+[data-skin="lcd"] :is(a.ledger-link, button.ledger-link, .share-toggle) { display: inline-flex; align-items: center; min-height: 44px; }
+
+/* ───────── Cards (story, Look, report, notifications) ───────── */
+[data-skin="lcd"] .story { background: #1c1e22; border-radius: 12px; box-shadow: 0 18px 50px rgba(0, 0, 0, .7), inset 0 0 0 1px rgba(255, 255, 255, .08); }
+[data-skin="lcd"] .story::backdrop { background: rgba(5, 6, 8, .7); }
+[data-skin="lcd"] .story-head { border-bottom-color: var(--led); }
+[data-skin="lcd"] .story-head .key { padding-top: 0; }
+[data-skin="lcd"] .story-close { width: 44px; }
+[data-skin="lcd"] .notify .key, [data-skin="lcd"] .story-play { padding-top: 0; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+[data-skin="lcd"] .notify input[type="radio"], [data-skin="lcd"] .notify input[type="checkbox"] { accent-color: var(--led); }
+[data-skin="lcd"] .notify-level label { padding: 8px 0; }
+[data-skin="lcd"] .report-text textarea { background: #0d0e10; color: var(--ink); border: 1px solid var(--bakelite-3); }
+[data-skin="lcd"] .notify .cc-src, [data-skin="lcd"] :is(.story-head, .story-row, .follow) .cc-src { --c: var(--ink) !important; background: #0d0e10; }
+[data-skin="lcd"] .report-chip { color: #0b0c0e; }
+[data-skin="lcd"] .report-chip:is([data-status="planned"], [data-status="in-progress"], [data-status="ready"], [data-status="fixed"], [data-status="needs-info"], [data-status="wont-do"], [data-status="closed"]) { color: #0b0c0e; background: var(--accent); }
+
+/* ───────── Phones: a 16px gutter, nothing wider than the screen ───────── */
+@media (max-width: 720px) {
+  [data-skin="lcd"] .cabinet { padding: 0 16px 20px; }
+  [data-skin="lcd"] .faceplate { padding: 0; border-radius: 0; }
+  [data-skin="lcd"] .grille { padding: 0; min-height: 56px; }
+  [data-skin="lcd"] .badge { padding: 0; }
+  [data-skin="lcd"] .keys { overflow: visible; }
+  [data-skin="lcd"] .keys .key { padding-inline: 2px; }
+  [data-skin="lcd"] .chart { min-height: 260px; height: 260px; padding-top: 40px; }
+  [data-skin="lcd"] .printer { min-height: 0; }
+  [data-skin="lcd"] .paper { max-height: none; }
+  [data-skin="lcd"] .toggle { min-height: 44px; }
+  [data-skin="lcd"] .transport .key { font-size: 13px; }
+  [data-skin="lcd"] .tabs button { font-size: 13px; }
+  [data-skin="lcd"] .selector-face.wide .sel-pos { font-size: 11px; }
+  [data-skin="lcd"] .cc { font-size: 21px; padding-left: 38px; }
+  [data-skin="lcd"] .strip { padding: 4px 12px; }
+}
+
+/* ───────── Wide screens, LCD window: the window across the top, keys left and transport right ───────── */
+@media (min-width: 721px) {
+  [data-skin="lcd"] .faceplate { gap: 14px; }
+  [data-skin="lcd"] .tuner { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 28px; align-items: start; }
+  [data-skin="lcd"] :is(.chbar, .dial-frame, .cc, .bcfy) { grid-column: 1 / -1; }
+  [data-skin="lcd"] #keys, [data-skin="lcd"] .selector, [data-skin="lcd"] .knob-wrap { grid-column: 1; }
+  [data-skin="lcd"] .transport { grid-column: 2; grid-row: 4 / span 3; }
+  [data-skin="lcd"] .chbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "top top" "name freq" "meta meta" "lamps lamps"; align-items: end; padding: 6px 12px 8px; }
+  [data-skin="lcd"] .lcd-name { font-size: 76px; }
+  [data-skin="lcd"] .lcd-freq { font-size: 64px; }
+  [data-skin="lcd"] .lcd-top b { font-size: 17px; }
+  [data-skin="lcd"] .lcd-meta { font-size: 12px; }
+  [data-skin="lcd"] .cc { font-size: 26px; --cc-lh: 26px; padding-left: 44px; padding-top: 14px; }
+  [data-skin="lcd"] .cc-tag { top: 16px; }
+  [data-skin="lcd"] .desk { grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); }
+  [data-skin="lcd"] .keys { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 721px) and (max-width: 1000px) {
+  [data-skin="lcd"] .desk { grid-template-columns: 1fr; }
+}
+@media (min-width: 1001px) and (min-height: 760px) {
+  [data-skin="lcd"] .cabinet { height: auto; min-height: 100vh; }
+  [data-skin="lcd"] .chart, [data-skin="lcd"] .printer { min-height: 420px; }
+}

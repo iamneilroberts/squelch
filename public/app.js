@@ -193,19 +193,59 @@ addEventListener('resize', () => moveNeedle(state.tuned || visibleSources().find
 const narrow = matchMedia('(max-width: 720px)');
 function applyDialStyle() {
   const pick = store.get('pcm.dial') || 'auto';
-  document.documentElement.dataset.dial = pick === 'auto' ? (narrow.matches ? 'bar' : 'rule') : pick;
+  document.documentElement.dataset.dial = pick === 'auto' ? (narrow.matches || document.documentElement.dataset.skin === 'lcd' ? 'bar' : 'rule') : pick; // the LCD skin's window is the channel bar
   if (state.byId.size) buildDial();
 }
 applyDialStyle();
 narrow.addEventListener('change', applyDialStyle);
+/* The skin: Classic, or LCD with a choice of backlight and (on a wide screen) of layout. index.html sets the
+   attributes before first paint; these keep them in step with the Look card. Auto backlight is blue by day and
+   red from sunset to sunrise at the station. */
+const LOOK = { 'dial-style': ['pcm.dial', 'auto'], skin: ['pcm.skin', 'classic'], backlight: ['pcm.backlight', 'auto'], 'wide-layout': ['pcm.wideLayout', 'lcd'] };
+const html = document.documentElement;
+function sunIsUp(lat, lng, at = new Date()) { // NOAA's low-precision solar position: is the sun above the horizon (-0.833°)?
+  const rad = Math.PI / 180, n = at / 864e5 + 2440587.5 - 2451545;
+  const g = (357.528 + 0.9856003 * n) * rad, lam = (280.46 + 0.9856474 * n + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) * rad, eps = (23.439 - 4e-7 * n) * rad;
+  const dec = Math.asin(Math.sin(eps) * Math.sin(lam)), ra = Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam));
+  const ha = ((280.46061837 + 360.98564736629 * n + lng) * rad) - ra;
+  return Math.asin(Math.sin(lat * rad) * Math.sin(dec) + Math.cos(lat * rad) * Math.cos(dec) * Math.cos(ha)) / rad > -0.833;
+}
+function stationLatLng() { // the middle of the regions' centres (/api/config), which is where the station is
+  const at = state.regions.map((r) => r.center || (r.bbox && [(r.bbox[0] + r.bbox[2]) / 2, (r.bbox[1] + r.bbox[3]) / 2])).filter(Boolean);
+  return at.length ? [at.reduce((a, c) => a + c[0], 0) / at.length, at.reduce((a, c) => a + c[1], 0) / at.length] : null;
+}
+function applyLook() {
+  html.dataset.skin = store.get('pcm.skin') === 'lcd' ? 'lcd' : 'classic';
+  html.dataset.wide = store.get('pcm.wideLayout') === 'base' ? 'base' : 'lcd';
+  const pick = store.get('pcm.backlight') || 'auto', where = stationLatLng();
+  const auto = where ? (sunIsUp(...where) ? 'blue' : 'red') : store.get('pcm.autoLight'); // until the config arrives, last time's answer
+  if (auto) store.set('pcm.autoLight', auto);
+  html.dataset.backlight = ['blue', 'night', 'red', 'daylight'].includes(pick) ? pick : auto || html.dataset.backlight;
+  document.querySelector('meta[name="theme-color"]').content = html.dataset.skin === 'lcd' ? '#141518' : '#5a3a22';
+  applyDialStyle();
+}
+setInterval(applyLook, 60e3);
 $('btn-look').addEventListener('click', () => {
-  for (const r of document.querySelectorAll('[name="dial-style"]')) r.checked = r.value === (store.get('pcm.dial') || 'auto');
+  for (const [name, [key, dflt]] of Object.entries(LOOK)) for (const r of document.querySelectorAll(`[name="${name}"]`)) r.checked = r.value === (store.get(key) || dflt);
   $('look').showModal();
 });
 $('look').addEventListener('change', (e) => {
-  if (e.target.name !== 'dial-style') return;
-  store.set('pcm.dial', e.target.value);
-  applyDialStyle();
+  if (!LOOK[e.target.name]) return;
+  store.set(LOOK[e.target.name][0], e.target.value);
+  applyLook();
+});
+// LCD skin: the volume keys, and the base unit's scroll knob (Scan, then Hold / Resume)
+document.addEventListener('click', (e) => {
+  const step = e.target.closest('.vol-step');
+  if (step) {
+    const v = $('volume');
+    v.value = Math.max(0, Math.min(11, Number(v.value) + Number(step.dataset.step)));
+    v.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (e.target.closest('#scroll-knob')) { // not scanning: start; scanning: hold or resume (once something has played)
+    if ($('btn-scan').getAttribute('aria-pressed') !== 'true') $('btn-scan').click();
+    else if (!$('btn-hold').disabled) $('btn-hold').click();
+  }
 });
 // A dot on Look and on its What's new link until the newest change has been opened (the manual's What's new tab saves it).
 fetch('/api/changes?limit=1').then((r) => r.json()).then((j) => {
@@ -332,6 +372,15 @@ function renderBar() {
   $('chbar-now').innerHTML = s ? `▸ <strong>${esc(s.short)}</strong> ${esc(s.dial || '')}`
     : scan.on ? `<strong>SCANNING</strong> ${n} channel${n === 1 ? '' : 's'}` : '<strong>Off</strong> · tap to pick a channel';
   $('chbar-mode').textContent = scan.on && s ? (scan.hold ? 'HOLD' : `SCAN ${n} ch`) : '';
+  // The LCD skin's readout: state, channel, its dial label, and where and what it is.
+  const band = BANDS.find((b) => b.id === s?.band), region = state.regions.find((r) => r.id === s?.region);
+  $('lcd-state').textContent = scan.on ? (scan.hold ? 'HOLD' : 'SCAN') : s ? 'LIVE' : 'OFF';
+  $('lcd-svc').textContent = scan.on && !scan.hold ? `${n} CH` : '';
+  $('lcd-name').textContent = s ? s.short : scan.on ? 'SCANNING' : 'OFF AIR';
+  $('lcd-freq').textContent = s?.dial || '';
+  $('lcd-kind').textContent = s ? (playable(s) ? 'STREAM' : 'LINK') : '';
+  $('lcd-loc').textContent = region ? `LOC: ${region.short}` : '';
+  $('lcd-sig').textContent = band ? `SVC: ${band.key}` : '';
   $('chbar-sum').textContent = [`${lit} channel${lit === 1 ? '' : 's'} with traffic`, first && `${first} first`, skipped && `${skipped} skipped`].filter(Boolean).join(', ');
 }
 $('chbar').addEventListener('click', () => $('chbar').setAttribute('aria-expanded', $('chbar').getAttribute('aria-expanded') !== 'true'));
@@ -943,6 +992,7 @@ $('knob-scale').innerHTML = Array.from({ length: 12 }, (_, i) =>
 function setVolume(v) {
   radio.volume = Math.min(1, v / 11);
   knob.style.setProperty('--turn', `${angleFor(v)}deg`);
+  knob.parentElement.style.setProperty('--v', v); // the LCD skin's segment bar
   $('volume').setAttribute('aria-valuetext', v >= 11 ? 'eleven — one louder' : `${v} of 11`);
 }
 $('volume').addEventListener('input', (e) => setVolume(Number(e.target.value)));
@@ -1878,6 +1928,7 @@ async function boot() {
   state.regions = config.regions;
   state.sources = config.sources;
   state.station = config.station;
+  applyLook();
   TZ = config.station.timezone || TZ;
   tick();
   document.querySelector('.badge-script').textContent = config.station.script;

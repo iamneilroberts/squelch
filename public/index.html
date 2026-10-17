@@ -9,9 +9,20 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#5a3a22">
+<script>
+/* Look choices go on <html> before the first paint, so the LCD skin never flashes the Classic one. */
+(function () {
+  var d = document.documentElement, g = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  var pick = g('pcm.backlight') || 'auto', hr = new Date().getHours();
+  d.dataset.skin = g('pcm.skin') === 'lcd' ? 'lcd' : 'classic';
+  d.dataset.wide = g('pcm.wideLayout') === 'base' ? 'base' : 'lcd';
+  d.dataset.backlight = pick === 'blue' || pick === 'night' || pick === 'red' || pick === 'daylight' ? pick : (g('pcm.autoLight') || (hr >= 7 && hr < 19 ? 'blue' : 'red')); // Auto: app.js works out the real sunset
+})();
+</script>
 <link rel="stylesheet" href="vendor/fonts.css">
 <link rel="stylesheet" href="vendor/leaflet.css">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="skin-lcd.css">
 </head>
 <body>
 <div class="cabinet">
@@ -42,6 +53,12 @@
     <div class="tuner">
       <button type="button" class="chbar" id="chbar" aria-expanded="false" aria-controls="dial-frame">
         <span class="chbar-line"><span class="chbar-now" id="chbar-now"></span><span class="chbar-mode" id="chbar-mode"></span></span>
+        <span class="lcd-readout" aria-hidden="true">
+          <span class="lcd-top"><b id="lcd-state"></b><span id="lcd-svc"></span><span class="lcd-bars"><i></i><i></i><i></i><i></i><i></i></span></span>
+          <span class="lcd-name" id="lcd-name"></span>
+          <span class="lcd-freq"><span class="lcd-ghost">888.8888</span><span id="lcd-freq"></span></span>
+          <span class="lcd-meta"><span id="lcd-kind"></span><span id="lcd-loc"></span><span id="lcd-sig"></span></span>
+        </span>
         <span class="chbar-lamps" id="chbar-lamps" aria-hidden="true"></span>
         <span class="chbar-sum" id="chbar-sum"></span>
       </button>
@@ -79,6 +96,8 @@
               <input type="range" id="volume" min="0" max="11" step="0.5" value="8" aria-label="Volume, 0 to 11">
             </span>
             <span class="knob-label">Vol</span>
+            <button type="button" class="vol-step lcd-only" data-step="-1" aria-label="Volume down">&minus;</button>
+            <button type="button" class="vol-step lcd-only" data-step="1" aria-label="Volume up">+</button>
           </label>
         </div>
       </div>
@@ -109,6 +128,12 @@
         <p class="bcfy-msg" id="bcfy-msg" role="status"></p>
       </form>
     </div>
+    <button type="button" class="scroll-knob lcd-only" id="scroll-knob" aria-label="Scan or hold: starts the scan, then holds or resumes it" title="Scan or hold: starts the scan, then holds or resumes it">
+      <svg viewBox="0 0 230 230" aria-hidden="true"><path id="arc-top" d="M 30 115 A 85 85 0 0 1 200 115" fill="none"/><path id="arc-bot" d="M 22 115 A 93 93 0 0 0 208 115" fill="none"/>
+        <text><textPath href="#arc-top" startOffset="50%" text-anchor="middle">SCAN / SEARCH</textPath></text><text><textPath href="#arc-bot" startOffset="50%" text-anchor="middle">HOLD / RESUME</textPath></text></svg>
+      <span class="scroll-knob-ring"></span><span class="scroll-knob-cap"></span>
+    </button>
+    <span class="rx-led lcd-only" aria-hidden="true"><i></i>RX</span>
     <section class="follow" id="follow" hidden aria-label="Followed story"></section>
   </header>
 
@@ -170,6 +195,21 @@
     <label><input type="radio" name="dial-style" value="rule"> <strong>Slide rule</strong> — the classic dial, tighter on a phone</label>
   </fieldset>
   <p class="notify-hint">Remembered on this device.</p>
+  <fieldset class="notify-level"><legend>Skin</legend>
+    <label><input type="radio" name="skin" value="classic"> <strong>Classic</strong> — the walnut tabletop receiver</label>
+    <label><input type="radio" name="skin" value="lcd"> <strong>LCD</strong> — a backlit scanner display on charcoal</label>
+  </fieldset>
+  <fieldset class="notify-level look-lcd"><legend>Backlight</legend>
+    <label><input type="radio" name="backlight" value="auto"> <strong>Auto</strong> — blue by day, red from sunset to sunrise</label>
+    <label><input type="radio" name="backlight" value="blue"> <strong>Blue</strong></label>
+    <label><input type="radio" name="backlight" value="night"> <strong>Night</strong> — dark glass, glowing blue characters</label>
+    <label><input type="radio" name="backlight" value="red"> <strong>Red</strong> — night vision</label>
+    <label><input type="radio" name="backlight" value="daylight"> <strong>Daylight</strong> — unlit, reflective gray-green</label>
+  </fieldset>
+  <fieldset class="notify-level look-lcd look-wide"><legend>Wide-screen layout</legend>
+    <label><input type="radio" name="wide-layout" value="lcd"> <strong>LCD window</strong> — the phone layout, stretched</label>
+    <label><input type="radio" name="wide-layout" value="base"> <strong>Base unit</strong> — a desktop scanner faceplate with keypad and scroll knob</label>
+  </fieldset>
   <a class="changes-open" href="/manual.html#changes">What’s new</a>
   <button type="button" class="key report-open">Problems &amp; suggestions</button>
 </dialog>
