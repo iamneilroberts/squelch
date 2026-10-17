@@ -7,7 +7,7 @@ import { join, extname, normalize, dirname } from 'node:path';
 import { recentIncidents, getIncident, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues, getThread, recentThreads } from './db.mjs';
 import { buildCues, toVtt } from './ingest/captions.mjs';
 import { startListeners } from './listeners.mjs';
-import { pushReady, publicKey, LEVELS, configureNotify, subscription, subscribe, setPrefs, unsubscribe, sendTest, recordOpened, recordDwell, recordFeedback, learnedFor, resetLearning } from './notify.mjs';
+import { pushReady, publicKey, LEVELS, configureNotify, subscription, subscribe, setPrefs, snooze, unsubscribe, sendTest, recordOpened, recordDwell, recordFeedback, learnedFor, resetLearning } from './notify.mjs';
 import { startIngest, bus, status, GATE, VAD } from './ingest/pipeline.mjs';
 import { overlays, startShips } from './overlays.mjs';
 import { buildDigest, dayBounds, localDate } from './digest.mjs';
@@ -274,6 +274,7 @@ createServer(async (req, res) => {
       if (!allowed) return json(res, { error: pushReady ? 'Notifications are only for the owner here' : 'Notifications aren’t set up on this receiver' }, 403);
       if (action === 'subscribe') return json(res, subscribe(body, { owner, label: remote ? req.headers['cf-access-authenticated-user-email'] : 'LAN' }));
       if (action === 'prefs') return json(res, setPrefs(body.endpoint, body) ?? { error: 'not subscribed' });
+      if (action === 'snooze') return json(res, snooze(body.endpoint, body) ?? { error: 'not subscribed' });
       if (action === 'unsubscribe') { unsubscribe(body.endpoint); return json(res, { ok: true }); }
       if (action === 'test') return json(res, { sent: await sendTest(body.endpoint) });
       if (action === 'opened') return json(res, { ok: recordOpened(body.n, body.endpoint) });

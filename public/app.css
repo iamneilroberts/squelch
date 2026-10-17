@@ -619,6 +619,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .notify fieldset .key, .story-feedback .key { min-width: 0; padding: 8px 12px 6px; font-size: 11px; }
 .story-feedback { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 12px; padding-top: 10px; border-top: 2px solid var(--red-ink); font-size: 13px; }
 .story-feedback[hidden] { display: none; }
+.story-feedback > [hidden] { display: none; }
+.story-snooze { margin-top: 6px; padding-top: 0; border-top: 0; }
+.notify-quiet-times { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 3px 0; font-size: 13px; }
+.notify-quiet-times input { font: inherit; color: inherit; background: transparent; border: 1px solid var(--bakelite-3); border-radius: 3px; padding: 2px 4px; }
+.notify-quiet-times input:disabled { opacity: .5; }
 .story-summary { margin: 0 0 8px; font-size: 13.5px; line-height: 1.5; }
 .story-wider { margin-bottom: 10px; }
 .story-play { display: inline-flex; align-items: center; gap: 6px; min-width: 0; margin: 4px 0 10px; padding: 8px 12px 6px; font-size: 11px; }
@@ -937,7 +942,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .follow { position: static; grid-area: auto; }
   .faceplate:has(.follow:not([hidden])) .grille { place-items: center; padding: 8px; }
   .story .play, .story-close { min-width: 44px; min-height: 44px; }
-  .story-play, .story-feedback .key, .story-quiet summary { min-height: 44px; }
+  .story-play, .story-feedback .key, .story-quiet summary, #notify-pause-keys .key { min-height: 44px; }
+  .notify-quiet-times input { min-height: 44px; box-sizing: border-box; }
+  #notify .notify-level label { padding: 12px 0; }
   .story-quiet summary { display: flex; align-items: center; gap: 6px; }
   .story-head { flex-wrap: wrap; }
   #story-follow { order: 1; flex-basis: 100%; } /* under the title, which needs the width */

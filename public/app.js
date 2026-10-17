@@ -1657,7 +1657,7 @@ async function renderStory() {
   $('story-play').hidden = !storyClips.length;
   $('story-play').innerHTML = `${ICON_PLAY} Play all · ${storyClips.length} transmission${storyClips.length > 1 ? 's' : ''}`;
   $('story-wider').hidden = !state.viewer?.transcripts; // built from transcripts (src/ai/wider.mjs)
-  $('story-feedback').hidden = notify.opened?.story !== t.id;
+  $('story-feedback').hidden = $('story-snooze').hidden = notify.opened?.story !== t.id;
   $('story-title').innerHTML = `${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}`;
   $('story-follow').innerHTML = followKey(t.id);
   $('story-facts').innerHTML = t.facts.map((f) => `<dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd>`).join('');
@@ -1776,6 +1776,13 @@ function renderNotify() {
   $('notify-prefs').hidden = !usable || !sub;
   if (sub) {
     for (const r of document.querySelectorAll('[name="notify-level"]')) r.checked = r.value === sub.level;
+    $('notify-quiet').checked = Boolean(sub.quiet);
+    if (sub.quiet) { $('notify-quiet-start').value = sub.quiet.start; $('notify-quiet-end').value = sub.quiet.end; }
+    $('notify-quiet-major').checked = sub.quiet ? sub.quiet.major : true;
+    quietFields();
+    $('notify-quiet-hint').textContent = `Station time (${sub.timezone}). Notifications in quiet hours are skipped, not saved for later.`;
+    $('notify-quiet-owner').hidden = !st.owner || !sub.quiet;
+    renderPaused(sub);
     $('notify-favs').innerHTML = [...state.byId.values()].filter((s) => s.kind !== 'link')
       .map((s) => `<li><label><input type="checkbox" value="${esc(s.id)}"${sub.favorites.includes(s.id) ? ' checked' : ''}> ${ccTag(s.id)} <strong>${esc(s.short)}</strong> <span>${esc(s.name)}</span></label></li>`).join('');
   }
@@ -1811,8 +1818,37 @@ async function notifyToggle() {
 async function notifySavePrefs() {
   const level = document.querySelector('[name="notify-level"]:checked')?.value;
   const favorites = [...$('notify-favs').querySelectorAll('input:checked')].map((i) => i.value);
-  notify.status.sub = await postJson('/api/notify/prefs', { endpoint: notify.sub.endpoint, level, favorites }).catch(() => notify.status.sub);
+  quietFields();
+  const quiet = $('notify-quiet').checked ? { start: $('notify-quiet-start').value, end: $('notify-quiet-end').value, major: $('notify-quiet-major').checked } : null;
+  notify.status.sub = await postJson('/api/notify/prefs', { endpoint: notify.sub.endpoint, level, favorites, quiet }).catch(() => notify.status.sub);
+  const saved = notify.status.sub?.quiet; // a cleared time isn't saved: show what is
+  if (saved) { $('notify-quiet-start').value = saved.start; $('notify-quiet-end').value = saved.end; }
+  $('notify-quiet-owner').hidden = !notify.status.owner || !saved;
 }
+function quietFields() {
+  for (const id of ['notify-quiet-start', 'notify-quiet-end', 'notify-quiet-major']) $(id).disabled = !$('notify-quiet').checked;
+}
+
+// Pause (issue #5): from the Notifications card, or from the story card a notification opened (iPhone shows no
+// action buttons on notifications, so this row is how it pauses).
+function renderPaused(sub) {
+  $('notify-paused').textContent = sub.snoozeUntil ? `Paused until ${hhmm(sub.snoozeUntil)}.` : 'Stop notifications for a while.';
+  $('notify-pause-keys').querySelector('[data-snooze="resume"]').hidden = !sub.snoozeUntil;
+}
+const pauseNotify = (what, story) => postJson('/api/notify/snooze', { endpoint: notify.sub?.endpoint, for: what, story }).catch(() => null);
+$('notify-pause-keys').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-snooze]');
+  const sub = b && await pauseNotify(b.dataset.snooze);
+  if (sub?.favorites) { notify.status.sub = sub; renderPaused(sub); }
+});
+$('story-snooze').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-snooze]');
+  if (!b || !notify.opened) return;
+  const sub = await pauseNotify(b.dataset.snooze, notify.opened.story);
+  if (!sub?.favorites) return;
+  notify.status.sub = sub;
+  storyRowSay($('story-snooze'), b.dataset.snooze === 'story' ? 'No more notifications about this story.' : `Paused until ${hhmm(sub.snoozeUntil)}.`);
+});
 
 // Opened from a notification: record it, time how long the page stays in view, and ask for feedback
 // on its story card. Evidence for src/notify.mjs's learning.
@@ -1820,6 +1856,7 @@ function trackNotification(n, story) {
   const endpoint = notify.sub?.endpoint;
   if (!endpoint) return;
   notify.opened = { n, story };
+  for (const row of [$('story-feedback'), $('story-snooze')]) storyRowSay(row, ''); // the buttons back, for this notification's story
   postJson('/api/notify/opened', { n, endpoint }).catch(() => {});
   if (storyId === story) renderStory();
   let seen = 0;
@@ -1843,7 +1880,12 @@ async function renderLearned() {
     : '<li><span>Nothing yet — every notification starts neutral.</span></li>';
 }
 
-$('btn-notify').addEventListener('click', () => { renderNotify(); renderLearned(); $('notify').showModal(); });
+$('btn-notify').addEventListener('click', async () => {
+  renderNotify(); renderLearned(); $('notify').showModal();
+  // A snooze from a notification's button, or one that has run out, since the page loaded.
+  notify.status = await postJson('/api/notify/status', { endpoint: notify.sub?.endpoint }).catch(() => notify.status);
+  renderNotify();
+});
 $('notify-reset').addEventListener('click', async () => {
   await postJson('/api/notify/reset', { endpoint: notify.sub?.endpoint }).catch(() => {});
   renderLearned();
@@ -1853,8 +1895,15 @@ $('story-feedback').addEventListener('click', async (e) => {
   if (!b || !notify.opened) return;
   const feedback = Number(b.dataset.feedback);
   await postJson('/api/notify/feedback', { n: notify.opened.n, endpoint: notify.sub?.endpoint, feedback }).catch(() => {});
-  $('story-feedback').innerHTML = `<span>Thanks — you’ll get ${feedback > 0 ? 'more' : 'fewer'} like this.</span>`;
+  storyRowSay($('story-feedback'), `Thanks — you’ll get ${feedback > 0 ? 'more' : 'fewer'} like this.`);
 });
+// A story-card row's answer replaces its buttons until the next notification is opened ('' brings them back).
+function storyRowSay(row, text) {
+  const said = row.querySelector('[role="status"]');
+  for (const el of row.children) el.hidden = text ? el !== said : el === said;
+  said.textContent = text;
+  if (text) { said.tabIndex = -1; said.focus(); }
+}
 $('notify-close').addEventListener('click', () => $('notify').close());
 $('notify').addEventListener('click', (e) => { if (e.target === $('notify')) $('notify').close(); });
 $('notify-toggle').addEventListener('click', notifyToggle);

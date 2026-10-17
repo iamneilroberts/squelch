@@ -179,6 +179,14 @@
     <span>Worth a notification?</span>
     <button type="button" class="key" data-feedback="1">More like this</button>
     <button type="button" class="key" data-feedback="-1">Fewer like this</button>
+    <span role="status" hidden></span>
+  </div>
+  <div class="story-feedback story-snooze" id="story-snooze" hidden>
+    <span>Pause notifications:</span>
+    <button type="button" class="key" data-snooze="1h">1 hour</button>
+    <button type="button" class="key" data-snooze="today">Rest of today</button>
+    <button type="button" class="key" data-snooze="story">This story</button>
+    <span role="status" hidden></span>
   </div>
 </dialog>
 <dialog class="story notify" id="look" aria-labelledby="look-title">
@@ -238,6 +246,21 @@
       <label><input type="radio" name="notify-level" value="quiet"> <strong>Quiet</strong> — major events only</label>
       <label><input type="radio" name="notify-level" value="normal"> <strong>Normal</strong> — significant incidents</label>
       <label><input type="radio" name="notify-level" value="chatty"> <strong>Chatty</strong> — anything worth a glance</label>
+    </fieldset>
+    <fieldset class="notify-level"><legend>Quiet hours</legend>
+      <label><input type="checkbox" id="notify-quiet"> <strong>On</strong></label>
+      <div class="notify-quiet-times"><label>From <input type="time" id="notify-quiet-start" value="22:00"></label> <label>to <input type="time" id="notify-quiet-end" value="07:00"></label></div>
+      <label><input type="checkbox" id="notify-quiet-major"> Let major events through: mutual aid, mayday, mass casualty</label>
+      <p class="notify-hint" id="notify-quiet-hint">Station time. Notifications in quiet hours are skipped, not saved for later.</p>
+      <p class="notify-hint" id="notify-quiet-owner" hidden>New: quiet hours are on for your own browsers too. Turn them off here to hear everything at night.</p>
+    </fieldset>
+    <fieldset><legend>Pause</legend>
+      <p class="notify-hint" id="notify-paused" role="status"></p>
+      <div class="notify-row" id="notify-pause-keys">
+        <button type="button" class="key" data-snooze="1h">1 hour</button>
+        <button type="button" class="key" data-snooze="today">Rest of today</button>
+        <button type="button" class="key" data-snooze="resume">Resume now</button>
+      </div>
     </fieldset>
     <fieldset><legend>★ Favourite channels</legend>
       <p class="notify-hint">Stories on favourites notify one step sooner.</p>

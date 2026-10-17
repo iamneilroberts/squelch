@@ -10,13 +10,22 @@ self.addEventListener('push', (e) => {
     renotify: Boolean(d.tag),
     icon: '/icon-192.png',
     data: { url: d.url || '/', n: d.n },
-    // Feedback without opening (Android, desktop; iPhone shows no action buttons — the story card has them).
-    actions: d.n ? [{ action: 'more', title: 'More like this' }, { action: 'fewer', title: 'Fewer like this' }] : [],
+    // Without opening (Android, desktop; Chrome shows two at most). iPhone shows no action buttons: tapping opens the
+    // story, whose card has Pause and More / Fewer.
+    actions: d.n ? [{ action: 'snooze', title: 'Snooze 1 h' }, { action: 'fewer', title: 'Fewer like this' }] : [],
   }));
 });
 
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
+  if (e.action === 'snooze') {
+    e.waitUntil(self.registration.pushManager.getSubscription().then((sub) => fetch('/api/notify/snooze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub?.endpoint, for: '1h' }),
+    })));
+    return;
+  }
   if (e.action === 'more' || e.action === 'fewer') {
     e.waitUntil(self.registration.pushManager.getSubscription().then((sub) => fetch('/api/notify/feedback', {
       method: 'POST',

@@ -3,7 +3,7 @@
 // while the owner's "guest notifications" switch is on. Setup: docs/NOTIFICATIONS.md.
 import webpush from 'web-push';
 import { db, getThread } from './db.mjs';
-import { sources } from './config.mjs';
+import { sources, station } from './config.mjs';
 import { span } from './meter.mjs';
 
 const PUB = process.env.VAPID_PUBLIC_KEY;
@@ -39,6 +39,11 @@ db.exec(`CREATE TABLE IF NOT EXISTS notifications (
 )`);
 db.exec('CREATE INDEX IF NOT EXISTS notifications_sub ON notifications (sub_id, at)');
 try { db.exec('ALTER TABLE push_subs ADD COLUMN reset_at TEXT'); } catch { /* already there */ }
+// Pausing (issue #5). A column added with a DEFAULT gives existing browsers the default too: quiet 22:00–07:00 with
+// major events let through. quiet_start NULL = quiet hours off.
+for (const col of ['snooze_until TEXT', "quiet_start TEXT DEFAULT '22:00'", "quiet_end TEXT DEFAULT '07:00'", 'quiet_major INTEGER NOT NULL DEFAULT 1', "muted_threads TEXT NOT NULL DEFAULT '[]'"]) {
+  try { db.exec(`ALTER TABLE push_subs ADD COLUMN ${col}`); } catch { /* already there */ }
+}
 
 // Score needed to notify, by sensitivity. Favourite channels count 1.4× toward it.
 export const LEVELS = { quiet: 0.8, normal: 0.6, chatty: 0.4 };
@@ -87,11 +92,45 @@ export function learned(s) {
 }
 const multiplier = (f, x) => 2 ** (featuresOf(x).reduce((a, k) => a + (f.get(k)?.score ?? 0), 0) / featuresOf(x).length / 2);
 
+/* Quiet hours and snoozes, on the station's clock. Local wall time comes from Intl, so DST needs no special case:
+   22:00–07:00 is 22:00–07:00 on both sides of a change. A window whose start is after its end crosses midnight. */
+const MAJOR = 0.9;
+const MUTED_MAX = 50; // "This story only" remembers the latest 50 stories per browser
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+const wall = (at, tz) => Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  .formatToParts(at).filter((x) => x.type !== 'literal').map((x) => [x.type, Number(x.value)]));
+const mins = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+export function inQuiet(start, end, at = new Date(), tz = station.timezone) {
+  if (!start || !end || start === end) return false;
+  const w = wall(at, tz), m = w.hour * 60 + w.minute, a = mins(start), b = mins(end);
+  return a < b ? m >= a && m < b : m >= a || m < b;
+}
+// The next local midnight after `at`: count the wall-clock time left in the day, then correct for a DST change before midnight.
+export function endOfDay(at = new Date(), tz = station.timezone) {
+  const w = wall(at, tz);
+  const guess = at.getTime() - (at.getTime() % 1000) + (86400 - (w.hour * 3600 + w.minute * 60 + w.second)) * 1000;
+  const v = wall(new Date(guess), tz), drift = v.hour * 3600 + v.minute * 60 + v.second; // 0 unless the clocks changed
+  return new Date(guess - (drift > 43200 ? drift - 86400 : drift) * 1000);
+}
+// Why a push to this browser is held back right now, or null. Snoozes hold everything; quiet hours let majors through
+// when the browser allows it. Held pushes are dropped, not saved for later.
+export function heldBack(s, alert = 0, threadId = null, at = new Date()) {
+  if (s.snooze_until && Date.parse(s.snooze_until) > at.getTime()) return 'snoozed';
+  if (threadId && JSON.parse(s.muted_threads || '[]').includes(threadId)) return 'muted';
+  if (inQuiet(s.quiet_start, s.quiet_end, at) && !(s.quiet_major && alert >= MAJOR)) return 'quiet';
+  return null;
+}
+
 let allowGuests = () => false;
 export const configureNotify = (opts) => { allowGuests = opts.allowGuests; };
 
 const subRow = (endpoint) => db.prepare('SELECT * FROM push_subs WHERE endpoint = ?').get(endpoint);
-const prefsOf = (s) => s && { favorites: JSON.parse(s.favorites), level: s.level, owner: Boolean(s.owner) };
+const prefsOf = (s) => s && {
+  favorites: JSON.parse(s.favorites), level: s.level, owner: Boolean(s.owner),
+  quiet: s.quiet_start ? { start: s.quiet_start, end: s.quiet_end, major: Boolean(s.quiet_major) } : null,
+  snoozeUntil: s.snooze_until && Date.parse(s.snooze_until) > Date.now() ? s.snooze_until : null,
+  timezone: station.timezone,
+};
 export const subscription = (endpoint) => prefsOf(subRow(endpoint));
 
 export function subscribe({ subscription: sub, favorites = [], level = 'normal' }, { owner, label }) {
@@ -102,11 +141,34 @@ export function subscribe({ subscription: sub, favorites = [], level = 'normal' 
   return setPrefs(sub.endpoint, { favorites, level });
 }
 
-export function setPrefs(endpoint, { favorites, level }) {
+export function setPrefs(endpoint, { favorites, level, quiet }) {
   const s = subRow(endpoint);
   if (!s) return null;
   const favs = Array.isArray(favorites) ? favorites.filter((id) => sources.some((x) => x.id === id)) : JSON.parse(s.favorites);
   db.prepare('UPDATE push_subs SET favorites = ?, level = ? WHERE id = ?').run(JSON.stringify(favs), LEVELS[level] ? level : s.level, s.id);
+  // quiet: { start, end, major } sets the window, null turns quiet hours off, absent leaves them alone.
+  if (quiet === null) db.prepare('UPDATE push_subs SET quiet_start = NULL, quiet_end = NULL WHERE id = ?').run(s.id);
+  else if (quiet && HHMM.test(quiet.start) && HHMM.test(quiet.end)) {
+    db.prepare('UPDATE push_subs SET quiet_start = ?, quiet_end = ?, quiet_major = ? WHERE id = ?').run(quiet.start, quiet.end, quiet.major === false ? 0 : 1, s.id);
+  }
+  return subscription(endpoint);
+}
+
+// Pause this browser's notifications: '1h', 'today' (until local midnight), 'story' (no more about that story), or
+// 'resume'. The endpoint is the proof: only the browser that holds it can pause its own notifications.
+export function snooze(endpoint, { for: what, story } = {}) {
+  const s = typeof endpoint === 'string' && subRow(endpoint);
+  if (!s) return null;
+  if (what === '1h') { // never shortens a longer pause ("Resume now" does that)
+    const until = new Date(Math.max(Date.now() + 3600e3, Date.parse(s.snooze_until) || 0)).toISOString();
+    db.prepare('UPDATE push_subs SET snooze_until = ? WHERE id = ?').run(until, s.id);
+  }
+  else if (what === 'today') db.prepare('UPDATE push_subs SET snooze_until = ? WHERE id = ?').run(endOfDay().toISOString(), s.id);
+  else if (what === 'resume') db.prepare('UPDATE push_subs SET snooze_until = NULL WHERE id = ?').run(s.id);
+  else if (what === 'story' && Number.isInteger(story) && story > 0) {
+    const muted = [...JSON.parse(s.muted_threads).filter((id) => id !== story), story].slice(-MUTED_MAX);
+    db.prepare('UPDATE push_subs SET muted_threads = ? WHERE id = ?').run(JSON.stringify(muted), s.id);
+  } else return null;
   return subscription(endpoint);
 }
 
@@ -131,7 +193,7 @@ export const subInfo = (endpoint) => { const s = typeof endpoint === 'string' &&
 export const ownerSubIds = () => db.prepare('SELECT id FROM push_subs WHERE owner = 1').all().map((r) => r.id);
 export function pushTo(id, payload) {
   const s = pushReady && db.prepare('SELECT * FROM push_subs WHERE id = ?').get(id);
-  return s && (s.owner || allowGuests()) ? push(s, payload) : Promise.resolve(false);
+  return s && (s.owner || allowGuests()) && !heldBack(s) ? push(s, payload) : Promise.resolve(false);
 }
 
 export function sendTest(endpoint) {
@@ -148,6 +210,7 @@ export async function considerThread(threadId) {
   const hourAgo = new Date(Date.now() - 3600e3).toISOString();
   for (const s of db.prepare('SELECT * FROM push_subs').all()) {
     if (!s.owner && !allowGuests()) continue;
+    if (heldBack(s, t.alert, t.id)) continue;
     const favourite = JSON.parse(s.favorites).includes(t.source_id);
     const taste = multiplier(learned(s), t);
     const score = t.alert * (favourite ? FAVOURITE : 1) * taste;
