@@ -95,12 +95,12 @@
 [data-skin="lcd"] .anim-poster { background: radial-gradient(circle, rgba(255, 255, 255, .08) 2px, transparent 2.5px) 0 0 / 14px 14px, #0d0e10; }
 [data-skin="lcd"] .anim-poster .key { min-width: 88px; }
 [data-skin="lcd"] .linkish { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); }
-[data-skin="lcd"] .anim-actions .key, [data-skin="lcd"] .make .key, [data-skin="lcd"] .quote .key, [data-skin="lcd"] .suggest-tools .key, [data-skin="lcd"] #guest-control .key {
+[data-skin="lcd"] .anim-actions .key, [data-skin="lcd"] .make .key, [data-skin="lcd"] .make-open .key, [data-skin="lcd"] .quote .key, [data-skin="lcd"] .suggest-tools .key, [data-skin="lcd"] #guest-control .key {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 14px; font-size: 14px; text-decoration: none;
 }
 [data-skin="lcd"] .anim-actions .key .na { color: var(--ink-soft); font: 12px var(--body); text-transform: none; letter-spacing: 0; }
 [data-skin="lcd"] .key.danger { color: #ff8a7a; }
-[data-skin="lcd"] .make .keys, [data-skin="lcd"] .quote .keys, [data-skin="lcd"] #guest-control .keys, [data-skin="lcd"] .suggest-tools .keys { display: flex; flex-wrap: wrap; gap: 8px; }
+[data-skin="lcd"] .make .keys:not(.seg), [data-skin="lcd"] .quote .keys, [data-skin="lcd"] #guest-control .keys, [data-skin="lcd"] .suggest-tools .keys { display: flex; flex-wrap: wrap; gap: 8px; }
 [data-skin="lcd"] :is(.make, .quote, #guest-control, .suggest-tools) .key[aria-pressed="true"] { color: var(--accent); box-shadow: 0 1px 0 #0b0c0e, 0 2px 4px rgba(0, 0, 0, .55), inset 0 -3px 0 var(--led), inset 0 1px 0 rgba(255, 255, 255, .1); text-shadow: var(--lcd-glow); }
 /* rating stars: 44px keys, lit in the backlight when chosen */
 [data-skin="lcd"] .stars { gap: 4px; }
@@ -139,3 +139,5 @@
   [data-skin="lcd"] .ledger-head .keys .key { padding-inline: 8px; }
   [data-skin="lcd"] .money-head b { font-size: 34px; }
 }
+[data-skin="lcd"] .make-open { display: inline-flex; }
+[data-skin="lcd"] .make-open .key { padding-inline: 16px; }

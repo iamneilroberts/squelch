@@ -23,16 +23,22 @@ async function api(path, opts) {
 /* ───────── Suggestions ───────── */
 const ago = (iso) => { const m = Math.round((Date.now() - new Date(iso)) / 60e3); return m < 60 ? `${m} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : when(iso); };
 
+// The style and planner last picked are remembered on this device; one card's Make controls open at a time.
+const pick = (key, fallback, ok) => { try { const v = localStorage.getItem(key); return v && ok(v) ? v : fallback; } catch { return fallback; } };
+const remember = (key, v) => { try { localStorage.setItem(key, v); } catch {} };
+
 function suggestion(s) {
+  const pref = { style: pick('pcm.studioStyle', 'sunday', (v) => v in STYLE), llm: pick('pcm.studioLlm', LLM.llm, (v) => v in LLM.providers) };
   return `<li class="suggest" data-thread="${s.thread_id}">
     <div class="humor" title="Humor ${Math.round(s.humor * 100)} of 100"><span style="height:${Math.round(s.humor * 100)}%"></span><b>${Math.round(s.humor * 100)}</b></div>
     <div class="suggest-body">
       <p class="pitch">${esc(s.pitch)}</p>
       <p class="anim-sub"><a href="/?story=${s.thread_id}">${esc(s.subject)}</a> · ${esc(s.source_id)} · ${s.clips} clip${s.clips === 1 ? '' : 's'} · ${ago(s.updated_at)}${s.stale ? ' · <i>changed since scored</i>' : ''}</p>
       <p class="why">${esc(s.why)}</p>
-      <div class="make"${canMake() ? '' : ' hidden'}>
-        <div class="keys" role="group" aria-label="Style">${Object.entries(STYLE).map(([k, n]) => `<button type="button" class="key" data-style="${k}" aria-pressed="${k === 'sunday'}">${n}${k === 'vector' ? ' cartoon' : ''}</button>`).join('')}</div>
-        ${ACCESS === 'owner' ? `<div class="keys" role="group" aria-label="Plan with" title="Who writes the script and the cartoon's plan">${Object.entries(LLM.providers).map(([k, n]) => `<button type="button" class="key" data-llm="${k}" aria-pressed="${k === LLM.llm}">${esc(n)}</button>`).join('')}</div>` : ''}
+      ${canMake() ? '<div class="keys make-open"><button type="button" class="key" data-open aria-expanded="false">Make one…</button></div>' : ''}
+      <div class="make" hidden>
+        <div class="keys seg" role="group" aria-label="Style">${Object.entries(STYLE).map(([k, n]) => `<button type="button" class="key" data-style="${k}" aria-pressed="${k === pref.style}">${n}${k === 'vector' ? ' cartoon' : ''}</button>`).join('')}</div>
+        ${ACCESS === 'owner' ? `<div class="keys seg" role="group" aria-label="Plan with" title="Who writes the script and the cartoon's plan">${Object.entries(LLM.providers).map(([k, n]) => `<button type="button" class="key" data-llm="${k}" aria-pressed="${k === pref.llm}">${esc(n)}</button>`).join('')}</div>` : ''}
         <label class="notes"><span>Your notes for the artist <i class="na">(optional)</i></span>
           <textarea maxlength="400" rows="2" placeholder="A mood, a colour or a small detail to add (optional)" data-notes></textarea>
           <span class="notes-foot"><span class="na">Colour and detail ideas only; it can’t change the facts or the rules.</span><span class="na" data-count>0 / 400</span></span></label>
@@ -75,10 +81,26 @@ $('suggests').addEventListener('click', async (e) => {
   const li = e.target.closest('.suggest');
   if (!li) return;
   const quote = li.querySelector('.quote');
+  const open = e.target.closest('[data-open]');
+  if (open) {
+    const show = li.querySelector('.make').hidden;
+    for (const o of $('suggests').querySelectorAll('.suggest')) {
+      o.querySelector('.make').hidden = o.querySelector('.quote').hidden = true;
+      const k = o.querySelector('[data-open]');
+      if (k) { k.setAttribute('aria-expanded', 'false'); k.textContent = 'Make one…'; }
+    }
+    li.querySelector('.make').hidden = !show;
+    const style = pick('pcm.studioStyle', 'sunday', (v) => v in STYLE), llm = pick('pcm.studioLlm', LLM.llm, (v) => v in LLM.providers);
+    for (const b of li.querySelectorAll('[data-style]')) b.setAttribute('aria-pressed', String(b.dataset.style === style));
+    for (const b of li.querySelectorAll('[data-llm]')) b.setAttribute('aria-pressed', String(b.dataset.llm === llm));
+    open.setAttribute('aria-expanded', String(show));
+    open.textContent = show ? 'Close' : 'Make one…';
+    return;
+  }
   const style = e.target.closest('[data-style]');
-  if (style) { for (const b of li.querySelectorAll('[data-style]')) b.setAttribute('aria-pressed', String(b === style)); quote.hidden = true; return; }
+  if (style) { for (const b of li.querySelectorAll('[data-style]')) b.setAttribute('aria-pressed', String(b === style)); remember('pcm.studioStyle', style.dataset.style); quote.hidden = true; return; }
   const llm = e.target.closest('[data-llm]');
-  if (llm) { for (const b of li.querySelectorAll('[data-llm]')) b.setAttribute('aria-pressed', String(b === llm)); quote.hidden = true; return; }
+  if (llm) { for (const b of li.querySelectorAll('[data-llm]')) b.setAttribute('aria-pressed', String(b === llm)); remember('pcm.studioLlm', llm.dataset.llm); quote.hidden = true; return; }
   const body = { thread_id: Number(li.dataset.thread), style: li.querySelector('[data-style][aria-pressed="true"]').dataset.style, llm: li.querySelector('[data-llm][aria-pressed="true"]')?.dataset.llm, notes: li.querySelector('[data-notes]').value };
   if (e.target.closest('[data-make]')) {
     quote.hidden = false;

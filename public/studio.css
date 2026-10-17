@@ -56,6 +56,10 @@
 
 /* Make it: style keys, the estimate, and jobs in progress. */
 .make { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.make[hidden] { display: none; }
+.make .keys.seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 100%; }
+.make-open { display: inline-flex; margin-top: 8px; }
+.make-open .key { min-width: 0; padding: 8px 12px 6px; font-size: 10.5px; white-space: nowrap; }
 .make .key, .quote .key { min-width: 0; padding: 8px 10px 6px; font-size: 10.5px; }
 .quote { margin-top: 10px; padding: 8px 12px; border: 1.5px dashed var(--ink-soft); border-radius: 3px; font-size: 13px; line-height: 1.5; }
 .quote p { margin: 0 0 6px; }
