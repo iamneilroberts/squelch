@@ -439,6 +439,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   display: flex; flex-direction: column; justify-content: flex-end; /* newest line at the bottom; old ones scroll off the top */
 }
 .cc-line { margin: 0; overflow-wrap: anywhere; }
+.cc-probe { position: absolute; visibility: hidden; white-space: pre; } /* measures text so line breaks can be predicted */
 .cc-old { color: oklch(0.72 0 0); }
 .cc-old .cc-src { opacity: .7; }
 .cc-now { color: oklch(1 0 0); }
@@ -461,7 +462,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .cc-src[data-band="ham"] { --c: oklch(0.76 0.13 310); }
 
 /* Title line → channel story */
-.story-link { display: inline; border: 0; padding: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.now-playing a.story-link, .story-link { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
 /* Channel story: a typed card over the desk */
 .story {
   width: min(560px, calc(100vw - 32px)); max-height: min(80vh, 720px); box-sizing: border-box;

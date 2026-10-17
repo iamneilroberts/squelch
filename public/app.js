@@ -250,11 +250,13 @@ function awaitTap() {
 
 /* ───────── Closed captions ─────────
    A recording carries a WebVTT track (/api/captions/<clip>.vtt) whose cues the server lays over the
-   clip's voiced stretches, so lines roll up with playback, pause and seek. The strip is bottom-aligned
-   and clips at the top, so older lines (including the previous transmission's) scroll off like CC.
+   clip's voiced stretches, so text rolls up with playback, pause and seek. Each transmission is one
+   paragraph that starts with its source tag; earlier ones stay above, faded, until they scroll off.
    A live stream has no clip yet: the strip shows that channel's transcripts as they arrive. */
-let ccPrev = []; // lines still on screen from the previous recording
-let ccSource = null; // station of the recording being captioned (from its clip filename)
+const CC_ROWS = 3;
+let ccPast = []; // earlier transmissions still on screen: [{ id, words }]
+let ccCur = null; // the recording being captioned: { id, words } as of the last sync
+let ccShown = []; // segments last drawn, for redrawing on resize
 
 // Source tags: band icon + code, e.g. ✈ ATC. Icons: Lucide 1.58.0 (ISC licence, lucide.dev).
 const CC_BANDS = {
@@ -272,20 +274,64 @@ function ccTag(id) {
   return b ? `<span class="cc-src" data-band="${s.band}"><svg viewBox="0 0 24 24" aria-hidden="true">${b[1]}</svg>${b[0]}</span>` : '';
 }
 const ccWho = (id) => (state.byId.has(id) ? `${ccTag(id)} ${shortOf(id)}: ` : '&gt;&gt; ');
-const ccLine = (text, cls = '') => `<p class="cc-line ${cls}">${text}</p>`;
 const ccSet = (html) => { $('cc-text').innerHTML = html; };
 const ccOff = () => !state.viewer?.transcripts;
+const ccWords = (text) => String(text || '').split(/\s+/).filter(Boolean);
 
 function ccIdle() {
-  ccPrev = [];
-  ccSet(ccLine(ccOff() ? 'Captions are off — transcripts are private on this receiver.' : 'Captions appear here when traffic plays.', 'cc-note'));
+  ccPast = [];
+  ccCur = null;
+  ccShown = [];
+  ccSet(`<p class="cc-line cc-note">${ccOff() ? 'Captions are off — transcripts are private on this receiver.' : 'Captions appear here when traffic plays.'}</p>`);
 }
 
+// Rows a paragraph takes: the text is monospace, so the browser's line breaks can be predicted.
+function ccRows(words, cols, indent) {
+  let rows = 1, x = indent;
+  words.forEach((w, i) => {
+    const add = (i ? 1 : 0) + w.length;
+    if (x + add > cols && x > 0) { rows++; x = w.length; } else x += add;
+  });
+  return rows;
+}
+
+// segs, oldest first: { id, words, now? (index of the first word of the cue being spoken), old? }.
+// Fills the strip from the newest back; a paragraph that doesn't fit loses words from its front ("…"),
+// so every visible transmission keeps its source tag.
+function ccRender(segs) {
+  ccShown = segs;
+  const box = $('cc-text');
+  const probe = document.createElement('span');
+  probe.className = 'cc-probe';
+  box.append(probe);
+  probe.textContent = 'M'.repeat(20);
+  const cw = probe.getBoundingClientRect().width / 20;
+  const cols = Math.floor(box.clientWidth / cw);
+  const out = [];
+  let left = CC_ROWS;
+  for (const seg of [...segs].reverse()) {
+    if (left < 1 || !seg.words.length) continue;
+    probe.innerHTML = ccWho(seg.id);
+    const indent = Math.ceil(probe.getBoundingClientRect().width / cw);
+    let from = 0;
+    const words = () => (from ? ['…', ...seg.words.slice(from)] : seg.words);
+    while (from < seg.words.length - 1 && ccRows(words(), cols, indent) > left) from++;
+    left -= ccRows(words(), cols, indent);
+    const now = seg.now ?? seg.words.length;
+    const text = (a, b) => esc(seg.words.slice(Math.max(a, from), b).join(' '));
+    out.unshift(`<p class="cc-line${seg.old ? ' cc-old' : ''}">${ccWho(seg.id)}${from ? '… ' : ''}${text(0, now)}${now < seg.words.length ? `${now > from ? ' ' : ''}<span class="cc-now">${text(now, seg.words.length)}</span>` : ''}</p>`);
+  }
+  probe.remove();
+  ccSet(out.join(''));
+}
+addEventListener('resize', () => { if (ccShown.length) ccRender(ccShown); });
+
 function ccLoad(src) {
-  ccPrev = [...$('cc-text').querySelectorAll('.cc-line:not(.cc-note)')].slice(-3).map((p) => p.innerHTML);
-  ccSource = /^\/audio\/(.+)-\d+\.mp3$/.exec(decodeURIComponent(src))?.[1] ?? null;
+  if (ccCur?.words.length) ccPast = [...ccPast, ccCur].slice(-2);
+  ccCur = { id: /^\/audio\/(.+)-\d+\.mp3$/.exec(decodeURIComponent(src))?.[1] ?? null, words: [] };
   radio.querySelectorAll('track').forEach((t) => t.remove());
-  if (ccOff() || !src.startsWith('/audio/')) return ccOff() ? ccIdle() : ccSet(ccPrev.map((l) => ccLine(l, 'cc-old')).join(''));
+  if (ccOff()) return ccIdle();
+  if (!src.startsWith('/audio/')) return ccRender(ccPast.map((x) => ({ ...x, old: true })));
   const track = Object.assign(document.createElement('track'), { kind: 'captions', srclang: 'en', label: 'Transcript', src: `/api/captions/${src.slice(7)}.vtt`, default: true });
   track.addEventListener('load', ccSync);
   radio.append(track);
@@ -294,11 +340,13 @@ function ccLoad(src) {
 
 function ccSync() {
   const kind = radio.dataset.kind;
-  if (ccOff() || (kind !== 'clip' && kind !== 'scan')) return;
-  const cues = [...(radio.textTracks[0]?.cues || [])].filter((c) => c.startTime <= radio.currentTime);
-  const now = cues.at(-1);
-  const lines = cues.map((c, i) => ccLine(`${i === 0 ? ccWho(ccSource) : ''}${esc(c.text)}`, c === now && radio.currentTime < c.endTime ? 'cc-now' : ''));
-  ccSet([...ccPrev.map((l) => ccLine(l, 'cc-old')), ...lines].join(''));
+  if (ccOff() || !ccCur || (kind !== 'clip' && kind !== 'scan')) return;
+  const t = radio.currentTime;
+  const cues = [...(radio.textTracks[0]?.cues || [])].filter((c) => c.startTime <= t);
+  const spoken = cues.at(-1);
+  const before = cues.slice(0, -1).flatMap((c) => ccWords(c.text));
+  ccCur.words = [...before, ...ccWords(spoken?.text)];
+  ccRender([...ccPast.map((x) => ({ ...x, old: true })), { ...ccCur, now: spoken && t < spoken.endTime ? before.length : undefined }]);
 }
 for (const ev of ['timeupdate', 'seeked']) radio.addEventListener(ev, ccSync);
 
@@ -308,15 +356,15 @@ function ccLive() {
   if (!s || radio.dataset.kind !== 'live') return;
   if (ccOff()) return ccIdle();
   const recent = state.calls.filter((c) => c.source_id === s.id && c.transcript).slice(0, 3).reverse();
-  ccSet(ccLine(`${ccTag(s.id)} ${esc(s.short)} · captions run about a minute behind live`, 'cc-note')
-    + recent.map((c, i) => ccLine(`&gt;&gt; ${hhmm(c.at)} ${esc(c.transcript)}`, i === recent.length - 1 ? 'cc-now' : 'cc-old')).join(''));
+  if (!recent.length) return ccSet(`<p class="cc-line cc-note">Captions for ${esc(s.short)} appear about a minute behind the audio.</p>`);
+  ccRender(recent.map((c, i) => ({ id: s.id, words: ccWords(c.transcript), old: i < recent.length - 1 })));
 }
 
 radio.addEventListener('playing', () => {
   setLit(true);
   if (radio.dataset.kind === 'clip') {
     const c = state.calls.find((x) => x.audio && radio.getAttribute('src') === `/audio/${encodeURIComponent(x.audio)}`);
-    $('now-playing').innerHTML = c ? `${titleOf(c)} · ${hhmm(c.at)}` : `Playing recording — <strong>${esc(radio.dataset.label)}</strong>`;
+    $('now-playing').innerHTML = c ? `${titleOf(c)}&nbsp;·&nbsp;${hhmm(c.at)}` : `Playing recording — <strong>${esc(radio.dataset.label)}</strong>`;
   } else if (radio.dataset.kind === 'scan') {
     $('now-playing').innerHTML = radio.dataset.label;
   } else if (state.tuned) {
@@ -422,7 +470,7 @@ function playScan(c, { replay = false } = {}) {
   moveNeedle(state.byId.get(c.source_id));
   const tag = replay ? 'REPLAY' : scan.hold ? 'HOLD' : isPriority(c) ? 'PRI' : '';
   scan.lastCall = c;
-  playRecording(`/audio/${encodeURIComponent(c.audio)}`, `${tag ? `${tag} · ` : ''}${titleOf(c)} · ${hhmm(c.at)}`, 'scan');
+  playRecording(`/audio/${encodeURIComponent(c.audio)}`, `${tag ? `${tag} · ` : ''}${titleOf(c)}&nbsp;·&nbsp;${hhmm(c.at)}`, 'scan');
 }
 
 // Title line: what the conversation on this channel is about. The channel subject kept by the server
@@ -436,7 +484,8 @@ function subjectOf(c) {
 }
 function titleOf(c) {
   const t = `<strong>${shortOf(c.source_id)}</strong>: ${esc(subjectOf(c))}`;
-  return c.thread_id ? `<button type="button" class="story-link" data-thread="${c.thread_id}" title="This channel's story so far">${t} ›</button>` : t;
+  // A link, not a button: iOS lays buttons out as blocks, which breaks the line around it.
+  return c.thread_id ? `<a href="#" class="story-link" data-thread="${c.thread_id}" title="This channel's story so far">${t}&nbsp;›</a>` : t;
 }
 
 // After a transmission: linger on the channel for DELAY_MS (a reply plays straight away), then move on.
@@ -447,7 +496,7 @@ function scanAfterTransmission() {
   const until = Date.now() + DELAY_MS;
   const show = () => {
     const s = Math.max(0, Math.ceil((until - Date.now()) / 1000));
-    $('now-playing').innerHTML = `${titleOf(c)} · resuming in ${s} s — <strong>Hold</strong> to stay`;
+    $('now-playing').innerHTML = `${titleOf(c)}&nbsp;· resuming in ${s} s — <strong>Hold</strong> to stay`;
   };
   show();
   scan.delayTick = setInterval(show, 250);
@@ -979,7 +1028,9 @@ async function renderStory() {
 }
 document.addEventListener('click', (e) => {
   const link = e.target.closest('[data-thread]');
-  if (link) openStory(link.dataset.thread);
+  if (!link) return;
+  e.preventDefault();
+  openStory(link.dataset.thread);
 });
 $('story-close').addEventListener('click', () => $('story').close());
 $('story').addEventListener('click', (e) => {
