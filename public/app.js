@@ -967,7 +967,7 @@ async function refreshShips() {
         .bindTooltip(`${esc(s.name || s.id)} · ${s.speed ?? '?'} kn`)
         .addTo(layers.ships);
     }
-    setCount('ships', list.length || 'key?');
+    setCount('ships', list.length || 'off'); // none yet, or no AIS key
   } catch { setCount('ships', '—'); }
 }
 
