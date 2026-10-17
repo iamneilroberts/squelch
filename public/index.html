@@ -129,6 +129,11 @@
   <header class="story-head"><h2 id="story-title"></h2><button type="button" class="key tkey story-close" id="story-close" aria-label="Close"><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
   <dl class="story-facts" id="story-facts"></dl>
   <ol class="story-log" id="story-log"></ol>
+  <div class="story-feedback" id="story-feedback" hidden>
+    <span>Worth a notification?</span>
+    <button type="button" class="key" data-feedback="1">More like this</button>
+    <button type="button" class="key" data-feedback="-1">Fewer like this</button>
+  </div>
 </dialog>
 <dialog class="story notify" id="notify" aria-labelledby="notify-title">
   <header class="story-head"><h2 id="notify-title">Notifications</h2><button type="button" class="key tkey story-close" id="notify-close" aria-label="Close"><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
@@ -143,6 +148,11 @@
     <fieldset><legend>★ Favourite channels</legend>
       <p class="notify-hint">Stories on favourites notify one step sooner.</p>
       <ul class="notify-favs" id="notify-favs"></ul>
+    </fieldset>
+    <fieldset><legend>What I’ve learned</legend>
+      <p class="notify-hint">From More / Fewer, and from which notifications you open and stay on. Ignored ones slowly count less.</p>
+      <ul class="notify-learned" id="notify-learned"></ul>
+      <button type="button" class="key" id="notify-reset">Reset</button>
     </fieldset>
   </div>
   <label class="notify-guests" id="notify-guests-row" hidden><input type="checkbox" id="notify-guests"> Let guests turn on notifications (demo)</label>

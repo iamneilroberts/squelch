@@ -10,6 +10,30 @@ Squelch can send a push notification when something notable happens on your chan
 - At most 6 an hour per browser, except major events (0.9+).
 - Tapping a notification opens the receiver on that story.
 
+### Learning what you care about
+
+Each browser learns from its own notifications. Every notification counts as evidence about its **channel** and its **story type** (fire, medical, pursuit, aviation…):
+
+| What you did | Evidence |
+|---|---|
+| **More like this** | +2 |
+| **Fewer like this** | −2 |
+| Opened it and stayed 60 s or more | +1 (15 s or more: +0.5; less: 0) |
+| Didn't open it within 30 minutes | −0.5 (ignored) |
+
+- Evidence fades by half every 14 days, so preferences drift back to neutral.
+- Each channel and type ends up with a weight from ×0.25 to ×2. A notification's score is multiplied by the average of its two.
+- Ignoring alone can't push a weight below ×0.76: ignored kinds stop reaching borderline scores but keep coming for big events. Only **Fewer** goes all the way down to ×0.25.
+- A major event (0.9+) on a favourite channel always gets through.
+
+Where to give feedback:
+- **Android and desktop:** More/Fewer buttons on the notification itself.
+- **Everywhere:** the story card the notification opens has a "Worth a notification?" row. iPhone notifications have no buttons, so this is the iPhone route.
+
+The bell's card lists **What I've learned**, e.g. "×2 aviation stories", with a **Reset** button.
+
+Squelch records only what it needs for this, per browser, on your own server: when a notification was opened, for how long the page stayed in view (up to 10 minutes), and your More/Fewer choices.
+
 ### Listener surges
 
 Every 3 minutes Squelch reads each Broadcastify feed's listener count, minus its own recorder. It learns each feed's usual audience: the median for that hour and weekday over 4 weeks, falling back to that hour of day over a week, then the last day. So surge detection starts after about a day of history.

@@ -6,7 +6,7 @@ import { join, extname, normalize, dirname } from 'node:path';
 import { recentIncidents, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues, getThread } from './db.mjs';
 import { buildCues, toVtt } from './ingest/captions.mjs';
 import { startListeners } from './listeners.mjs';
-import { pushReady, publicKey, LEVELS, configureNotify, subscription, subscribe, setPrefs, unsubscribe, sendTest } from './notify.mjs';
+import { pushReady, publicKey, LEVELS, configureNotify, subscription, subscribe, setPrefs, unsubscribe, sendTest, recordOpened, recordDwell, recordFeedback, learnedFor, resetLearning } from './notify.mjs';
 import { startIngest, bus, status, GATE, VAD } from './ingest/pipeline.mjs';
 import { overlays, startShips } from './overlays.mjs';
 import { buildDigest, dayBounds, localDate } from './digest.mjs';
@@ -220,6 +220,11 @@ createServer(async (req, res) => {
       if (action === 'prefs') return json(res, setPrefs(body.endpoint, body) ?? { error: 'not subscribed' });
       if (action === 'unsubscribe') { unsubscribe(body.endpoint); return json(res, { ok: true }); }
       if (action === 'test') return json(res, { sent: await sendTest(body.endpoint) });
+      if (action === 'opened') return json(res, { ok: recordOpened(body.n, body.endpoint) });
+      if (action === 'dwell') return json(res, { ok: recordDwell(body.n, body.endpoint, body.seconds) });
+      if (action === 'feedback') return json(res, { ok: recordFeedback(body.n, body.endpoint, body.feedback) });
+      if (action === 'learned') return json(res, learnedFor(body.endpoint));
+      if (action === 'reset') { resetLearning(body.endpoint); return json(res, { ok: true }); }
       return json(res, { error: 'unknown' }, 404);
     }
     if (p === '/api/incidents') return out(recentIncidents(Number(url.searchParams.get('hours') || 12)));

@@ -38,12 +38,54 @@ db.exec(`CREATE TABLE IF NOT EXISTS notifications (
   feedback INTEGER
 )`);
 db.exec('CREATE INDEX IF NOT EXISTS notifications_sub ON notifications (sub_id, at)');
+try { db.exec('ALTER TABLE push_subs ADD COLUMN reset_at TEXT'); } catch { /* already there */ }
 
 // Score needed to notify, by sensitivity. Favourite channels count 1.4× toward it.
 export const LEVELS = { quiet: 0.8, normal: 0.6, chatty: 0.4 };
 const FAVOURITE = 1.4;
 const ESCALATION = 0.25; // a story already notified only notifies again after rising this much
 const PER_HOUR = 6; // per browser, except major events (alert ≥ 0.9)
+const DAY = 864e5;
+
+/* Learning. Each sent notification becomes evidence about its channel and its story type:
+   More / Fewer = ±2; opened and stayed ≥ 60 s = +1 (≥ 15 s = +0.5, less = 0); not opened within
+   30 minutes = ignored, −0.5. Evidence fades by half every 14 days, so tastes drift back to neutral.
+   Ignoring alone can't take a feature below −0.8 (×0.76): only Fewer mutes. A feature's score is
+   clamped to [−4, 2]; a notification's multiplier is 2^(mean of its features' scores / 2), 0.25–2. */
+const HALF_LIFE = 14 * DAY;
+const IGNORED_AFTER = 30 * 60e3;
+// Not the band: "fewer medical calls on Hancock Fire" shouldn't quiet a structure fire on Mobile Fire.
+const featuresOf = (x) => [`channel:${x.source_id}`, `type:${x.type || 'other'}`];
+
+function evidence(r, now) {
+  if (r.feedback) return { v: 2 * r.feedback };
+  if (r.opened_at) return { v: r.dwell_s >= 60 ? 1 : r.dwell_s >= 15 ? 0.5 : 0 };
+  if (now - Date.parse(r.at) > IGNORED_AFTER) return { v: -0.5, ignored: true };
+  return null; // too recent to tell
+}
+
+export function learned(s) {
+  const now = Date.now();
+  const since = [new Date(now - 90 * DAY).toISOString(), s.reset_at].filter(Boolean).sort().at(-1);
+  const f = new Map();
+  for (const r of db.prepare('SELECT * FROM notifications WHERE sub_id = ? AND at >= ?').all(s.id, since)) {
+    const e = evidence(r, now);
+    const decay = 0.5 ** ((now - Date.parse(r.at)) / HALF_LIFE);
+    for (const k of featuresOf(r)) {
+      const x = f.get(k) ?? { key: k, sum: 0, ignored: 0, sent: 0, opened: 0, more: 0, fewer: 0 };
+      x.sent++;
+      if (r.opened_at) x.opened++;
+      if (r.feedback > 0) x.more++;
+      if (r.feedback < 0) x.fewer++;
+      if (e?.ignored) x.ignored += e.v * decay;
+      else if (e) x.sum += e.v * decay;
+      f.set(k, x);
+    }
+  }
+  for (const x of f.values()) x.score = Math.max(-4, Math.min(2, x.sum + Math.max(-0.8, x.ignored)));
+  return f;
+}
+const multiplier = (f, x) => 2 ** (featuresOf(x).reduce((a, k) => a + (f.get(k)?.score ?? 0), 0) / featuresOf(x).length / 2);
 
 let allowGuests = () => false;
 export const configureNotify = (opts) => { allowGuests = opts.allowGuests; };
@@ -97,14 +139,15 @@ export async function considerThread(threadId) {
   for (const s of db.prepare('SELECT * FROM push_subs').all()) {
     if (!s.owner && !allowGuests()) continue;
     const favourite = JSON.parse(s.favorites).includes(t.source_id);
-    const score = t.alert * (favourite ? FAVOURITE : 1);
-    if (score < LEVELS[s.level]) continue;
+    const taste = multiplier(learned(s), t);
+    const score = t.alert * (favourite ? FAVOURITE : 1) * taste;
+    if (score < LEVELS[s.level] && !(favourite && t.alert >= 0.9)) continue;
     const last = db.prepare('SELECT alert FROM notifications WHERE sub_id = ? AND thread_id = ? ORDER BY id DESC LIMIT 1').get(s.id, t.id);
     if (last && t.alert < last.alert + ESCALATION) continue;
     const recent = db.prepare('SELECT COUNT(*) n FROM notifications WHERE sub_id = ? AND at >= ?').get(s.id, hourAgo).n;
     if (recent >= PER_HOUR && t.alert < 0.9) continue;
 
-    const reasons = [favourite && '★ Favourite', t.alert >= 0.9 ? 'Major' : t.alert >= 0.6 ? 'Significant' : null, last && 'Update'].filter(Boolean);
+    const reasons = [favourite && '★ Favourite', t.alert >= 0.9 ? 'Major' : t.alert >= 0.6 ? 'Significant' : null, taste >= 1.3 && 'You like these', last && 'Update'].filter(Boolean);
     const title = `${source?.short || t.source_id}: ${t.subject}`;
     const body = [t.why || t.facts.slice(0, 2).map((f) => `${f.label}: ${f.value}`).join(' · '), reasons.join(' · ')].filter(Boolean).join('\n');
     const id = Number(db.prepare(`INSERT INTO notifications (sub_id, at, thread_id, source_id, type, alert, score, title, body) VALUES (?,?,?,?,?,?,?,?,?)`)
@@ -112,4 +155,41 @@ export async function considerThread(threadId) {
     // tag: a newer notification about the same story replaces the older one on the device.
     await push(s, { title, body, tag: `story-${t.id}`, url: `/?n=${id}&story=${t.id}`, n: id }, t.alert >= 0.9 ? 'high' : 'normal');
   }
+}
+
+// What happened to a notification. `endpoint` proves it's this browser's own notification.
+const ownNotification = (n, endpoint) => {
+  const s = subRow(endpoint);
+  return s && db.prepare('SELECT * FROM notifications WHERE id = ? AND sub_id = ?').get(Number(n), s.id);
+};
+export function recordOpened(n, endpoint) {
+  const r = ownNotification(n, endpoint);
+  if (r && !r.opened_at) db.prepare('UPDATE notifications SET opened_at = ? WHERE id = ?').run(new Date().toISOString(), r.id);
+  return Boolean(r);
+}
+export function recordDwell(n, endpoint, seconds) {
+  const r = ownNotification(n, endpoint);
+  if (r) db.prepare('UPDATE notifications SET dwell_s = MAX(dwell_s, ?) WHERE id = ?').run(Math.min(3600, Number(seconds) || 0), r.id);
+  return Boolean(r);
+}
+export function recordFeedback(n, endpoint, feedback) {
+  const r = ownNotification(n, endpoint);
+  if (r) db.prepare('UPDATE notifications SET feedback = ? WHERE id = ?').run(feedback > 0 ? 1 : -1, r.id);
+  return Boolean(r);
+}
+
+// The "What I've learned" list: features that have moved away from neutral, strongest first.
+export function learnedFor(endpoint) {
+  const s = subRow(endpoint);
+  if (!s) return [];
+  const label = (k) => {
+    const [kind, v] = k.split(':');
+    return kind === 'channel' ? `${sources.find((x) => x.id === v)?.short || v} channel` : `${v} stories`;
+  };
+  return [...learned(s).values()].filter((x) => Math.abs(x.score) >= 0.25)
+    .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
+    .map((x) => ({ label: label(x.key), weight: Math.round(2 ** (x.score / 2) * 100) / 100, sent: x.sent, opened: x.opened, more: x.more, fewer: x.fewer }));
+}
+export function resetLearning(endpoint) {
+  db.prepare('UPDATE push_subs SET reset_at = ? WHERE endpoint = ?').run(new Date().toISOString(), endpoint);
 }

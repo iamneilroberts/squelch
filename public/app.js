@@ -1027,6 +1027,7 @@ async function openStory(id) {
 async function renderStory() {
   const t = await fetch(`/api/threads/${storyId}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   if (!t) return;
+  $('story-feedback').hidden = notify.opened?.story !== t.id;
   $('story-title').innerHTML = `${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}`;
   $('story-facts').innerHTML = t.facts.map((f) => `<dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd>`).join('');
   const notes = t.events.filter((e) => e.note);
@@ -1052,7 +1053,7 @@ $('story').addEventListener('close', () => { storyId = null; });
 /* ───────── Notifications (Web Push — setup in docs/NOTIFICATIONS.md) ─────────
    One subscription per browser, with its own sensitivity and favourite channels. iPhones only allow
    push for sites added to the Home Screen and opened from there. */
-const notify = { reg: null, sub: null, status: null };
+const notify = { reg: null, sub: null, status: null, opened: null }; // opened: { n, story } when the page came from a notification
 const postJson = (url, body) => getJson(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const canPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 const needsHomeScreen = /iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone;
@@ -1123,7 +1124,47 @@ async function notifySavePrefs() {
   notify.status.sub = await postJson('/api/notify/prefs', { endpoint: notify.sub.endpoint, level, favorites }).catch(() => notify.status.sub);
 }
 
-$('btn-notify').addEventListener('click', () => { renderNotify(); $('notify').showModal(); });
+// Opened from a notification: record it, time how long the page stays in view, and ask for feedback
+// on its story card. Evidence for src/notify.mjs's learning.
+function trackNotification(n, story) {
+  const endpoint = notify.sub?.endpoint;
+  if (!endpoint) return;
+  notify.opened = { n, story };
+  postJson('/api/notify/opened', { n, endpoint }).catch(() => {});
+  if (storyId === story) renderStory();
+  let seen = 0;
+  let since = document.visibilityState === 'visible' ? Date.now() : null;
+  const report = () => {
+    const seconds = Math.round(seen + (since ? (Date.now() - since) / 1000 : 0));
+    navigator.sendBeacon('/api/notify/dwell', new Blob([JSON.stringify({ n, endpoint, seconds })], { type: 'application/json' }));
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') since = Date.now();
+    else { if (since) seen += (Date.now() - since) / 1000; since = null; report(); }
+  });
+  const timer = setInterval(report, 20e3);
+  setTimeout(() => clearInterval(timer), 10 * 60e3); // ten minutes is plenty of evidence
+}
+
+async function renderLearned() {
+  const rows = notify.sub ? await postJson('/api/notify/learned', { endpoint: notify.sub.endpoint }).catch(() => []) : [];
+  $('notify-learned').innerHTML = rows.length
+    ? rows.map((r) => `<li><strong>×${r.weight}</strong> ${esc(r.label)} <span>${r.sent} sent · ${r.opened} opened${r.more ? ` · ${r.more} more` : ''}${r.fewer ? ` · ${r.fewer} fewer` : ''}</span></li>`).join('')
+    : '<li><span>Nothing yet — every notification starts neutral.</span></li>';
+}
+
+$('btn-notify').addEventListener('click', () => { renderNotify(); renderLearned(); $('notify').showModal(); });
+$('notify-reset').addEventListener('click', async () => {
+  await postJson('/api/notify/reset', { endpoint: notify.sub?.endpoint }).catch(() => {});
+  renderLearned();
+});
+$('story-feedback').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-feedback]');
+  if (!b || !notify.opened) return;
+  const feedback = Number(b.dataset.feedback);
+  await postJson('/api/notify/feedback', { n: notify.opened.n, endpoint: notify.sub?.endpoint, feedback }).catch(() => {});
+  $('story-feedback').innerHTML = `<span>Thanks — you’ll get ${feedback > 0 ? 'more' : 'fewer'} like this.</span>`;
+});
 $('notify-close').addEventListener('click', () => $('notify').close());
 $('notify').addEventListener('click', (e) => { if (e.target === $('notify')) $('notify').close(); });
 $('notify-toggle').addEventListener('click', notifyToggle);
@@ -1223,7 +1264,8 @@ async function boot() {
   addEventListener('hashchange', () => setRegion(location.hash.slice(1) || 'all'));
   connect();
   startScan(); // open scanning; awaitTap() covers the browser's no-sound-before-a-tap rule
-  notifyInit();
+  const fromNotification = opened.get('n') && opened.get('story');
+  notifyInit().then(() => { if (fromNotification) trackNotification(Number(opened.get('n')), Number(opened.get('story'))); });
   if (opened.get('story')) openStory(opened.get('story')); // opened from a notification: show that story
   setInterval(refreshAircraft, 15e3);
   setInterval(refreshTrains, 60e3);

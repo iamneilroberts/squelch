@@ -509,6 +509,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .notify-favs { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 36vh; overflow-y: auto; font-size: 13px; }
 .notify-favs span { color: var(--ink-soft); }
 .notify .cc-src { background: oklch(0.16 0.01 60); }
+.notify-learned { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.notify-learned span { color: var(--ink-soft); }
+.notify fieldset .key, .story-feedback .key { min-width: 0; padding: 8px 12px 6px; font-size: 11px; }
+.story-feedback { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 12px; padding-top: 10px; border-top: 2px solid var(--red-ink); font-size: 13px; }
+.story-feedback[hidden] { display: none; }
 .notify-guests { display: block; margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--bakelite-3); font-size: 13px; }
 
 /* ───────────── Desk: chart + printer ───────────── */
