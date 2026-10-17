@@ -639,7 +639,7 @@ function scanIdle() {
     : n
       ? `<strong>SCANNING</strong> ${n} ch · ${scan.lastCall ? `last ${titleOf(scan.lastCall)}` : 'tap a station: PRI → L/O → normal'}`
       : '<strong>SCAN</strong> — every channel here is locked out. Tap a station to bring it back.';
-  if (scan.stepper || !n || scan.hold) return;
+  if (scan.stepper || !n || scan.hold || matchMedia('(prefers-reduced-motion: reduce)').matches) return; // no sweeping needle
   scan.stepper = setInterval(() => {
     const list = scanChannels();
     if (list.length) moveNeedle(list[scan.step++ % list.length], { scroll: false });
