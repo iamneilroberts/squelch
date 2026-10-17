@@ -79,11 +79,10 @@ function enqueue(s, call) {
   }, () => { s.queue = s.queue.filter((q) => q !== item); }); // clip expired or unreadable: skip it
 }
 
-// Stop what's playing. A replay or catch-up transmission cut off this way starts again afterwards
-// (from queue position `at`).
+// Stop what's playing. The transmission cut off this way starts again afterwards (from queue position `at`).
 function cut(s, at = 0) {
   const { call, tag, frames } = s.current;
-  if (tag) s.queue.splice(at, 0, { call, tag, frames });
+  s.queue.splice(at, 0, tag ? { call, tag, frames } : { call, frames });
   s.current = null;
 }
 
