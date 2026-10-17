@@ -203,22 +203,14 @@ narrow.addEventListener('change', applyDialStyle);
    red from sunset to sunrise at the station. */
 const LOOK = { 'dial-style': ['pcm.dial', 'auto'], skin: ['pcm.skin', 'classic'], backlight: ['pcm.backlight', 'auto'], 'wide-layout': ['pcm.wideLayout', 'lcd'] };
 const html = document.documentElement;
-function sunIsUp(lat, lng, at = new Date()) { // NOAA's low-precision solar position: is the sun above the horizon (-0.833°)?
-  const rad = Math.PI / 180, n = at / 864e5 + 2440587.5 - 2451545;
-  const g = (357.528 + 0.9856003 * n) * rad, lam = (280.46 + 0.9856474 * n + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) * rad, eps = (23.439 - 4e-7 * n) * rad;
-  const dec = Math.asin(Math.sin(eps) * Math.sin(lam)), ra = Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam));
-  const ha = ((280.46061837 + 360.98564736629 * n + lng) * rad) - ra;
-  return Math.asin(Math.sin(lat * rad) * Math.sin(dec) + Math.cos(lat * rad) * Math.cos(dec) * Math.cos(ha)) / rad > -0.833;
-}
-function stationLatLng() { // the middle of the regions' centres (/api/config), which is where the station is
-  const at = state.regions.map((r) => r.center || (r.bbox && [(r.bbox[0] + r.bbox[2]) / 2, (r.bbox[1] + r.bbox[3]) / 2])).filter(Boolean);
-  return at.length ? [at.reduce((a, c) => a + c[0], 0) / at.length, at.reduce((a, c) => a + c[1], 0) / at.length] : null;
-}
+const { sunIsUp, stationLatLng: whereIs } = window.pcmSkin; // skin-boot.js (loaded in <head>) holds the sun maths, shared with the manual
+const stationLatLng = () => whereIs(state.regions);
 function applyLook() {
   html.dataset.skin = store.get('pcm.skin') === 'lcd' ? 'lcd' : 'classic';
   html.dataset.wide = store.get('pcm.wideLayout') === 'base' ? 'base' : 'lcd';
   const pick = store.get('pcm.backlight') || 'auto', where = stationLatLng();
   const auto = where ? (sunIsUp(...where) ? 'blue' : 'red') : store.get('pcm.autoLight'); // until the config arrives, last time's answer
+  if (where) window.pcmSkin.setWhere(where);
   if (auto) store.set('pcm.autoLight', auto);
   html.dataset.backlight = ['blue', 'night', 'red', 'daylight'].includes(pick) ? pick : auto || html.dataset.backlight;
   document.querySelector('meta[name="theme-color"]').content = html.dataset.skin === 'lcd' ? '#141518' : '#5a3a22';

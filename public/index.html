@@ -9,16 +9,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#5a3a22">
-<script>
-/* Look choices go on <html> before the first paint, so the LCD skin never flashes the Classic one. */
-(function () {
-  var d = document.documentElement, g = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
-  var pick = g('pcm.backlight') || 'auto', hr = new Date().getHours();
-  d.dataset.skin = g('pcm.skin') === 'lcd' ? 'lcd' : 'classic';
-  d.dataset.wide = g('pcm.wideLayout') === 'base' ? 'base' : 'lcd';
-  d.dataset.backlight = pick === 'blue' || pick === 'night' || pick === 'red' || pick === 'daylight' ? pick : (g('pcm.autoLight') || (hr >= 7 && hr < 19 ? 'blue' : 'red')); // Auto: app.js works out the real sunset
-})();
-</script>
+<script src="skin-boot.js"></script>
 <link rel="stylesheet" href="vendor/fonts.css">
 <link rel="stylesheet" href="vendor/leaflet.css">
 <link rel="stylesheet" href="app.css">
