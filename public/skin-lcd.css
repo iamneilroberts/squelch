@@ -379,3 +379,122 @@
   [data-skin="lcd"] .cabinet { height: auto; min-height: 100vh; }
   [data-skin="lcd"] .chart, [data-skin="lcd"] .printer { min-height: 420px; }
 }
+
+/* ───────── Wide screens, base unit: a desktop scanner faceplate ─────────
+   The real buttons are placed on a grid of 12.5px rows (20 of them make the faceplate), so the oval keys, the
+   keypad and the scroll knob are the receiver's own controls, not copies. Needs room, so it starts at 1200px. */
+@media (min-width: 1200px) {
+  [data-skin="lcd"][data-wide="base"] .look-wide { display: revert; }
+  [data-skin="lcd"][data-wide="base"] body { background: radial-gradient(90% 60% at 50% 20%, #24262a 0%, #131416 60%, #0b0c0d 100%) fixed; background-color: #131416; }
+  [data-skin="lcd"][data-wide="base"] .faceplate {
+    position: relative; gap: 0 16px;
+    grid-template-columns: 20px 150px minmax(300px, 1fr) 76px repeat(3, 64px) 230px 20px;
+    grid-template-rows: auto 18px repeat(20, 12.5px) 18px repeat(5, auto);
+  }
+  [data-skin="lcd"][data-wide="base"] :is(.tuner, .controls, .readouts, .transport, #keys) { display: contents; }
+  [data-skin="lcd"][data-wide="base"] .faceplate::before {
+    content: ''; grid-area: 2 / 1 / 24 / -1; border-radius: 20px; z-index: 0;
+    background: linear-gradient(180deg, #2f3135 0%, #1f2023 30%, #17181a 100%);
+    box-shadow: 0 22px 40px rgba(0, 0, 0, .7), inset 0 2px 1px rgba(255, 255, 255, .14), inset 0 -4px 10px rgba(0, 0, 0, .6), inset 0 0 0 1px rgba(0, 0, 0, .6);
+  }
+  [data-skin="lcd"][data-wide="base"] .faceplate::after {
+    content: 'SQUELCH   SQ-260'; grid-area: 20 / 3 / 23 / 4; align-self: end; z-index: 1; word-spacing: 1.2em;
+    font: 700 18px/1 var(--cond); letter-spacing: 5px; color: #e3e6ea;
+  }
+  [data-skin="lcd"][data-wide="base"] .faceplate > * { position: relative; z-index: 1; }
+  [data-skin="lcd"][data-wide="base"] .grille { grid-area: 1 / 1 / 2 / -1; min-height: 52px; }
+  [data-skin="lcd"][data-wide="base"] .badge-script { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); } /* the unit prints its own name */
+
+  /* the glass */
+  [data-skin="lcd"][data-wide="base"] .chbar { grid-area: 3 / 3 / 20 / 4; margin: 0; align-self: stretch; border-radius: 12px; border-bottom-width: var(--pad); border-width: 8px; align-content: start;
+    grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "name" "freq" "meta" "lamps"; padding: 6px 10px; }
+  [data-skin="lcd"][data-wide="base"] .lcd-name { font-size: 74px; }
+  [data-skin="lcd"][data-wide="base"] .lcd-freq { font-size: 66px; }
+  [data-skin="lcd"][data-wide="base"] .lcd-top b { font-size: 17px; }
+  [data-skin="lcd"][data-wide="base"] .lcd-meta { font-size: 13px; }
+  [data-skin="lcd"][data-wide="base"] .dial-frame { grid-area: 24 / 1 / 25 / -1; margin: 8px 0 0; border-width: 8px; border-radius: 10px; padding: 6px; }
+  /* the caption strip under the unit */
+  [data-skin="lcd"][data-wide="base"] .cc { grid-area: 25 / 1 / 26 / -1; margin: 18px 0 0; border-width: 7px; border-radius: 10px; padding: 8px 14px 8px 52px; font-size: 26px; --cc-lh: 26px; }
+  [data-skin="lcd"][data-wide="base"] .cc::before { content: none; }
+  [data-skin="lcd"][data-wide="base"] .cc-tag { left: 14px; top: 12px; }
+  [data-skin="lcd"][data-wide="base"] .cc-text { height: calc(2 * var(--cc-lh)); }
+  [data-skin="lcd"][data-wide="base"] .transport .now-playing { grid-area: 26 / 1 / 27 / 8; margin: 10px 0 0; height: auto; min-height: 2.8em; }
+  [data-skin="lcd"][data-wide="base"] .elapsed { grid-area: 26 / 8 / 27 / -1; justify-self: end; }
+  [data-skin="lcd"][data-wide="base"] .progress { grid-area: 27 / 1 / 28 / -1; }
+  [data-skin="lcd"][data-wide="base"] .bcfy { grid-area: 28 / 1 / 29 / -1; }
+  [data-skin="lcd"][data-wide="base"] .follow { grid-area: 29 / 1 / 30 / -1; margin-top: 14px; }
+
+  /* left: location keys, RX lamp, volume knob */
+  [data-skin="lcd"][data-wide="base"] .selector { grid-area: 3 / 2 / 12 / 3; display: grid; align-content: start; gap: 4px; }
+  [data-skin="lcd"][data-wide="base"] .selector .knob-label { font-size: 11px; color: #c4c8ce; }
+  [data-skin="lcd"][data-wide="base"] .selector-face, [data-skin="lcd"][data-wide="base"] .selector-face.wide { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  [data-skin="lcd"][data-wide="base"] .sel-pos { min-height: 30px; padding-top: 9px; border-radius: 15px / 50%; font-size: 10px; }
+  [data-skin="lcd"][data-wide="base"] .sel-pos::before { top: 4px; }
+  [data-skin="lcd"][data-wide="base"] .rx-led { grid-area: 13 / 2 / 15 / 3; display: flex; align-items: center; gap: 8px; font: 600 10px var(--cond); letter-spacing: 1px; color: #c4c8ce; }
+  [data-skin="lcd"][data-wide="base"] .rx-led i { width: 9px; height: 9px; border-radius: 50%; background: #14301c; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .8); }
+  [data-skin="lcd"][data-wide="base"] .faceplate:has(#eye.on) .rx-led i { background: #66f08a; box-shadow: 0 0 7px #3ee06b, 0 0 2px #d6ffe0; }
+  [data-skin="lcd"][data-wide="base"] .knob-wrap { grid-area: 15 / 2 / 22 / 3; display: grid; justify-items: center; align-content: start; gap: 4px; cursor: default; }
+  [data-skin="lcd"][data-wide="base"] .knob-wrap .knob-label { order: 0; color: #d7dadf; font-weight: 700; }
+  [data-skin="lcd"][data-wide="base"] .vol-face { order: 1; display: grid; place-items: center; width: 70px; height: 70px; --v: 8; }
+  [data-skin="lcd"][data-wide="base"] .vol-face::before, [data-skin="lcd"][data-wide="base"] .vol-face::after { content: none; }
+  [data-skin="lcd"][data-wide="base"] .knob {
+    display: block; grid-area: 1 / 1; width: 62px; height: 62px; box-shadow: 0 6px 10px rgba(0, 0, 0, .7), inset 0 0 0 1px rgba(255, 255, 255, .05);
+    background: repeating-conic-gradient(#17181b 0deg 6deg, #36383d 6deg 12deg);
+  }
+  [data-skin="lcd"][data-wide="base"] .knob::before { content: ''; position: absolute; inset: 8px; border-radius: 50%; background: radial-gradient(circle at 38% 30%, #55585e 0%, #2a2c31 50%, #151618 100%); box-shadow: inset 0 1px 2px rgba(255, 255, 255, .22), inset 0 -3px 5px rgba(0, 0, 0, .6); }
+  [data-skin="lcd"][data-wide="base"] .knob::after { z-index: 1; top: 3px; height: 9px; background: #e9ecf1; }
+  [data-skin="lcd"][data-wide="base"] .vol-step { display: none; }
+
+  /* oval function keys: Scan, Hold, Pause, Stop, Skip */
+  [data-skin="lcd"][data-wide="base"] .transport .key { width: 76px; min-height: 0; height: 100%; padding: 8px 0 0; border-radius: 20px / 50%; font-size: 13px; letter-spacing: 1px;
+    background: radial-gradient(ellipse 85% 75% at 50% 28%, #4b4f56 0%, #2f3237 58%, #232529 100%); box-shadow: 0 3px 0 #0a0b0c, 0 5px 8px rgba(0, 0, 0, .6), inset 0 1px 1px rgba(255, 255, 255, .2); }
+  [data-skin="lcd"][data-wide="base"] .transport .key::before { top: 5px; }
+  [data-skin="lcd"][data-wide="base"] #btn-scan { grid-area: 3 / 4 / 6 / 5; } [data-skin="lcd"][data-wide="base"] #btn-hold { grid-area: 7 / 4 / 10 / 5; }
+  [data-skin="lcd"][data-wide="base"] #btn-pause { grid-area: 11 / 4 / 14 / 5; } [data-skin="lcd"][data-wide="base"] #btn-stop { grid-area: 15 / 4 / 18 / 5; }
+  [data-skin="lcd"][data-wide="base"] #btn-skip { grid-area: 19 / 4 / 22 / 5; }
+
+  /* keypad: round keys, the digit on the cap and the band beneath (Prev and Catch up join as · and E) */
+  [data-skin="lcd"][data-wide="base"] :is(#keys .key, #btn-prev, #btn-catchup) {
+    position: relative; display: grid; grid-template-rows: 46px auto; justify-items: center; align-content: start; width: 64px; min-height: 0; height: 100%; padding: 0; gap: 3px;
+    background: none; box-shadow: none; border-radius: 0; font: 600 10px/1 var(--cond); letter-spacing: 1px; color: #c4c8ce; text-transform: uppercase;
+  }
+  [data-skin="lcd"][data-wide="base"] :is(#keys .key, #btn-prev, #btn-catchup)::before {
+    content: attr(data-n); position: static; display: grid; place-items: center; width: 46px; height: 46px; margin: 0; border-radius: 50%; font: 600 21px var(--cond); letter-spacing: 0; color: #f1f3f6;
+    background: radial-gradient(circle at 45% 30%, #4f535a 0%, #2f3237 58%, #222428 100%);
+    box-shadow: 0 3px 0 #0a0b0c, 0 5px 8px rgba(0, 0, 0, .6), inset 0 1px 1px rgba(255, 255, 255, .22), inset 0 -2px 3px rgba(0, 0, 0, .45);
+  }
+  [data-skin="lcd"][data-wide="base"] :is(#keys .key, #btn-prev, #btn-catchup):is([aria-pressed="true"])::before { background: radial-gradient(circle at 45% 30%, #3b3e44 0%, #25272b 58%, #1b1c1f 100%); box-shadow: 0 1px 0 #0a0b0c, inset 0 2px 3px rgba(0, 0, 0, .6); }
+  [data-skin="lcd"][data-wide="base"] :is(#keys .key, #btn-prev, #btn-catchup)[aria-pressed="true"] { color: #a9cbff; text-shadow: 0 0 5px var(--led-glow); transform: none; }
+  [data-skin="lcd"][data-wide="base"] :is(#keys .key, #btn-prev, #btn-catchup):disabled { opacity: .45; }
+  [data-skin="lcd"][data-wide="base"] #btn-prev .ico, [data-skin="lcd"][data-wide="base"] #btn-catchup small { display: none; }
+  [data-skin="lcd"][data-wide="base"] #btn-catchup { flex-direction: initial; padding: 0; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="police"] { grid-area: 3 / 5 / 8 / 6; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="fire"] { grid-area: 3 / 6 / 8 / 7; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="air"] { grid-area: 3 / 7 / 8 / 8; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="marine"] { grid-area: 8 / 5 / 13 / 6; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="rail"] { grid-area: 8 / 6 / 13 / 7; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="weather"] { grid-area: 8 / 7 / 13 / 8; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="ham"] { grid-area: 13 / 5 / 18 / 6; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="all"] { grid-area: 13 / 7 / 18 / 8; }
+  [data-skin="lcd"][data-wide="base"] #btn-prev { grid-area: 18 / 5 / 23 / 6; } [data-skin="lcd"][data-wide="base"] #btn-catchup { grid-area: 18 / 7 / 23 / 8; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="police"]::before { content: '1'; } [data-skin="lcd"][data-wide="base"] #keys .key[data-band="fire"]::before { content: '2'; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="air"]::before { content: '3'; } [data-skin="lcd"][data-wide="base"] #keys .key[data-band="marine"]::before { content: '4'; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="rail"]::before { content: '5'; } [data-skin="lcd"][data-wide="base"] #keys .key[data-band="weather"]::before { content: '6'; }
+  [data-skin="lcd"][data-wide="base"] #keys .key[data-band="ham"]::before { content: '7'; } [data-skin="lcd"][data-wide="base"] #keys .key[data-band="all"]::before { content: '9'; }
+  [data-skin="lcd"][data-wide="base"] #btn-prev::before { content: '·'; } [data-skin="lcd"][data-wide="base"] #btn-catchup::before { content: 'E'; }
+
+  /* the scroll knob: push to scan, then hold / resume */
+  [data-skin="lcd"][data-wide="base"] .scroll-knob { grid-area: 3 / 8 / 23 / 9; display: block; position: relative; width: 230px; height: 230px; align-self: center; padding: 0; border: 0; background: none; cursor: pointer; }
+  [data-skin="lcd"][data-wide="base"] .scroll-knob svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  [data-skin="lcd"][data-wide="base"] .scroll-knob text { font: 700 12px var(--cond); letter-spacing: 2px; fill: #d7dadf; }
+  [data-skin="lcd"][data-wide="base"] .scroll-knob-ring { position: absolute; left: 35px; top: 35px; width: 160px; height: 160px; border-radius: 50%; background: repeating-conic-gradient(#151618 0deg 4deg, #34363a 4deg 8deg); box-shadow: 0 10px 18px rgba(0, 0, 0, .75), inset 0 0 0 2px rgba(0, 0, 0, .6), inset 0 2px 2px rgba(255, 255, 255, .1); }
+  [data-skin="lcd"][data-wide="base"] .scroll-knob-cap { position: absolute; left: 59px; top: 59px; width: 112px; height: 112px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 45%), conic-gradient(from 10deg, #8d9096, #e6e8eb 11%, #7c7f85 24%, #d5d7da 37%, #6f7278 50%, #e6e8eb 62%, #82858b 75%, #d0d2d5 88%, #8d9096);
+    box-shadow: inset 0 0 0 3px #1a1b1d, inset 0 -6px 10px rgba(0, 0, 0, .45), 0 2px 4px rgba(0, 0, 0, .7); }
+  [data-skin="lcd"][data-wide="base"] .scroll-knob:focus-visible { outline: 2px solid var(--led); border-radius: 50%; }
+  [data-skin="lcd"][data-wide="base"] .desk { grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr); }
+}
+@media (min-width: 1200px) and (min-height: 760px) {
+  [data-skin="lcd"][data-wide="base"] .cabinet { height: 100vh; min-height: 0; }
+  [data-skin="lcd"][data-wide="base"] .chart, [data-skin="lcd"][data-wide="base"] .printer { min-height: 0; }
+}
