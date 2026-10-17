@@ -46,11 +46,12 @@
         <li><a href="#notify">Notifications</a></li>
         <li><a href="#listen">Listening live</a></li>
         <li><a href="#digest">Daily log</a></li>
+        <li><a href="#animations">Studio</a></li>
         <li><a href="#privacy">Sharing and privacy</a></li>
         <li><a href="#models">Models and cost</a></li>
       </ol>
       <h3>Set up</h3>
-      <ol start="13">
+      <ol start="14">
         <li><a href="#install">Install and run</a></li>
         <li><a href="#feeds">Find and add feeds</a></li>
         <li><a href="#enable-notify">Turn on notifications</a></li>
@@ -169,6 +170,22 @@
       <p>After midnight, each area's previous day is read back by <code>openai/gpt-6-luna-pro</code>. It picks the storylines worth retelling, prints them in the Daily log, and stitches their real audio into a highlight reel. "Today so far" builds one on request.</p>
     </section>
 
+    <section class="page wide" id="animations">
+      <h2>Studio</h2>
+      <p>The owner's desk for turning light stories into short funny animations over the real radio. It's the Studio tab here, shown only to the owner (on the LAN, or signed in through Cloudflare Access); every Studio request from anyone else gets <code>403</code>.</p>
+      <p><strong>Suggestions.</strong> Stories from the last 48 hours pass a content guard first: never medical calls, anything alerting at 0.5 or more, or a story that mentions injuries, deaths, victims, arrests, weapons, minors, ambulances or hospitals; it also needs recordings left and enough said. The rest are scored by the triage model, 12 stories a call: <em>humor</em> (0–100), a pitch of at most 12 words, and <em>safe</em>, which is false when someone was hurt, arrested or mocked. Unsafe ones are kept out too; "Kept out by the content guard" lists every exclusion and why. Scores are kept until the story changes, so <strong>Refresh</strong> only pays for new and changed stories (about a cent for a whole 48 hours) and shows what it spent.</p>
+      <p><strong>Make it.</strong> Pick a style: <em>Sunday comic</em>, <em>Newspaper ink</em> or <em>Pixel art</em> make a comic (MP4 + web page); <em>Flat vector</em> makes a cartoon (MP4 + web page). The estimate comes first, from the models' per-token prices; then the job queues. One job runs at a time, on the server, with its progress on the page:</p>
+      <ol>
+        <li><strong>Audio:</strong> the story's clips in order, up to about 75 seconds of radio, with 0.6 s gaps.</li>
+        <li><strong>Script</strong> (<code>anthropic/claude-sonnet-5.5</code>): title, captions per clip, three closing cards, and the panels or scene beats. Captions drop callsigns and unit numbers; no real names, likenesses, badges or house numbers. Any number of 3 or more digits is also stripped from every caption.</li>
+        <li><strong>Comic:</strong> 4–5 panels from <code>google/gemini-2.5-flash-image</code> (about $0.04 each; panel 1 is the style reference for the rest), then ffmpeg pans and zooms over them on a 4× source so the motion stays smooth, with captions, the clip's time and the closing cards. About $0.25 a comic.</li>
+        <li><strong>Cartoon:</strong> <code>anthropic/claude-sonnet-5.5</code> writes the scene code for an SVG animation; the page carries the audio inside it and draws every moment from one clock. It's checked in headless Chrome (it must draw all the way through without errors, and contain no outside URLs) and rewritten once if it fails, then stepped frame by frame at 20 fps into a 1080×1920 MP4. Without Chrome the cartoon is web-only. About $0.15–0.30.</li>
+      </ol>
+      <p>The MP4 is the one to share: file viewers and messaging apps don't run a page's script. Web pages play in a sandbox with nothing from outside allowed in.</p>
+      <p><strong>Money.</strong> Every call is metered (the Ledger lists them as Studio), and each animation records its models, calls and actual cost. <code>STUDIO_DAILY_USD</code> (default $2) caps a day's Studio spend: a job whose estimate would pass it isn't queued, and each paid call inside a job is checked again.</p>
+      <p><strong>Library.</strong> Every animation, newest first, with its files in <code>data/animations/&lt;id&gt;/</code> (never pruned): play, download, rate 1–5, delete. Animations made elsewhere can be added from the server's folder with <code>node scripts/studio-import.mjs &lt;dir&gt; &lt;meta.json&gt;</code>.</p>
+    </section>
+
     <section class="page wide" id="privacy">
       <h2>Sharing and privacy</h2>
       <p>The receiver runs at home. Visitors come through a Cloudflare Tunnel behind Cloudflare Access, so only invited email addresses get in. Raw transcripts can carry names, addresses and plates, so tunnel visitors don't get them unless the owner switches "Remote transcripts" on; incidents, stories and notifications never include them. Notification tracking (opened, time in view, More/Fewer) stays on this server, per browser.</p>
@@ -185,6 +202,9 @@
           <tr><td>Incident triage</td><td><code>openai/gpt-6-luna</code></td><td>transcripts the gate calls newsworthy</td></tr>
           <tr><td>Listener-surge look</td><td><code>openai/gpt-6-luna</code></td><td>at most once per feed per 45 min</td></tr>
           <tr><td>Daily log</td><td><code>openai/gpt-6-luna-pro</code></td><td>once per area per day</td></tr>
+          <tr><td>Studio humor scores</td><td>the triage model</td><td>on Refresh, for new and changed stories</td></tr>
+          <tr><td>Studio script, cartoon</td><td><code>anthropic/claude-sonnet-5.5</code></td><td>per animation</td></tr>
+          <tr><td>Studio comic panels</td><td><code>google/gemini-2.5-flash-image</code></td><td>4–5 per comic</td></tr>
         </tbody>
       </table></div>
       <p>Models were picked with the bench (<code>npm run bench</code>) and can be overridden in <code>.env</code>. The <a href="#ledger">Ledger</a> tab shows actual spend, call by call.</p>
@@ -332,6 +352,9 @@ npm start</pre>
           <tr><td><code>STT_INPUT</code></td><td>mp3</td><td><code>wav</code> sends speech-to-text the lossless clip instead of the stored MP3</td></tr>
           <tr><td><code>STT_AB_RATE</code></td><td>0</td><td>share of clips (0–1) also transcribed from the other input, for comparison (<code>scripts/stt-ab-judge.mjs</code>); its cost shows in the Ledger as Speech-to-text A/B</td></tr>
           <tr><td><code>TRANSCRIBE_MODEL</code>, <code>TRIAGE_MODEL</code>, <code>THREAD_MODEL</code>, <code>DIGEST_MODEL</code></td><td>see <a href="#models">Models</a></td><td>swap a model</td></tr>
+          <tr><td><code>STUDIO_DAILY_USD</code></td><td>2</td><td>most the <a href="#animations">Studio</a> may spend in a day (station time)</td></tr>
+          <tr><td><code>STUDIO_HUMOR_MODEL</code>, <code>STUDIO_SCRIPT_MODEL</code>, <code>STUDIO_IMAGE_MODEL</code>, <code>STUDIO_CARTOON_MODEL</code></td><td>see <a href="#models">Models</a></td><td>swap a Studio model (OpenRouter ids)</td></tr>
+          <tr><td><code>CHROME_PATH</code></td><td>found if installed</td><td>Chrome or Chromium for checking cartoons and rendering their MP4 (needs the optional <code>puppeteer-core</code>)</td></tr>
           <tr><td><code>AISSTREAM_API_KEY</code></td><td>—</td><td>ship positions on the map (free key at aisstream.io)</td></tr>
           <tr><td><code>PORT</code></td><td>8077</td><td>web port</td></tr>
           <tr><td><code>INGEST</code></td><td>on</td><td><code>0</code> serves the map only, with no recording</td></tr>

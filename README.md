@@ -16,6 +16,7 @@ A scanner-radio receiver for your part of the world. Squelch listens to public s
 - **Daily log**: after midnight, each area's day is read back and the best storylines are printed, with a highlight reel of the real audio
 - **Live map layers**: aircraft (ADS-B), Amtrak trains, NWS weather alerts, tide gauges, ships (AIS)
 - **Station Manual** (`/manual.html`, linked at the bottom of the receiver): how every part works in detail, plus the **Ledger**: every AI and API call with timing, tokens and cost
+- **Studio** (owner only, in the Station Manual): suggests light stories ranked by humor and turns one into a short comic or cartoon over the real radio, as an MP4 and a web page, kept in a library with its models and cost
 
 ## Requirements
 
@@ -95,6 +96,7 @@ Squelch is built to run at home. To let a few people see it, put it behind a Clo
 - `npm run bench -- all` — model bench (triage, transcription, digest) against `bench/fixtures/`
 - `src/meter.mjs` — every AI/API call is a span; the Ledger reads them
 - Settings worth knowing: `RECORD_DAYS` (audio retention, default 7), `JEV_GATE` (`active` / `shadow` / `off`), `ADAPTIVE_SQUELCH=0`, `INGEST=0` (map only)
+- Studio (`src/studio/`): `STUDIO_DAILY_USD` (default 2, the day's cap on Studio spend), `STUDIO_HUMOR_MODEL` (default the triage model), `STUDIO_SCRIPT_MODEL` and `STUDIO_CARTOON_MODEL` (default `anthropic/claude-sonnet-5.5`), `STUDIO_IMAGE_MODEL` (default `google/gemini-2.5-flash-image`), `CHROME_PATH` (Chrome for cartoon checks and MP4s; needs the optional `puppeteer-core`). Files live in `data/animations/<id>/`; `node scripts/studio-import.mjs <dir> <meta.json>` adds one made elsewhere
 - Speech-to-text input trials: `STT_INPUT` (`mp3` / `wav`: transcribe the stored MP3 or the lossless clip, default `mp3`), `STITCH=1` (a segment that ends mid-transmission waits for the next one and they become one clip; off by default), `STT_AB_RATE` (0–1, default 0: the share of clips also transcribed from the other input, kept in `stt_ab` and judged with `node --env-file-if-exists=.env scripts/stt-ab-judge.mjs`)
 
 ## License
