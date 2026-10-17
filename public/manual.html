@@ -49,6 +49,7 @@
         <li><a href="#animations">Studio</a></li>
         <li><a href="#privacy">Sharing and privacy</a></li>
         <li><a href="#models">Models and cost</a></li>
+        <li><a href="/?report">Problems &amp; suggestions</a></li>
       </ol>
       <h3>Set up</h3>
       <ol start="14">
@@ -189,6 +190,7 @@
     <section class="page wide" id="privacy">
       <h2>Sharing and privacy</h2>
       <p>The receiver runs at home. Visitors come through a Cloudflare Tunnel behind Cloudflare Access, so only invited email addresses get in. Raw transcripts can carry names, addresses and plates, so tunnel visitors don't get them unless the owner switches "Remote transcripts" on; incidents, stories and notifications never include them. Notification tracking (opened, time in view, More/Fewer) stays on this server, per browser.</p>
+      <p><strong>Problems &amp; suggestions.</strong> The link in the Look card and at the bottom of the receiver files a public GitHub issue. It can attach the app version, screen size, browser, tab, open story and whether Scan is on, never transcripts. Don't include personal information.</p>
     </section>
 
     <section class="page wide" id="models">
@@ -341,6 +343,7 @@ npm start</pre>
         <tbody>
           <tr><td><code>OPENROUTER_API_KEY</code></td><td>—</td><td>all AI calls; without it, the receiver stays in standby (map and live audio only)</td></tr>
           <tr><td><code>BROADCASTIFY_LOGIN</code> / <code>_PASSWORD</code></td><td>—</td><td>Premium login for recording and live audio</td></tr>
+          <tr><td><code>REPORT_REPO</code></td><td>iamneilroberts/squelch</td><td>the GitHub repo that Problems &amp; suggestions files issues in (needs the <code>gh</code> CLI signed in, or <code>GH_TOKEN</code>)</td></tr>
           <tr><td><code>OWNER_EMAILS</code></td><td>—</td><td>Cloudflare Access emails with owner powers</td></tr>
           <tr><td><code>VAPID_PUBLIC_KEY</code> / <code>_PRIVATE_KEY</code> / <code>_SUBJECT</code></td><td>—</td><td>push notifications (<code>npm run vapid</code>)</td></tr>
           <tr><td><code>LISTENER_POLL_S</code></td><td>180</td><td>listener-count polling for surge alerts; 0 = off</td></tr>

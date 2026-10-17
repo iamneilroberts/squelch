@@ -204,6 +204,48 @@ $('look').addEventListener('change', (e) => {
 $('look-close').addEventListener('click', () => $('look').close());
 $('look').addEventListener('click', (e) => { if (e.target === $('look')) $('look').close(); }); // tap on the backdrop
 
+/* ───────── Problems & suggestions: files a GitHub issue through the server. Without gh there, offers a prefilled new-issue link. ───────── */
+let reportInfo = null;
+async function openReport() {
+  $('look').close();
+  $('report-msg').innerHTML = '';
+  $('report-send').hidden = false;
+  $('report').showModal();
+  reportInfo ??= await getJson('/api/report').catch(() => null);
+}
+const reportContext = () => ({
+  viewport: `${innerWidth}x${innerHeight}`, ua: navigator.userAgent, tab: state.tab, scan: scan.on,
+  dial: document.documentElement.dataset.dial,
+  story: $('story').open && storyId ? { id: storyId, subject: state.stories.get(storyId)?.subject } : null,
+});
+function reportFallback(type, text, ctx) {
+  const repo = reportInfo?.repo || 'iamneilroberts/squelch';
+  const body = `${text}${ctx ? `\n\n---\n${Object.entries({ viewport: ctx.viewport, browser: ctx.ua, tab: ctx.tab, scan: ctx.scan ? 'on' : 'off', dial: ctx.dial }).map(([k, v]) => `- ${k}: ${v}`).join('\n')}` : ''}`.replace(/@/g, '＠');
+  const q = new URLSearchParams({ title: `[${type === 'suggestion' ? 'Suggestion' : 'Problem'}] ${text.replace(/\s+/g, ' ').slice(0, 70)}`, body });
+  return `<a href="https://github.com/${esc(repo)}/issues/new?${esc(q)}" target="_blank" rel="noopener">Open it on GitHub to send it yourself ↗</a>`;
+}
+document.addEventListener('click', (e) => { if (e.target.closest('.report-open')) openReport(); });
+$('report-close').addEventListener('click', () => $('report').close());
+$('report').addEventListener('click', (e) => { if (e.target === $('report')) $('report').close(); });
+$('report-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const type = document.querySelector('[name="report-type"]:checked').value, text = $('report-text').value.trim();
+  const ctx = $('report-ctx').checked ? reportContext() : null, msg = $('report-msg');
+  if (reportInfo && !reportInfo.ready) return void (msg.innerHTML = `Sending from here isn’t set up. ${reportFallback(type, text, ctx)}`);
+  $('report-send').disabled = true;
+  msg.textContent = 'Sending…';
+  const r = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, text, context: ctx, website: $('report-hp').value }) })
+    .then(async (x) => ({ ok: x.ok, ...(await x.json().catch(() => ({}))) })).catch(() => ({ error: 'Couldn’t reach the receiver.' }));
+  $('report-send').disabled = false;
+  if (r.ok && r.url) {
+    const n = r.url.match(/\/(\d+)$/)?.[1];
+    msg.innerHTML = `Thanks: filed as <a href="${esc(r.url)}" target="_blank" rel="noopener">${n ? `#${esc(n)}` : 'the issue'}</a>.`;
+    $('report-text').value = '';
+    $('report-send').hidden = true;
+  } else msg.innerHTML = `${esc(r.error || 'Couldn’t send that.')}${r.fallback ? ` ${reportFallback(type, text, ctx)}` : ''}`;
+});
+if (new URLSearchParams(location.search).has('report')) { history.replaceState(null, '', location.pathname + location.hash); openReport(); } // the manual's link
+
 /* ───────── Channel bar (a phone's dial): what's on, and a lamp per channel; tap it for the preset keys ───────── */
 const TRAFFIC_MS = 3 * 60e3; // a lamp stays lit this long after its channel's last transmission
 function renderBar() {

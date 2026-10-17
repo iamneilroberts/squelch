@@ -140,6 +140,7 @@
       <button class="share-toggle" id="share-toggle" hidden aria-pressed="false" title="Lets visitors coming in through the Cloudflare tunnel read raw transcripts and the Raw traffic tab">
         <span class="lamp" aria-hidden="true"></span><span id="share-label">Remote transcripts: off</span>
       </button>
+      <button type="button" class="gauge ledger-link report-open">Problems &amp; suggestions</button>
       <a class="gauge ledger-link" href="/manual.html">Station manual <svg class="ico arrow" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
     </div>
   </footer>
@@ -168,6 +169,23 @@
     <label><input type="radio" name="dial-style" value="rule"> <strong>Slide rule</strong> — the classic dial, tighter on a phone</label>
   </fieldset>
   <p class="notify-hint">Remembered on this device.</p>
+  <button type="button" class="key report-open">Problems &amp; suggestions</button>
+</dialog>
+<dialog class="story notify" id="report" aria-labelledby="report-title">
+  <header class="story-head"><h2 id="report-title">Problems &amp; suggestions</h2><button type="button" class="key tkey story-close" id="report-close" aria-label="Close"><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
+  <form id="report-form">
+    <fieldset class="notify-level"><legend>This is a</legend>
+      <label><input type="radio" name="report-type" value="problem" checked> <strong>Problem</strong></label>
+      <label><input type="radio" name="report-type" value="suggestion"> <strong>Suggestion</strong></label>
+    </fieldset>
+    <label class="report-text">What happened, or what would you like?
+      <textarea id="report-text" required minlength="10" maxlength="4000" rows="6"></textarea></label>
+    <label class="report-ctx"><input type="checkbox" id="report-ctx" checked> Include what’s on screen <span class="notify-hint">(app version, screen size, browser, tab, open story, scan on/off. Never transcripts.)</span></label>
+    <input type="text" name="website" id="report-hp" tabindex="-1" autocomplete="off" aria-hidden="true" class="report-hp">
+    <p class="notify-hint">Reports are posted publicly on GitHub. Don’t include personal information.</p>
+    <p class="notify-msg" id="report-msg" role="status"></p>
+    <div class="notify-row"><button type="submit" class="key" id="report-send">Send</button></div>
+  </form>
 </dialog>
 <dialog class="story notify" id="notify" aria-labelledby="notify-title">
   <header class="story-head"><h2 id="notify-title">Notifications</h2><button type="button" class="key tkey story-close" id="notify-close" aria-label="Close"><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>

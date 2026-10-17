@@ -17,6 +17,7 @@ import { station, regions, sources, configFile } from './config.mjs';
 import { scanStream, updateScan, scanPlays } from './scan.mjs';
 import { widerCatchup } from './ai/wider.mjs';
 import { studioRoute } from './studio/routes.mjs';
+import { reportRoute } from './report.mjs';
 
 const PORT = Number(process.env.PORT || 8077);
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
@@ -228,6 +229,7 @@ createServer(async (req, res) => {
   try {
     if (p === '/api/version') return json(res, { version: appVersion() });
     if (p === '/api/config') return json(res, { version: appVersion(), station, regions, viewer: { remote, transcripts: !hidden, canShare: canEdit(req), canListen: canEdit(req) || Boolean(sessionCreds(req)), broadcastifyUser: sessionCreds(req)?.user || null, sharing: settings.tunnelTranscripts }, sources: sources.map((s) => ({ ...s, status: status[s.id] || { state: 'standby' } })) });
+    if (p === '/api/report') return reportRoute(req, res, { json, readJson, canEdit, version: appVersion });
     if (p === '/api/settings' && req.method === 'POST') {
       if (!canEdit(req)) return json(res, { error: 'Only the owner can change this' }, 403);
       const body = JSON.parse(await new Promise((r) => { let s = ''; req.on('data', (d) => { s += d; }); req.on('end', () => r(s || '{}')); }));

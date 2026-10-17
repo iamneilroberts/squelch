@@ -968,3 +968,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Problems & suggestions */
+button.report-open { font: inherit; cursor: pointer; background: none; border: 0; padding: 0; min-height: 44px; }
+.notify > .report-open { margin-top: 14px; min-height: 44px; }
+.report-text { display: block; margin: 12px 0 8px; font-size: 13px; }
+.report-text textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px; font: 14px/1.4 var(--font-type); resize: vertical; }
+.report-ctx { display: block; margin-bottom: 8px; font-size: 13px; }
+.report-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+#report .notify-level label { padding: 10px 0; }
+#report .notify-row .key { min-height: 44px; }
