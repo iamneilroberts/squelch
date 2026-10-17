@@ -416,7 +416,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-family: var(--font-type);
   font-size: 13px;
   color: var(--ink-soft);
-  min-height: 1.4em;
+  line-height: 1.4;
+  min-height: 2.8em; /* always two lines tall, so a short title doesn't pull the page up */
 }
 .now-playing a { color: var(--blue-ink); }
 .now-playing strong { color: var(--ink); }
