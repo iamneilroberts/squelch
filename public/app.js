@@ -39,7 +39,8 @@ const state = {
   digestBusy: false,
   region: 'all',
   band: 'all',
-  tab: 'incidents',
+  tab: 'stories',
+  stories: new Map(), // thread id → story, with its transmission count and newest transmission (last)
   tuned: null,
   selected: null,
   fresh: new Set(),
@@ -1057,6 +1058,14 @@ function renderLog() {
 
   if (state.tab === 'digest') return renderDigest();
 
+  if (state.tab === 'stories') {
+    const since = new Date(Date.now() - STORY_HOURS * 3600e3).toISOString();
+    const { items, pager } = paginate([...state.stories.values()].filter((t) => t.updated_at >= since && inView(t.source_id)).sort((a, b) => b.updated_at.localeCompare(a.updated_at)));
+    log.innerHTML = items.length ? items.map(storyRow).join('') + pager
+      : `<li class="notice"><h2>Quiet on the air</h2>No conversation on ${state.band !== 'all' ? 'this band' : 'any channel'} in the last ${STORY_HOURS} hours.</li>`;
+    return;
+  }
+
   if (state.tab === 'traffic') {
     const { items: calls, pager } = paginate(state.calls.filter((c) => inView(c.source_id)));
     log.innerHTML = calls.length ? calls.map((c) => {
@@ -1096,6 +1105,28 @@ function renderLog() {
     </li>`;
   }).join('') + page.pager : notice();
   state.fresh.clear();
+}
+
+/* ───────── Stories: each channel conversation of the last few hours, latest first ───────── */
+const STORY_HOURS = 3;
+const isLive = (iso) => Date.now() - new Date(iso) < 5 * 60e3;
+const storyOf = ({ events, ...t }) => ({ ...t, count: events.length, last: events.at(-1) || null }); // a story card's thread as a Stories row
+function storyRow(t) {
+  const line = ccOff() || !t.last?.transcript ? esc(t.last?.note) : `“${esc(t.last.transcript)}”`;
+  return `<li class="entry story-row${t.alert >= 0.6 ? ' breaking' : ''}" data-thread="${t.id}">
+    <div class="entry-meta"><span>${hhmm(t.last?.at || t.updated_at)}</span><span>${t.count} transmission${t.count === 1 ? '' : 's'}</span>
+      ${isLive(t.updated_at) ? '<span class="live">● live</span>' : ''}${t.alert >= 0.9 ? '<span class="flag">** Breaking **</span>' : ''}</div>
+    <div class="entry-head">${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}</div>
+    ${line ? `<p class="story-line">${line}</p>` : ''}
+  </li>`;
+}
+// A transmission on a story bumps it to the top. A story new to this page is fetched, and so is one whose
+// newest note is wanted (the live event carries no note).
+function storyCall(c) {
+  const t = state.stories.get(c.thread_id);
+  if (t && !ccOff()) Object.assign(t, { subject: c.subject || t.subject, updated_at: c.at, count: t.count + 1, last: { id: c.id, at: c.at, transcript: c.transcript } });
+  else getJson(`/api/threads/${c.thread_id}`).then((full) => { state.stories.set(full.id, storyOf(full)); if (state.tab === 'stories') renderLog(); }).catch(() => {});
+  if (state.tab === 'stories') renderLog();
 }
 
 function notice() {
@@ -1218,7 +1249,7 @@ $('log').addEventListener('click', (e) => {
   if (entry) select(Number(entry.dataset.id));
 });
 
-const TABS = ['incidents', 'traffic', 'digest'];
+const TABS = ['stories', 'incidents', 'traffic', 'digest'];
 for (const t of TABS) {
   $(`tab-${t}`).addEventListener('click', () => {
     state.tab = t;
@@ -1253,6 +1284,7 @@ function connect() {
     state.calls.length = Math.min(state.calls.length, 200);
     if (c.source_id === state.tuned?.id) ccLive();
     if (storyId && c.thread_id === storyId) renderStory();
+    if (c.thread_id) storyCall(c);
     const lamp = $(`lamp-${c.source_id}`);
     if (lamp) { lamp.classList.remove('blink'); void lamp.offsetWidth; lamp.classList.add('blink'); }
     if (inRegion(c.source_id)) flickEye();
@@ -1568,7 +1600,7 @@ function fromNotification(q) {
 /* ───────── Boot ───────── */
 async function boot() {
   const opened = new URLSearchParams(location.search); // ?story= from a notification; read before setRegion rewrites the URL
-  const [config, incidents, calls, digests] = await Promise.all([getJson('/api/config'), getJson('/api/incidents'), getJson('/api/calls'), getJson('/api/digests')]);
+  const [config, incidents, calls, digests, stories] = await Promise.all([getJson('/api/config'), getJson('/api/incidents'), getJson('/api/calls'), getJson('/api/digests'), getJson(`/api/threads?hours=${STORY_HOURS}`)]);
   state.regions = config.regions;
   state.sources = config.sources;
   state.station = config.station;
@@ -1582,6 +1614,7 @@ async function boot() {
   renderBcfyStatus();
   for (const s of config.sources) state.byId.set(s.id, s);
   for (const i of incidents) state.incidents.set(i.id, i);
+  for (const t of stories) state.stories.set(t.id, t);
   state.calls = calls;
   state.digests = digests;
   state.version = config.version;
@@ -1602,6 +1635,6 @@ async function boot() {
   setInterval(refreshShips, 30e3);
   setInterval(refreshAlerts, 5 * 60e3);
   setInterval(refreshTide, 6 * 60e3);
-  setInterval(() => { if (state.tab === 'incidents' && state.selected) renderLog(); }, 60e3);
+  setInterval(() => { if ((state.tab === 'incidents' && state.selected) || state.tab === 'stories') renderLog(); }, 60e3); // "updated … ago", "● live"
 }
 boot();
