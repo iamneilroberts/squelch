@@ -1,0 +1,403 @@
+{
+ "timeline": {
+  "END": 22.7,
+  "TOTAL": 27.7,
+  "clips": [
+   {
+    "start": 1.5,
+    "dur": 8,
+    "said": "Caller reports an alligator sunning itself in a driveway on Pine Street, right in front of the mailbox."
+   },
+   {
+    "start": 10.1,
+    "dur": 5,
+    "said": "10-4, en route."
+   },
+   {
+    "start": 15.7,
+    "dur": 7,
+    "said": "Gator went back to the pond on its own. Homeowner got the mail."
+   }
+  ]
+ },
+ "beat": {
+  "title": "Special Delivery, Pine Street",
+  "punch": [
+   "1 GATOR",
+   "0 STAMPS",
+   "MAIL: RETRIEVED"
+  ],
+  "scenes": [
+   {
+    "start": 0,
+    "end": 10.1,
+    "idea": "A gator naps across the driveway, chin on the mailbox post; the homeowner in a bathrobe tiptoes out with a coffee and stops dead.",
+    "set": "residential",
+    "sky": "day",
+    "labels": [
+     "PINE ST"
+    ],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 500,
+     "to_y": 350,
+     "to_zoom": 1,
+     "follow": ""
+    },
+    "cast": [
+     {
+      "id": "box",
+      "kind": "mailbox",
+      "variant": "rural",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 640,
+      "y": 556,
+      "to_x": 640,
+      "to_y": 556,
+      "move_from": 0,
+      "move_to": 10.1,
+      "motion": "idle",
+      "then": "idle",
+      "enter": 0,
+      "exit": 10.1
+     },
+     {
+      "id": "gator",
+      "kind": "alligator",
+      "variant": "green",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 600,
+      "y": 610,
+      "to_x": 600,
+      "to_y": 610,
+      "move_from": 0,
+      "move_to": 10.1,
+      "motion": "idle",
+      "then": "idle",
+      "enter": 0,
+      "exit": 10.1
+     },
+     {
+      "id": "owner",
+      "kind": "townsfolk",
+      "variant": "robe",
+      "color": "auto",
+      "hat": "none",
+      "carry": "coffee",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 260,
+      "y": 600,
+      "to_x": 380,
+      "to_y": 600,
+      "move_from": 5,
+      "move_to": 8,
+      "motion": "tiptoe",
+      "then": "shrug",
+      "enter": 0,
+      "exit": 10.1
+     }
+    ],
+    "gags": [
+     {
+      "type": "zzz",
+      "at": 1.5,
+      "until": 7.5,
+      "target": "gator",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     },
+     {
+      "type": "exclaim",
+      "at": 8,
+      "until": 10,
+      "target": "owner",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "start": 10.1,
+    "end": 15.7,
+    "idea": "\"En route\": the patrol car speeds along the highway, lights going.",
+    "set": "highway",
+    "sky": "day",
+    "labels": [
+     "PINE ST"
+    ],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 500,
+     "to_y": 350,
+     "to_zoom": 1,
+     "follow": "car"
+    },
+    "cast": [
+     {
+      "id": "car",
+      "kind": "patrol_car",
+      "variant": "lights",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 100,
+      "y": 668,
+      "to_x": 1100,
+      "to_y": 668,
+      "move_from": 10.1,
+      "move_to": 15.7,
+      "motion": "drive",
+      "then": "drive",
+      "enter": 10.1,
+      "exit": 15.7
+     }
+    ],
+    "gags": [
+     {
+      "type": "bubble",
+      "at": 10.4,
+      "until": 12.6,
+      "target": "car",
+      "x": 0,
+      "y": 0,
+      "text": "10-4!"
+     },
+     {
+      "type": "dust",
+      "at": 12.6,
+      "until": 15.7,
+      "target": "car",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "start": 15.7,
+    "end": 19.5,
+    "idea": "The gator strolls home to the water in a cowboy hat while the deputy waves it off.",
+    "set": "shoreline",
+    "sky": "day",
+    "labels": [
+     "POND"
+    ],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 500,
+     "to_y": 350,
+     "to_zoom": 1,
+     "follow": "gator"
+    },
+    "cast": [
+     {
+      "id": "gator",
+      "kind": "alligator",
+      "variant": "green",
+      "color": "auto",
+      "hat": "cowboy",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 300,
+      "y": 668,
+      "to_x": 760,
+      "to_y": 668,
+      "move_from": 15.7,
+      "move_to": 19.5,
+      "motion": "walk",
+      "then": "wag",
+      "enter": 15.7,
+      "exit": 19.5
+     },
+     {
+      "id": "deputy",
+      "kind": "deputy",
+      "variant": "profile",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 160,
+      "y": 668,
+      "to_x": 160,
+      "to_y": 668,
+      "move_from": 15.7,
+      "move_to": 19.5,
+      "motion": "wave",
+      "then": "wave",
+      "enter": 15.7,
+      "exit": 19.5
+     }
+    ],
+    "gags": [
+     {
+      "type": "hearts",
+      "at": 16,
+      "until": 19.5,
+      "target": "gator",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "start": 19.5,
+    "end": 22.7,
+    "idea": "\"Homeowner got the mail\": she hops to the mailbox, mail in hand at last; a sign declares victory.",
+    "set": "residential",
+    "sky": "day",
+    "labels": [
+     "PINE ST"
+    ],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 560,
+     "to_y": 400,
+     "to_zoom": 1.2,
+     "follow": ""
+    },
+    "cast": [
+     {
+      "id": "box",
+      "kind": "mailbox",
+      "variant": "rural",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 640,
+      "y": 556,
+      "to_x": 640,
+      "to_y": 556,
+      "move_from": 19.5,
+      "move_to": 22.7,
+      "motion": "idle",
+      "then": "idle",
+      "enter": 19.5,
+      "exit": 22.7
+     },
+     {
+      "id": "owner",
+      "kind": "townsfolk",
+      "variant": "robe",
+      "color": "auto",
+      "hat": "none",
+      "carry": "coffee",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 380,
+      "y": 600,
+      "to_x": 580,
+      "to_y": 600,
+      "move_from": 19.5,
+      "move_to": 21,
+      "motion": "walk",
+      "then": "hop",
+      "enter": 19.5,
+      "exit": 22.7
+     }
+    ],
+    "gags": [
+     {
+      "type": "sign",
+      "at": 21,
+      "until": 22.7,
+      "target": "",
+      "x": 560,
+      "y": 380,
+      "text": "MAIL: SAFE"
+     },
+     {
+      "type": "confetti",
+      "at": 21.2,
+      "until": 22.7,
+      "target": "",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     }
+    ]
+   }
+  ],
+  "finale": [
+   {
+    "kind": "alligator",
+    "variant": "green",
+    "color": "auto",
+    "hat": "cowboy",
+    "carry": "none"
+   },
+   {
+    "kind": "mailbox",
+    "variant": "rural",
+    "color": "auto",
+    "hat": "none",
+    "carry": "none"
+   },
+   {
+    "kind": "townsfolk",
+    "variant": "robe",
+    "color": "auto",
+    "hat": "none",
+    "carry": "coffee"
+   }
+  ]
+ }
+}

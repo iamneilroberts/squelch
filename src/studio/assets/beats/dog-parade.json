@@ -1,0 +1,928 @@
+{
+ "timeline": {
+  "END": 69.58,
+  "TOTAL": 74.68,
+  "clips": [
+   {
+    "start": 2,
+    "dur": 31.07,
+    "said": "Go ahead 10-4. I think we need to notify the city of a parade of dogs. I think they just got out of the shelter and they're fixing to go down Main Street to put on a show. 10-4. If I had a guess, about 15 to 20 dogs of all sizes. 10-4. If you have a paw patrol, go bring it up. They may fall up a parade. I tried. I think they had a better parade plan. 10-4."
+   },
+   {
+    "start": 33.67,
+    "dur": 3.67,
+    "said": "10-4 10-4"
+   },
+   {
+    "start": 37.94,
+    "dur": 13.54,
+    "said": "Still walking all the way down Main Street. I didn't see any dogs. Yeah, there were four at first. They were coming from Beaver Dam, heading towards Main Street. That should be visible from Main Street, I believe."
+   },
+   {
+    "start": 52.08,
+    "dur": 9.76,
+    "said": "10-4, sir, it's going to be negative on Bieber, then. Have you seen the unit anywhere?"
+   },
+   {
+    "start": 62.43,
+    "dur": 4.43,
+    "said": "Coastal going to be negative, I haven't seen the SUV"
+   },
+   {
+    "start": 67.46,
+    "dur": 1.62,
+    "said": "10"
+   }
+  ]
+ },
+ "beat": {
+  "title": "The Great Main Street Dog Parade",
+  "punch": [
+   "15–20 DOGS.",
+   "0 SIGHTINGS.",
+   "Parade route: unknown"
+  ],
+  "scenes": [
+   {
+    "start": 0,
+    "end": 9,
+    "idea": "Dispatch close-up: the radio crackles while two dogs in party hats trot into frame; \"A PARADE OF DOGS?!\" bursts on the word parade.",
+    "set": "main_street",
+    "sky": "night",
+    "labels": [
+     "DINER",
+     "HARDWARE",
+     "BAKERY"
+    ],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 500,
+     "to_y": 350,
+     "to_zoom": 1,
+     "follow": ""
+    },
+    "cast": [
+     {
+      "id": "radio",
+      "kind": "radio",
+      "variant": "handheld",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "SHERIFF CH1",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 0.72,
+      "flip": false,
+      "x": 500,
+      "y": 690,
+      "to_x": 500,
+      "to_y": 690,
+      "move_from": 0,
+      "move_to": 9,
+      "motion": "talk",
+      "then": "talk",
+      "enter": 0,
+      "exit": 9
+     },
+     {
+      "id": "pup1",
+      "kind": "dog",
+      "variant": "terrier",
+      "color": "auto",
+      "hat": "party",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1.3,
+      "flip": false,
+      "x": 1150,
+      "y": 690,
+      "to_x": 700,
+      "to_y": 690,
+      "move_from": 5.5,
+      "move_to": 8.5,
+      "motion": "trot",
+      "then": "wag",
+      "enter": 0,
+      "exit": 9
+     },
+     {
+      "id": "pup2",
+      "kind": "dog",
+      "variant": "poodle",
+      "color": "auto",
+      "hat": "party",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1.2,
+      "flip": false,
+      "x": 1260,
+      "y": 690,
+      "to_x": 820,
+      "to_y": 690,
+      "move_from": 5.5,
+      "move_to": 8.5,
+      "motion": "trot",
+      "then": "wag",
+      "enter": 0,
+      "exit": 9
+     }
+    ],
+    "gags": [
+     {
+      "type": "burst",
+      "at": 7.6,
+      "until": 9,
+      "target": "",
+      "x": 500,
+      "y": 200,
+      "text": "A PARADE OF DOGS?!"
+     }
+    ]
+   },
+   {
+    "start": 9,
+    "end": 16,
+    "idea": "The shelter door opens and the dogs file out in hats, heading for Main Street; a sign goes up behind them.",
+    "set": "main_street",
+    "sky": "night",
+    "labels": [
+     "FEED & SEED",
+     "BARBER"
+    ],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 500,
+     "to_y": 350,
+     "to_zoom": 1,
+     "follow": ""
+    },
+    "cast": [
+     {
+      "id": "shelter",
+      "kind": "building",
+      "variant": "shelter",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "ANIMAL SHELTER",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 330,
+      "y": 550,
+      "to_x": 330,
+      "to_y": 550,
+      "move_from": 9,
+      "move_to": 16,
+      "motion": "still",
+      "then": "still",
+      "enter": 9,
+      "exit": 16
+     },
+     {
+      "id": "pack",
+      "kind": "dog",
+      "variant": "mixed",
+      "color": "auto",
+      "hat": "mixed",
+      "carry": "none",
+      "label": "",
+      "count": 6,
+      "formation": "line",
+      "spacing": 70,
+      "scale": 1,
+      "flip": false,
+      "x": 360,
+      "y": 668,
+      "to_x": 1100,
+      "to_y": 668,
+      "move_from": 10,
+      "move_to": 16,
+      "motion": "trot",
+      "then": "wag",
+      "enter": 10,
+      "exit": 16
+     }
+    ],
+    "gags": [
+     {
+      "type": "dust",
+      "at": 10,
+      "until": 11.2,
+      "target": "pack",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     },
+     {
+      "type": "sign",
+      "at": 13.8,
+      "until": 16,
+      "target": "",
+      "x": 330,
+      "y": 470,
+      "text": "GONE TO PARADE!"
+     }
+    ]
+   },
+   {
+    "start": 16,
+    "end": 28,
+    "idea": "The full band marches down Main Street with instruments and a banner; confetti; the count lands as a headline on \"15 to 20\".",
+    "set": "main_street",
+    "sky": "night",
+    "labels": [
+     "DINER",
+     "HARDWARE",
+     "BAKERY",
+     "BARBER",
+     "CAFE"
+    ],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 500,
+     "to_y": 350,
+     "to_zoom": 1,
+     "follow": "band"
+    },
+    "cast": [
+     {
+      "id": "band",
+      "kind": "dog",
+      "variant": "mixed",
+      "color": "auto",
+      "hat": "mixed",
+      "carry": "band",
+      "label": "",
+      "count": 12,
+      "formation": "line",
+      "spacing": 58,
+      "scale": 1,
+      "flip": false,
+      "x": 420,
+      "y": 668,
+      "to_x": 1500,
+      "to_y": 668,
+      "move_from": 16,
+      "move_to": 28,
+      "motion": "walk",
+      "then": "walk",
+      "enter": 16,
+      "exit": 28
+     },
+     {
+      "id": "banner",
+      "kind": "sign",
+      "variant": "banner",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "MAIN ST PARADE",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 0.9,
+      "flip": false,
+      "x": 120,
+      "y": 668,
+      "to_x": 1200,
+      "to_y": 668,
+      "move_from": 16,
+      "move_to": 28,
+      "motion": "idle",
+      "then": "idle",
+      "enter": 16,
+      "exit": 28
+     }
+    ],
+    "gags": [
+     {
+      "type": "notes",
+      "at": 16,
+      "until": 28,
+      "target": "band",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     },
+     {
+      "type": "confetti",
+      "at": 16.5,
+      "until": 28,
+      "target": "",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     },
+     {
+      "type": "badge",
+      "at": 21.6,
+      "until": 26,
+      "target": "",
+      "x": 500,
+      "y": 100,
+      "text": "15–20 DOGS"
+     }
+    ]
+   },
+   {
+    "start": 28,
+    "end": 33.6,
+    "idea": "The drum major explains the parade plan on a whiteboard: the route is a scribble ending at SNACKS; the band is baffled.",
+    "set": "main_street",
+    "sky": "night",
+    "labels": [],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 500,
+     "to_y": 380,
+     "to_zoom": 1.15,
+     "follow": ""
+    },
+    "cast": [
+     {
+      "id": "plan",
+      "kind": "sign",
+      "variant": "plan",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "PARADE PLAN",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 455,
+      "y": 668,
+      "to_x": 455,
+      "to_y": 668,
+      "move_from": 28,
+      "move_to": 33.6,
+      "motion": "idle",
+      "then": "idle",
+      "enter": 28,
+      "exit": 33.6
+     },
+     {
+      "id": "major",
+      "kind": "dog",
+      "variant": "retriever",
+      "color": "auto",
+      "hat": "shako",
+      "carry": "baton",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1.3,
+      "flip": true,
+      "x": 740,
+      "y": 668,
+      "to_x": 740,
+      "to_y": 668,
+      "move_from": 28,
+      "move_to": 33.6,
+      "motion": "wag",
+      "then": "wag",
+      "enter": 28,
+      "exit": 33.6
+     },
+     {
+      "id": "crowd",
+      "kind": "dog",
+      "variant": "mixed",
+      "color": "auto",
+      "hat": "mixed",
+      "carry": "none",
+      "label": "",
+      "count": 3,
+      "formation": "line",
+      "spacing": 140,
+      "scale": 1.2,
+      "flip": false,
+      "x": 580,
+      "y": 700,
+      "to_x": 580,
+      "to_y": 700,
+      "move_from": 28,
+      "move_to": 33.6,
+      "motion": "still",
+      "then": "still",
+      "enter": 28,
+      "exit": 33.6
+     }
+    ],
+    "gags": [
+     {
+      "type": "question",
+      "at": 31.4,
+      "until": 33.6,
+      "target": "crowd",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "start": 33.6,
+    "end": 37.9,
+    "idea": "\"10-4, 10-4\": the patrol car answers twice and rolls out; four tails were wagging over the hedge right next to it, and they duck as it pulls away.",
+    "set": "main_street",
+    "sky": "night",
+    "labels": [
+     "HARDWARE",
+     "DINER",
+     "CAFE"
+    ],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 500,
+     "to_y": 350,
+     "to_zoom": 1,
+     "follow": ""
+    },
+    "cast": [
+     {
+      "id": "hiders",
+      "kind": "dog",
+      "variant": "mixed",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "",
+      "count": 4,
+      "formation": "cluster",
+      "spacing": 40,
+      "scale": 1,
+      "flip": false,
+      "x": 225,
+      "y": 600,
+      "to_x": 225,
+      "to_y": 600,
+      "move_from": 33.6,
+      "move_to": 37.9,
+      "motion": "wag",
+      "then": "wag",
+      "enter": 33.6,
+      "exit": 37.9
+     },
+     {
+      "id": "hedge",
+      "kind": "bush",
+      "variant": "hedge",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 0.8,
+      "flip": false,
+      "x": 225,
+      "y": 610,
+      "to_x": 225,
+      "to_y": 610,
+      "move_from": 33.6,
+      "move_to": 37.9,
+      "motion": "idle",
+      "then": "idle",
+      "enter": 33.6,
+      "exit": 37.9
+     },
+     {
+      "id": "car",
+      "kind": "patrol_car",
+      "variant": "lights",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 480,
+      "y": 668,
+      "to_x": 1500,
+      "to_y": 668,
+      "move_from": 36.2,
+      "move_to": 37.9,
+      "motion": "drive",
+      "then": "idle",
+      "enter": 33.6,
+      "exit": 37.9
+     }
+    ],
+    "gags": [
+     {
+      "type": "bubble",
+      "at": 33.8,
+      "until": 35.4,
+      "target": "car",
+      "x": 0,
+      "y": 0,
+      "text": "10-4!"
+     },
+     {
+      "type": "bubble",
+      "at": 35.5,
+      "until": 37,
+      "target": "car",
+      "x": 0,
+      "y": 0,
+      "text": "10-4!"
+     },
+     {
+      "type": "hide",
+      "at": 36.4,
+      "until": 37.9,
+      "target": "hiders",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "start": 37.9,
+    "end": 52.1,
+    "idea": "The patrol car cruises Main Street; four dogs tiptoe right behind it. Each time the officer says they didn't see any dogs, the dogs freeze like statues.",
+    "set": "main_street",
+    "sky": "night",
+    "labels": [
+     "DINER",
+     "HARDWARE",
+     "BAKERY",
+     "BARBER",
+     "CAFE",
+     "BANK"
+    ],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 500,
+     "to_y": 350,
+     "to_zoom": 1,
+     "follow": "car"
+    },
+    "cast": [
+     {
+      "id": "car",
+      "kind": "patrol_car",
+      "variant": "lights",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 400,
+      "y": 668,
+      "to_x": 1960,
+      "to_y": 668,
+      "move_from": 37.9,
+      "move_to": 52.1,
+      "motion": "drive",
+      "then": "drive",
+      "enter": 37.9,
+      "exit": 52.1
+     },
+     {
+      "id": "sneaks",
+      "kind": "dog",
+      "variant": "mixed",
+      "color": "auto",
+      "hat": "mixed",
+      "carry": "none",
+      "label": "",
+      "count": 4,
+      "formation": "line",
+      "spacing": 75,
+      "scale": 1,
+      "flip": false,
+      "x": 180,
+      "y": 668,
+      "to_x": 1740,
+      "to_y": 668,
+      "move_from": 37.9,
+      "move_to": 52.1,
+      "motion": "tiptoe",
+      "then": "tiptoe",
+      "enter": 37.9,
+      "exit": 52.1
+     }
+    ],
+    "gags": [
+     {
+      "type": "freeze",
+      "at": 42.2,
+      "until": 44.8,
+      "target": "sneaks",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     },
+     {
+      "type": "question",
+      "at": 42.4,
+      "until": 44.6,
+      "target": "car",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     },
+     {
+      "type": "freeze",
+      "at": 47.4,
+      "until": 50,
+      "target": "sneaks",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "start": 52.1,
+    "end": 62.4,
+    "idea": "\"Negative on Bieber\": the car sweeps its spotlight everywhere except its own roof, where five dogs have stacked into a wobbly tower, looking around too.",
+    "set": "main_street",
+    "sky": "night",
+    "labels": [
+     "BAKERY",
+     "BARBER",
+     "DINER"
+    ],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 500,
+     "to_y": 330,
+     "to_zoom": 1.1,
+     "follow": ""
+    },
+    "cast": [
+     {
+      "id": "sign",
+      "kind": "sign",
+      "variant": "post",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "BIEBER",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 260,
+      "y": 556,
+      "to_x": 260,
+      "to_y": 556,
+      "move_from": 52.1,
+      "move_to": 62.4,
+      "motion": "still",
+      "then": "still",
+      "enter": 52.1,
+      "exit": 62.4
+     },
+     {
+      "id": "car",
+      "kind": "patrol_car",
+      "variant": "spotlight",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 560,
+      "y": 668,
+      "to_x": 560,
+      "to_y": 668,
+      "move_from": 52.1,
+      "move_to": 62.4,
+      "motion": "sweep",
+      "then": "sweep",
+      "enter": 52.1,
+      "exit": 62.4
+     },
+     {
+      "id": "tower",
+      "kind": "dog",
+      "variant": "mixed",
+      "color": "auto",
+      "hat": "mixed",
+      "carry": "none",
+      "label": "",
+      "count": 5,
+      "formation": "stack",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 572,
+      "y": 550,
+      "to_x": 572,
+      "to_y": 550,
+      "move_from": 52.1,
+      "move_to": 62.4,
+      "motion": "look",
+      "then": "look",
+      "enter": 52.1,
+      "exit": 62.4
+     }
+    ],
+    "gags": [
+     {
+      "type": "question",
+      "at": 56.6,
+      "until": 60,
+      "target": "tower",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     },
+     {
+      "type": "zoom",
+      "at": 57,
+      "until": 59.6,
+      "target": "tower",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "start": 62.4,
+    "end": 69.58,
+    "idea": "\"Haven't seen the SUV\": a cardboard SUV on dog legs walks right past the parked car; it answers \"10.\"",
+    "set": "main_street",
+    "sky": "night",
+    "labels": [
+     "CAFE",
+     "HARDWARE",
+     "BANK"
+    ],
+    "camera": {
+     "x": 500,
+     "y": 350,
+     "zoom": 1,
+     "to_x": 500,
+     "to_y": 350,
+     "to_zoom": 1,
+     "follow": ""
+    },
+    "cast": [
+     {
+      "id": "sign",
+      "kind": "sign",
+      "variant": "post",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "COASTAL",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 745,
+      "y": 556,
+      "to_x": 745,
+      "to_y": 556,
+      "move_from": 62.4,
+      "move_to": 69.58,
+      "motion": "still",
+      "then": "still",
+      "enter": 62.4,
+      "exit": 69.58
+     },
+     {
+      "id": "suv",
+      "kind": "cutout",
+      "variant": "suv",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "SUV",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 0.8,
+      "flip": false,
+      "x": -150,
+      "y": 612,
+      "to_x": 1200,
+      "to_y": 612,
+      "move_from": 62.4,
+      "move_to": 69.58,
+      "motion": "walk",
+      "then": "walk",
+      "enter": 62.4,
+      "exit": 69.58
+     },
+     {
+      "id": "car",
+      "kind": "patrol_car",
+      "variant": "dark",
+      "color": "auto",
+      "hat": "none",
+      "carry": "none",
+      "label": "",
+      "count": 1,
+      "formation": "line",
+      "spacing": 0,
+      "scale": 1,
+      "flip": false,
+      "x": 420,
+      "y": 690,
+      "to_x": 420,
+      "to_y": 690,
+      "move_from": 62.4,
+      "move_to": 69.58,
+      "motion": "idle",
+      "then": "idle",
+      "enter": 62.4,
+      "exit": 69.58
+     }
+    ],
+    "gags": [
+     {
+      "type": "dust",
+      "at": 63,
+      "until": 69.5,
+      "target": "suv",
+      "x": 0,
+      "y": 0,
+      "text": ""
+     },
+     {
+      "type": "bubble",
+      "at": 67.5,
+      "until": 69.58,
+      "target": "car",
+      "x": 0,
+      "y": 0,
+      "text": "10."
+     }
+    ]
+   }
+  ],
+  "finale": [
+   {
+    "kind": "dog",
+    "variant": "beagle",
+    "color": "auto",
+    "hat": "cap",
+    "carry": "trumpet"
+   },
+   {
+    "kind": "dog",
+    "variant": "retriever",
+    "color": "auto",
+    "hat": "shako",
+    "carry": "baton"
+   },
+   {
+    "kind": "dog",
+    "variant": "poodle",
+    "color": "auto",
+    "hat": "party",
+    "carry": "none"
+   }
+  ]
+ }
+}
