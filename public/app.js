@@ -206,12 +206,16 @@ $('look').addEventListener('click', (e) => { if (e.target === $('look')) $('look
 
 /* ───────── Problems & suggestions: files a GitHub issue through the server. Without gh there, offers a prefilled new-issue link. ───────── */
 let reportInfo = null;
-async function openReport() {
+async function openReport(mine = false) {
   $('look').close();
   $('report-msg').innerHTML = '';
   $('report-send').hidden = false;
+  renderMyReports();
   $('report').showModal();
+  if (mine && !$('my-reports').hidden) $('my-reports').scrollIntoView({ block: 'start' });
   reportInfo ??= await getJson('/api/report').catch(() => null);
+  await refreshReports();
+  renderMyReports({ seen: true });
 }
 const reportContext = () => ({
   viewport: `${innerWidth}x${innerHeight}`, ua: navigator.userAgent, tab: state.tab, scan: scan.on,
@@ -234,7 +238,8 @@ $('report-form').addEventListener('submit', async (e) => {
   if (reportInfo && !reportInfo.ready) return void (msg.innerHTML = `Sending from here isn’t set up. ${reportFallback(type, text, ctx)}`);
   $('report-send').disabled = true;
   msg.textContent = 'Sending…';
-  const r = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, text, context: ctx, website: $('report-hp').value }) })
+  // With this browser's push endpoint, the receiver can notify it when the report's status or reply changes.
+  const r = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, text, context: ctx, website: $('report-hp').value, endpoint: notify.sub?.endpoint }) })
     .then(async (x) => ({ ok: x.ok, ...(await x.json().catch(() => ({}))) })).catch(() => ({ error: 'Couldn’t reach the receiver.' }));
   $('report-send').disabled = false;
   if (r.ok && r.url) {
@@ -242,9 +247,61 @@ $('report-form').addEventListener('submit', async (e) => {
     msg.innerHTML = `Thanks: filed as <a href="${esc(r.url)}" target="_blank" rel="noopener">${n ? `#${esc(n)}` : 'the issue'}</a>.`;
     $('report-text').value = '';
     $('report-send').hidden = true;
+    if (r.number) {
+      storeJson('pcm.reports', [...myReports().filter((x) => x.n !== r.number), { n: r.number, title: text.replace(/\s+/g, ' ').slice(0, 70), at: new Date().toISOString() }].slice(-30));
+      storeJson('pcm.reportsSeen', { ...readJson('pcm.reportsSeen', {}), [r.number]: 'received|' });
+      renderMyReports();
+    }
   } else msg.innerHTML = `${esc(r.error || 'Couldn’t send that.')}${r.fallback ? ` ${reportFallback(type, text, ctx)}` : ''}`;
 });
-if (new URLSearchParams(location.search).has('report')) { history.replaceState(null, '', location.pathname + location.hash); openReport(); } // the manual's link
+if (new URLSearchParams(location.search).has('report')) { // the manual's link, or a report notification (?report=mine)
+  const mine = new URLSearchParams(location.search).get('report') === 'mine';
+  history.replaceState(null, '', location.pathname + location.hash);
+  setTimeout(() => openReport(mine)); // once the rest of this file has run
+}
+
+/* My reports: this device's reports (pcm.reports), with their status and the owner's latest reply. A dot on
+   "Problems & suggestions" and the Look key says something changed since the list was last seen (pcm.reportsSeen). */
+const REPORT_STATUS = { received: 'Received', planned: 'Planned', 'in-progress': 'In progress', ready: 'Fix ready', fixed: 'Fixed', 'wont-do': 'Won’t do', 'needs-info': 'Needs info', closed: 'Closed' };
+const readJson = (k, empty) => { try { return JSON.parse(store.get(k)) ?? empty; } catch { return empty; } };
+const storeJson = (k, v) => store.set(k, JSON.stringify(v));
+const myReports = () => readJson('pcm.reports', []).filter((x) => Number.isInteger(x?.n));
+const reportSig = (s) => `${s.status}|${s.reply_at || ''}`;
+const reportStatus = new Map(); // n → the server's view of it
+let reportsAt = 0;
+async function refreshReports() {
+  const mine = myReports();
+  if (!mine.length) return;
+  const r = await getJson(`/api/report/status?n=${mine.map((x) => x.n).join(',')}`).catch(() => null);
+  for (const s of r?.reports || []) reportStatus.set(s.n, s);
+  reportsAt = Date.now();
+  const seen = readJson('pcm.reportsSeen', {});
+  const news = [...reportStatus.values()].some((s) => seen[s.n] !== reportSig(s));
+  for (const el of document.querySelectorAll('.report-open, #btn-look')) el.classList.toggle('has-news', news);
+}
+const when = (iso) => (Date.now() - Date.parse(iso) < 864e5 ? ago(iso) : new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+function renderMyReports({ seen: markSeen = false } = {}) {
+  const mine = myReports().reverse(); // newest first
+  $('my-reports').hidden = !mine.length;
+  if (!mine.length) return;
+  const seen = readJson('pcm.reportsSeen', {});
+  $('my-reports-hint').textContent = notify.status?.sub ? 'Sent from this device. You’ll get a notification when one changes.'
+    : notify.status?.allowed ? 'Sent from this device. Turn on notifications (the bell) to hear when one changes.' : 'Sent from this device.';
+  $('report-list').innerHTML = mine.map((m) => {
+    const s = reportStatus.get(m.n);
+    const status = s?.status || 'received';
+    return `<li class="report-item${s && seen[m.n] !== reportSig(s) ? ' is-new' : ''}">
+      <div class="report-line"><span class="report-chip" data-status="${esc(status)}">${esc(REPORT_STATUS[status] || status)}</span> <strong>#${m.n}</strong> ${esc(s?.title || m.title)}</div>
+      ${s?.reply ? `<blockquote class="report-reply">${esc(s.reply)}<footer>Reply · ${esc(when(s.reply_at))}</footer></blockquote>` : ''}
+      <a class="report-link" href="${esc(s?.url || `https://github.com/${reportInfo?.repo || 'iamneilroberts/squelch'}/issues/${m.n}`)}" target="_blank" rel="noopener">#${m.n} on GitHub ${ICON_ARROW}</a>
+    </li>`;
+  }).join('');
+  if (markSeen && reportStatus.size) {
+    storeJson('pcm.reportsSeen', { ...seen, ...Object.fromEntries([...reportStatus.values()].map((s) => [s.n, reportSig(s)])) });
+    for (const el of document.querySelectorAll('.has-news')) el.classList.remove('has-news');
+  }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - reportsAt > 5 * 60e3) refreshReports(); });
 
 /* ───────── Channel bar (a phone's dial): what's on, and a lamp per channel; tap it for the preset keys ───────── */
 const TRAFFIC_MS = 3 * 60e3; // a lamp stays lit this long after its channel's last transmission
@@ -1817,9 +1874,12 @@ async function boot() {
   setInterval(renderFollow, 60e3); // "● live", "quiet since"
   startScan(); // open scanning; awaitTap() covers the browser's no-sound-before-a-tap rule
   notify.ready = notifyInit();
+  refreshReports();
   fromNotification(opened);
   navigator.serviceWorker?.addEventListener('message', (e) => { // tapped while the app was already open (sw.js)
-    if (e.data?.open) fromNotification(new URL(e.data.open, location.href).searchParams);
+    const q = e.data?.open && new URL(e.data.open, location.href).searchParams;
+    if (q?.has('report')) openReport(q.get('report') === 'mine');
+    else if (q) fromNotification(q);
   });
   setInterval(refreshAircraft, 15e3);
   setInterval(refreshTrains, 60e3);

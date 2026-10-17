@@ -978,3 +978,19 @@ button.report-open { font: inherit; cursor: pointer; background: none; border: 0
 .report-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 #report .notify-level label { padding: 10px 0; }
 #report .notify-row .key { min-height: 44px; }
+.my-reports[hidden] { display: none; }
+.report-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
+.report-item { padding-bottom: 4px; border-bottom: 1px dashed var(--bakelite-3); }
+.report-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.report-item.is-new .report-line strong { color: var(--red-ink); }
+.report-line { padding-top: 4px; line-height: 1.45; }
+.report-chip { display: inline-block; padding: 0 5px; border-radius: 2px; font: 700 10px/1.6 var(--font-type); letter-spacing: .08em; text-transform: uppercase; background: var(--bakelite-3); color: var(--ink); }
+.report-chip:is([data-status="planned"], [data-status="in-progress"]) { background: oklch(0.55 0.12 75); color: var(--paper); }
+.report-chip[data-status="ready"] { background: var(--blue-ink); color: var(--paper); }
+.report-chip[data-status="fixed"] { background: oklch(0.48 0.13 145); color: var(--paper); }
+.report-chip[data-status="needs-info"] { background: var(--red-ink); color: var(--paper); }
+.report-chip:is([data-status="wont-do"], [data-status="closed"]) { background: var(--ink-soft); color: var(--paper); }
+.report-reply { margin: 6px 0 0; padding: 6px 10px; border-left: 3px solid var(--red-ink); background: oklch(0 0 0 / .04); line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
+.report-reply footer { margin-top: 4px; font-size: 11px; font-style: italic; color: var(--ink-soft); white-space: normal; }
+.report-link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--blue-ink); }
+.has-news::after { content: ''; display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; vertical-align: middle; background: var(--lamp-red); box-shadow: 0 0 5px var(--lamp-red); }

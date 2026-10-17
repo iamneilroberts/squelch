@@ -124,6 +124,14 @@ async function push(s, payload, urgency = 'normal') {
   }
 }
 
+// One notification to one browser by id (src/report.mjs), under the same rule: guests only while guest notifications are on.
+export const subId = (endpoint) => subRow(endpoint)?.id ?? null;
+export const ownerSubIds = () => db.prepare('SELECT id FROM push_subs WHERE owner = 1').all().map((r) => r.id);
+export function pushTo(id, payload) {
+  const s = pushReady && db.prepare('SELECT * FROM push_subs WHERE id = ?').get(id);
+  return s && (s.owner || allowGuests()) ? push(s, payload) : Promise.resolve(false);
+}
+
 export function sendTest(endpoint) {
   const s = subRow(endpoint);
   return s ? push(s, { title: 'Notifications are on', body: 'You’ll hear from this receiver when something notable happens.', tag: 'test', url: '/' }) : false;

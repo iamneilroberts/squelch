@@ -30,7 +30,7 @@ self.addEventListener('notificationclick', (e) => {
     const open = (await self.clients.matchAll({ type: 'window', includeUncontrolled: true })).find((c) => new URL(c.url).origin === self.location.origin);
     // iPhone brings a running Home Screen app forward without loading the new URL, so the open page is
     // told which story to show instead (app.js listens for this).
-    if (open) {
+    if (open && url.startsWith(self.location.origin)) { // another site (a GitHub issue) opens in its own window
       open.postMessage({ open: url });
       return open.focus().catch(() => {});
     }
