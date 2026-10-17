@@ -603,7 +603,7 @@ function scanPlaying(p) {
 }
 // Title line and lock screen for the transmission on air; again when its story arrives after it went on air.
 function scanTitle(p, c) {
-  $('now-playing').innerHTML = `${p.tag ? `${p.tag} · ` : ''}${titleOf(c)}&nbsp;·&nbsp;${hhmm(c.at)}`;
+  $('now-playing').innerHTML = `${p.tag ? `${p.tag === 'PRI' ? 'FIRST' : p.tag} · ` : ''}${titleOf(c)}&nbsp;·&nbsp;${hhmm(c.at)}`;
   onAirCall = c;
   mediaMeta(c);
 }
@@ -652,8 +652,8 @@ function scanIdle() {
   $('now-playing').innerHTML = scan.hold
     ? `<strong>HOLD</strong> · ${scan.last.has(scan.hold) ? titleOf(scan.last.get(scan.hold)) : shortOf(scan.hold)} · new traffic plays as it arrives · <strong>Resume</strong> to scan`
     : n
-      ? `<strong>SCANNING</strong> ${n} ch · ${scan.lastCall ? `last ${titleOf(scan.lastCall)}` : 'tap a station: PRI → L/O → normal'}`
-      : '<strong>SCAN</strong> — every channel here is locked out. Tap a station to bring it back.';
+      ? `<strong>SCANNING</strong> ${n} channel${n === 1 ? '' : 's'} · ${scan.lastCall ? `last ${titleOf(scan.lastCall)}` : '<span class="scan-hint">tap a station once to put it first, again to skip it, again to reset</span>'}`
+      : '<strong>SCAN</strong> — every channel here is skipped. Tap a station to bring it back.';
   if (scan.stepper || !n || scan.hold || matchMedia('(prefers-reduced-motion: reduce)').matches) return; // no sweeping needle
   scan.stepper = setInterval(() => {
     const list = scanChannels();

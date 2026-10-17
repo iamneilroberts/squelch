@@ -413,10 +413,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* Station locked out of the scan */
 .station.locked { opacity: .45; }
 .station.locked .station-name { text-decoration: line-through; }
-.station.locked .station-freq::before { content: 'L/O '; color: var(--needle); font-size: 10px; }
+.station.locked .station-freq::before { content: 'SKIP '; color: var(--needle); font-size: 10px; }
 .dial.scanning .needle { transition-duration: .25s; }
 /* Priority channel: jumps the scan queue and interrupts ordinary traffic */
-.station.pri .station-freq::before { content: 'PRI '; color: var(--blue-ink); font-size: 10px; }
+.station.pri .station-freq::before { content: 'FIRST '; color: var(--blue-ink); font-size: 10px; }
 .station.pri .station-name { color: var(--blue-ink); font-weight: 700; }
 .scan-key[aria-pressed="true"]#btn-hold { color: var(--needle); }
 
@@ -446,8 +446,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   -webkit-line-clamp: 2;
   overflow: hidden;
 }
-/* A message with a link to follow (no signal, Broadcastify login) is never cut off. */
-.now-playing:has(a:not(.story-link), button) { height: auto; min-height: 2.8em; -webkit-line-clamp: none; }
+/* A message with a link to follow (no signal, Broadcastify login), or the scan's how-to before anything has played, is never cut off. */
+.now-playing:has(a:not(.story-link), button, .scan-hint) { height: auto; min-height: 2.8em; -webkit-line-clamp: none; }
 .now-playing a { color: var(--blue-ink); }
 .now-playing strong { color: var(--ink); }
 
@@ -878,8 +878,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   [data-dial="rule"] .station { padding-top: 7px; }
   [data-dial="rule"] .station-freq { display: none; }
   [data-dial="rule"] .station-name { font-size: 9.5px; letter-spacing: .08em; }
-  [data-dial="rule"] .station.pri .station-name::before { content: 'PRI '; color: var(--blue-ink); }
-  [data-dial="rule"] .station.locked .station-name::before { content: 'L/O '; color: var(--needle); }
+  [data-dial="rule"] .station.pri .station-name::before { content: 'FIRST '; color: var(--blue-ink); }
+  [data-dial="rule"] .station.locked .station-name::before { content: 'SKIP '; color: var(--needle); }
   [data-dial="presets"] .station-freq { font-size: 11px; }
   [data-dial="presets"] .station-name { font-size: 9px; letter-spacing: .06em; }
   .cc { font-size: 13px; padding-left: 40px; }
