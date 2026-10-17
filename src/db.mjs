@@ -205,8 +205,18 @@ export function newThread(sourceId, { subject, facts, type, alert, why }) {
 export function getThread(id) {
   const t = db.prepare('SELECT * FROM threads WHERE id = ?').get(id);
   if (!t) return null;
-  const events = db.prepare('SELECT id, at, note, audio FROM calls WHERE thread_id = ? ORDER BY at').all(id);
+  const events = db.prepare('SELECT id, at, note, audio, transcript FROM calls WHERE thread_id = ? ORDER BY at').all(id);
   return { ...t, facts: JSON.parse(t.facts), events };
+}
+
+// Stories updated in the last `hours`, latest first, each with its transmission count and newest transmission.
+export function recentThreads(hours = 3) {
+  const since = new Date(Date.now() - hours * 3600e3).toISOString();
+  return db.prepare(`SELECT t.id, t.source_id, t.subject, t.type, t.alert, t.started_at, t.updated_at, t.facts,
+      (SELECT COUNT(*) FROM calls WHERE thread_id = t.id) AS count, c.id AS last_id, c.at, c.note, c.transcript
+    FROM threads t LEFT JOIN calls c ON c.id = (SELECT id FROM calls WHERE thread_id = t.id ORDER BY at DESC, id DESC LIMIT 1)
+    WHERE t.updated_at >= ? ORDER BY t.updated_at DESC LIMIT 50`).all(since)
+    .map(({ last_id, at, note, transcript, ...t }) => ({ ...t, facts: JSON.parse(t.facts), last: last_id ? { id: last_id, at, note, transcript } : null }));
 }
 
 export const setCues = (id, cues) => db.prepare('UPDATE calls SET cues = ? WHERE id = ?').run(JSON.stringify(cues), id);

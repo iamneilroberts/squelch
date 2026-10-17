@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { readFileSync, writeFileSync, createReadStream, existsSync, statSync } from 'node:fs';
 import { join, extname, normalize, dirname } from 'node:path';
-import { recentIncidents, getIncident, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues, getThread } from './db.mjs';
+import { recentIncidents, getIncident, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues, getThread, recentThreads } from './db.mjs';
 import { buildCues, toVtt } from './ingest/captions.mjs';
 import { startListeners } from './listeners.mjs';
 import { pushReady, publicKey, LEVELS, configureNotify, subscription, subscribe, setPrefs, unsubscribe, sendTest, recordOpened, recordDwell, recordFeedback, learnedFor, resetLearning } from './notify.mjs';
@@ -316,7 +316,8 @@ createServer(async (req, res) => {
       return r ? out(r) : json(res, { error: 'no such scan' }, 404); // its plays carry transcripts
     }
     const th = p.match(/^\/api\/threads\/(\d+)$/);
-    if (th) { const t = getThread(Number(th[1])); return t ? json(res, t) : (res.writeHead(404), res.end()); }
+    if (th) { const t = getThread(Number(th[1])); return t ? out(t) : (res.writeHead(404), res.end()); }
+    if (p === '/api/threads') return out(recentThreads(Math.min(24, Number(url.searchParams.get('hours')) || 3)));
     // Wider catch-up (src/ai/wider.mjs): built from transcripts, so not for visitors they're hidden from.
     const wi = p.match(/^\/api\/threads\/(\d+)\/wider$/);
     if (wi && req.method === 'POST') {
