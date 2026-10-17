@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>__TITLE__</title>
+<style>
+@font-face{font-family:Bangers;src:url(data:font/ttf;base64,__BANGERS__) format("truetype");}
+:root{--ink:#111;--cream:#faf3e0;--yel:#f2c14e;--red:#c84b3c;--navy:#1b1f40;--dot:#242952}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#0d0f22;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif}
+#fit{position:relative}
+#stage{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:0 0;overflow:hidden;
+  background:var(--navy) radial-gradient(circle,var(--dot) 3px,transparent 3.5px) 0 0/28px 28px}
+h1{position:absolute;top:58px;width:100%;text-align:center;font:400 96px/1 Bangers,Impact,sans-serif;color:var(--yel);
+  -webkit-text-stroke:5px var(--ink);paint-order:stroke fill;letter-spacing:1px}
+#sub{position:absolute;top:166px;width:100%;text-align:center;font:700 30px/1.2 system-ui,sans-serif;color:var(--cream)}
+#win{position:absolute;left:40px;top:230px;width:1000px;height:1250px;overflow:hidden;border:8px solid var(--ink);
+  box-shadow:14px 14px 0 var(--ink);background:#000}
+#win img{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform,opacity}
+.punch{position:absolute;left:0;width:100%;text-align:center;font:400 104px/1 Bangers,Impact,sans-serif;color:var(--cream);
+  -webkit-text-stroke:8px var(--ink);paint-order:stroke fill;opacity:0;transition:opacity .35s,transform .35s;transform:translateY(-40px)}
+.punch.on{opacity:1;transform:none}
+.punch.last{color:var(--yel)}
+#tag{position:absolute;left:40px;top:1530px;background:var(--red);color:var(--cream);border:4px solid var(--ink);border-radius:12px;
+  font:700 36px/1 system-ui,sans-serif;padding:11px 20px;transition:opacity .3s}
+#cap{position:absolute;left:40px;top:1610px;width:1000px;background:var(--cream);border:6px solid var(--ink);border-radius:26px;
+  box-shadow:12px 12px 0 var(--ink);padding:26px 40px;text-align:center;font:400 76px/84px Bangers,Impact,sans-serif;color:var(--ink);
+  opacity:0;transition:opacity .15s}
+#cap.on{opacity:1}
+#credit{position:absolute;top:1640px;width:100%;text-align:center;font:400 64px/90px Bangers,Impact,sans-serif;color:var(--yel);
+  -webkit-text-stroke:3px var(--ink);paint-order:stroke fill;opacity:0;transition:opacity .5s}
+#credit.on{opacity:1}
+#bar{position:absolute;left:0;bottom:0;width:100%;height:18px;background:rgba(255,255,255,.15);cursor:pointer}
+#fill{height:100%;width:0;background:var(--yel)}
+#time{position:absolute;right:40px;bottom:34px;font:700 30px system-ui,sans-serif;color:var(--cream);opacity:.8}
+#play{position:absolute;left:50%;top:855px;transform:translate(-50%,-50%);width:300px;height:300px;border-radius:50%;
+  border:10px solid var(--ink);background:var(--yel);box-shadow:12px 12px 0 var(--ink);cursor:pointer;
+  font:400 76px/1 Bangers,Impact,sans-serif;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+#play svg{width:110px;height:110px}
+#play[hidden]{display:none}
+#play:focus-visible{outline:6px solid var(--cream);outline-offset:6px}
+</style></head><body>
+<div id="fit"><div id="stage">
+  <h1>__TITLE__</h1><div id="sub">__SUB__</div>
+  <div id="win"><img id="imA" alt=""><img id="imB" alt="">
+    <div class="punch" style="top:52px"></div><div class="punch" style="top:182px"></div><div class="punch last" style="top:312px"></div>
+  </div>
+  <div id="tag"></div><div id="cap"></div><div id="credit">made with Squelch</div>
+  <button id="play" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="#111"/></svg><span>PLAY</span></button>
+  <div id="time">0:00</div>
+  <div id="bar"><div id="fill"></div></div>
+</div></div>
+<audio id="au" preload="auto" src="__AUDIO__"></audio>
+<script>
+const TL=__TL__, IM=__IMGS__;
+document.querySelector('h1').style.fontSize=TL.titleSize+'px';
+const WW=1000-16, WH=1250-16; // inner size of #win (border-box minus 8px borders)
+const $=id=>document.getElementById(id), au=$('au'), A=$('imA'), B=$('imB');
+const punch=[...document.querySelectorAll('.punch')];
+punch.forEach((p,i)=>p.textContent=TL.punch[i][1]);
+A.src=IM[TL.shots[0].img].src;
+function fit(){const k=Math.min(innerWidth/1080,innerHeight/1920);const f=$('fit');f.style.width=1080*k+'px';f.style.height=1920*k+'px';$('stage').style.transform=`scale(${k})`;}
+addEventListener('resize',fit);fit();
+const ease=u=>u*u*(3-2*u), clamp=(v,a,b)=>Math.min(Math.max(v,a),b);
+function place(el,k,t){
+  const s=TL.shots[k], end=k+1<TL.shots.length?TL.shots[k+1].t:TL.duration;
+  const u=ease(clamp((t-s.t)/(end-s.t),0,1)), v=s.from.map((a,j)=>a+(s.to[j]-a)*u);
+  const im=IM[s.img], wa=WW/WH;
+  let bw=im.w/im.h>wa?im.h*wa:im.w, bh=im.w/im.h>wa?im.h:im.w/wa; bw/=v[2]; bh/=v[2];
+  const x0=clamp(v[0]*im.w-bw/2,0,im.w-bw), y0=clamp(v[1]*im.h-bh/2,0,im.h-bh), sc=WW/bw;
+  if(el.dataset.src!=im.src){el.src=im.src;el.dataset.src=im.src;el.width=im.w;el.height=im.h;}
+  el.style.transform=`translate(${-x0*sc}px,${-y0*sc}px) scale(${sc})`;
+}
+function frame(){
+  const t=au.currentTime, sh=TL.shots, half=TL.fade/2;
+  let k=0; sh.forEach((s,i)=>{if(s.t<=t)k=i;});
+  place(A,k,t); let mix=0;
+  if(k+1<sh.length&&t>sh[k+1].t-half){place(B,k+1,t);mix=.5*(t-sh[k+1].t+half)/half;}
+  else if(k>0&&t<sh[k].t+half){place(B,k-1,t);mix=1-(.5+.5*(t-sh[k].t)/half);}
+  B.style.opacity=mix; A.style.opacity=1;
+  const c=TL.captions.find(c=>c[0]<=t&&t<c[1]), cap=$('cap');
+  if(c){if(cap.textContent!==c[2])cap.textContent=c[2];cap.classList.add('on');}else cap.classList.remove('on');
+  const pre=t<TL.punch[0][0]; let ck=TL.clips[0].clock; TL.clips.forEach(x=>{if(x.start<=t+.3)ck=x.clock;});
+  $('tag').textContent='RADIO · '+ck; $('tag').style.opacity=pre?1:0;
+  punch.forEach((p,i)=>p.classList.toggle('on',t>=TL.punch[i][0]));
+  $('credit').classList.toggle('on',!pre);
+  $('fill').style.width=(100*t/TL.duration)+'%';
+  const s=Math.floor(t);$('time').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  if(!au.paused)requestAnimationFrame(frame);
+}
+const btn=$('play'), label=btn.querySelector('span');
+btn.onclick=()=>{if(au.ended)au.currentTime=0;au.play();};
+au.onplay=()=>{btn.hidden=true;requestAnimationFrame(frame);};
+au.onpause=()=>{if(!au.ended){label.textContent='PLAY';btn.setAttribute('aria-label','Play');btn.hidden=false;}};
+au.onended=()=>{label.textContent='REPLAY';btn.setAttribute('aria-label','Replay');btn.hidden=false;frame();};
+$('win').onclick=()=>{if(!au.paused)au.pause();};
+$('bar').onclick=e=>{const r=e.currentTarget.getBoundingClientRect();au.currentTime=TL.duration*(e.clientX-r.left)/r.width;frame();};
+frame();
+</script></body></html>

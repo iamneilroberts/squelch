@@ -49,3 +49,16 @@
 .kept-out summary { cursor: pointer; color: var(--ink-soft); }
 .kept-out ul { margin: 6px 0 0; padding-left: 18px; max-height: 320px; overflow: auto; line-height: 1.5; }
 .kept-out a { color: inherit; }
+
+/* Make it: style keys, the estimate, and jobs in progress. */
+.make { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.make .key, .quote .key { min-width: 0; padding: 8px 10px 6px; font-size: 10.5px; }
+.quote { margin-top: 10px; padding: 8px 12px; border: 1.5px dashed var(--ink-soft); border-radius: 3px; font-size: 13px; line-height: 1.5; }
+.quote p { margin: 0 0 6px; }
+.quote .keys { display: inline-flex; }
+.jobs { list-style: none; margin: 0; padding: 0; }
+.job { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--ledger-rule); font-size: 13px; }
+.job:last-child { border-bottom: 0; }
+.job-step { text-align: right; color: var(--blue-ink); }
+.job-bar { grid-column: 1 / -1; height: 8px; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--paper); }
+.job-bar span { display: block; height: 100%; background: var(--blue-ink); transition: width .4s; }

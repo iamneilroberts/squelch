@@ -41,7 +41,7 @@ export function createAnimation(a) {
   return id;
 }
 
-const COLS = new Set(['title', 'status', 'finished_at', 'duration_s', 'render_s', 'cost_usd', 'models', 'prompt_version', 'files', 'error', 'notes', 'rating']);
+const COLS = new Set(['title', 'format', 'status', 'finished_at', 'duration_s', 'render_s', 'cost_usd', 'models', 'prompt_version', 'files', 'error', 'notes', 'rating']);
 export function updateAnimation(id, u) {
   const keys = Object.keys(u).filter((k) => COLS.has(k));
   if (!keys.length) return;

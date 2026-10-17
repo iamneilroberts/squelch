@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>__TITLE__</title>
+<style>
+:root{--bg:#0d1230;--panel:#161d42;--ink:#fff6e3;--muted:#aab3da;--accent:#ffcf4a;--ol:#1a1433}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+#stage{position:relative;flex:1 1 auto;min-height:0;overflow:hidden;background:#1a2352}
+#svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+#cap{flex:0 0 auto;background:var(--panel);border-top:4px solid var(--ol);padding:12px 16px 10px;min-height:120px}
+.capin{max-width:860px;margin:0 auto}
+#meta{display:flex;align-items:center;gap:8px;font:700 12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+#led{width:10px;height:10px;border-radius:50%;background:#3b4166;flex:none}
+#led.on{background:#3dff8a;box-shadow:0 0 10px #3dff8a}
+#txt{margin-top:8px;font-weight:800;font-size:clamp(18px,2.2vw,25px);line-height:1.3;min-height:2.6em}
+#txt .idle{font-weight:600;color:var(--muted);font-size:.78em}
+#bar{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#090d24}
+button{appearance:none;-webkit-appearance:none;border:3px solid var(--ol);background:var(--accent);color:var(--ol);cursor:pointer;font-family:"Arial Black",system-ui,sans-serif;font-weight:900;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+#pp{font-size:14px;padding:9px 14px;min-width:96px;box-shadow:0 3px 0 var(--ol)}
+#prog{flex:1;height:16px;background:#283063;border-radius:9px;position:relative;cursor:pointer;border:2px solid var(--ol);touch-action:none}
+#fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent);border-radius:7px}
+#tm{font:600 12px ui-monospace,monospace;color:var(--muted);white-space:nowrap}
+#ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:16px 16px 7%;background:linear-gradient(rgba(8,10,30,0) 45%,rgba(8,10,30,.8))}
+#ov.hide{display:none}
+#ov.end{background:none;justify-content:flex-start;align-items:flex-end;padding:14px}
+#big{font-size:22px;padding:15px 30px;border-width:4px;box-shadow:0 5px 0 var(--ol)}
+#ov.end #big{font-size:15px;padding:9px 16px;box-shadow:0 3px 0 var(--ol)}
+#hint{margin-top:12px;font-size:13px;color:#dfe4ff;text-align:center;max-width:30em;line-height:1.4}
+#ov.end #hint{display:none}
+body.capture #ov,body.capture #bar{display:none}
+button:focus-visible,#prog:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.big{font-family:"Arial Black","Helvetica Neue",Arial,sans-serif;font-weight:900}
+.ol{paint-order:stroke;stroke:#1a1433;stroke-linejoin:round}
+.leg{animation:.5s ease-in-out infinite alternate}
+.la{animation-name:la}.lb{animation-name:lb}
+@keyframes la{from{transform:rotate(24deg)}to{transform:rotate(-24deg)}}
+@keyframes lb{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
+.tail{animation:wag .28s ease-in-out infinite alternate}
+@keyframes wag{from{transform:rotate(-16deg)}to{transform:rotate(20deg)}}
+.twirl{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.wave{animation:wave .35s ease-in-out infinite alternate}
+@keyframes wave{from{transform:rotate(-35deg)}to{transform:rotate(25deg)}}
+.still .leg{animation:none}
+#svg.paused *{animation-play-state:paused!important}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <svg id="svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" role="img" aria-label="__LABEL__">
+      <g id="world"></g>
+      <rect id="flash" x="-2000" y="-2000" width="6000" height="6000" fill="#000" opacity="0" pointer-events="none"/>
+    </svg>
+    <div id="ov">
+      <button id="big" type="button"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 2 L18 10 L4 18Z" fill="currentColor"/></svg><span>Play</span></button>
+      <div id="hint">Real scanner audio. Sound on.</div>
+    </div>
+  </div>
+  <div id="cap"><div class="capin">
+    <div id="meta"><span id="led"></span><span id="lbl"></span></div>
+    <div id="txt" aria-live="off"></div>
+  </div></div>
+  <div id="bar">
+    <button id="pp" type="button">Play</button>
+    <div id="prog" role="slider" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><div id="fill"></div></div>
+    <span id="tm">0:00 / 0:00</span>
+  </div>
+  <audio id="au" preload="auto" src="__AUDIO__"></audio>
+</div>
+<script>
+(() => {
+'use strict';
+const TL = __TIMELINE__;
+const C = TL.clips, END = TL.end, TOTAL = TL.total;
+const NS = 'http://www.w3.org/2000/svg', OL = '#1a1433';
+const $ = id => document.getElementById(id);
+const au = $('au'), svg = $('svg'), world = $('world'), flash = $('flash');
+function rng(s){return()=>{s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const c01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+const ease = x => { x = c01(x); return x * x * (3 - 2 * x); };
+const pop = x => { x = c01(x); return x >= 1 ? 1 : x < .7 ? (x / .7) * 1.15 : 1.15 - .15 * ((x - .7) / .3); };
+const lerp = (a, b, k) => a + (b - a) * k;
+const P = (el, x, y, s = 1, fl = false, r = 0, sy = s) => el && el.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${r.toFixed(2)}) scale(${(fl ? -s : s).toFixed(3)} ${sy.toFixed(3)})`);
+const vis = (el, on) => el && el.setAttribute('visibility', on ? 'visible' : 'hidden');
+const bob = (T, ph = 0) => -Math.abs(Math.sin((T + ph) * Math.PI * 2)) * 5;
+const sw = w => `stroke="${OL}" stroke-width="${w}"`;
+const shots = [];
+const q = (g, k) => g.querySelector(`[data-k="${k}"]`);
+const qa = (g, k) => [...g.querySelectorAll(`[data-k="${k}"]`)];
+const at = (k, html) => `<g data-k="${k}">${html}</g>`;
+const look = (lt, a, b) => Math.min(ease((lt - a) / .3), ease((b - lt) / .3));
+function shot(t0, t1, html, init) { const g = document.createElementNS(NS, 'g'); g.innerHTML = html; g.setAttribute('display', 'none'); world.appendChild(g); shots.push({ t0, t1, g, update: init(g) || (() => {}) }); }
+function defs(html) { const d = document.createElementNS(NS, 'defs'); d.innerHTML = html; svg.insertBefore(d, svg.firstChild); }
+
+// ---------- scenes (written by the Studio's model) ----------
+__SCENES__
+// ---------- player ----------
+shots.sort((a, b) => a.t0 - b.t0);
+let cur = null, capKey = '';
+const txt = $('txt'), lbl = $('lbl'), led = $('led'), fill = $('fill'), tm = $('tm'), prog = $('prog');
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const total = () => (isFinite(au.duration) && au.duration > 0 ? au.duration : TOTAL);
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+function captions(t) {
+  const ci = C.findIndex(c => t >= c.start && t < c.start + c.dur + .45);
+  led.classList.toggle('on', ci >= 0 && t < C[ci].start + C[ci].dur);
+  const cap = TL.captions.find(c => t >= c[0] && t < c[1] + .3);
+  const key = cap ? cap[0] : t < C[0].start ? 'pre' : t >= END ? 'end' : capKey;
+  if (key === capKey) return;
+  capKey = key;
+  lbl.textContent = ci >= 0 ? `${C[ci].clock} · ${TL.channel}` : TL.channel;
+  txt.innerHTML = cap ? esc(cap[2]) : key === 'end' ? esc(TL.punch.join(' · ')) : `<span class="idle">${esc(TL.title)} — real radio, captioned.</span>`;
+}
+
+function render(t) {
+  const sh = shots.find(s => t >= s.t0 && t < s.t1) || shots[shots.length - 1];
+  if (cur !== sh) { if (cur) cur.g.setAttribute('display', 'none'); sh.g.removeAttribute('display'); cur = sh; }
+  sh.update(t - sh.t0, t);
+  flash.setAttribute('opacity', sh.t0 === 0 ? 0 : Math.max(0, .55 * (1 - (t - sh.t0) / .22)).toFixed(2));
+  captions(t);
+  const tt = total(); fill.style.width = (100 * Math.min(1, t / tt)).toFixed(2) + '%'; prog.setAttribute('aria-valuenow', Math.round(100 * t / tt)); tm.textContent = `${fmt(t)} / ${fmt(tt)}`;
+}
+
+function fit() { const r = $('stage').getBoundingClientRect(); svg.setAttribute('viewBox', r.width / r.height < 1.05 ? '180 0 640 700' : '0 0 1000 700'); }
+addEventListener('resize', fit); fit();
+
+let raf = 0;
+const loop = () => { render(au.currentTime); raf = au.paused ? 0 : requestAnimationFrame(loop); };
+const ov = $('ov'), big = $('big'), pp = $('pp');
+function toggle() { if (au.ended || au.currentTime >= total() - .05) au.currentTime = 0; if (au.paused) au.play().catch(() => {}); else au.pause(); }
+big.addEventListener('click', toggle); pp.addEventListener('click', toggle);
+au.addEventListener('play', () => { ov.className = 'hide'; pp.textContent = 'Pause'; svg.classList.remove('paused'); if (!raf) raf = requestAnimationFrame(loop); });
+au.addEventListener('pause', () => { pp.textContent = au.ended ? 'Replay' : 'Play'; svg.classList.add('paused'); render(au.currentTime); });
+au.addEventListener('ended', () => { ov.className = 'end'; big.lastChild.textContent = 'Replay'; pp.textContent = 'Replay'; });
+au.addEventListener('seeked', () => { if (au.paused) render(au.currentTime); });
+function seekFrom(ev) { const r = prog.getBoundingClientRect(); au.currentTime = c01((ev.clientX - r.left) / r.width) * total(); render(au.currentTime); }
+prog.addEventListener('pointerdown', ev => { prog.setPointerCapture(ev.pointerId); seekFrom(ev); });
+prog.addEventListener('pointermove', ev => { if (prog.hasPointerCapture(ev.pointerId)) seekFrom(ev); });
+prog.addEventListener('keydown', ev => { const d = ev.key === 'ArrowRight' ? 5 : ev.key === 'ArrowLeft' ? -5 : 0; if (d) { au.currentTime = Math.max(0, Math.min(total(), au.currentTime + d)); ev.preventDefault(); } });
+addEventListener('keydown', ev => { if (ev.key === ' ' && ev.target === document.body) { ev.preventDefault(); toggle(); } });
+render(0);
+// One clock drives everything: render(t) draws any moment, so the Studio can step it frame by frame for the MP4.
+window.__studio = { render, total: TOTAL, shots: () => shots.map(s => [s.t0, s.t1]),
+  capture() { document.body.classList.add('capture'); fit(); },
+  frame(t) { render(t); for (const a of document.getAnimations()) { a.pause(); a.currentTime = t * 1000; } } };
+})();
+</script>
+</body>
+</html>

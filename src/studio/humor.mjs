@@ -19,7 +19,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS studio_humor (
 /* Content guard: only light stories. Never injuries, deaths, victims, arrests, medical calls, minors,
    or anything alerting at 0.5 or more. Words are matched anywhere in the story, so a guarded story
    stays out even if the model would have called it safe. */
-const SERIOUS = /\b(injur\w*|hurt|wound\w*|bleed\w*|blood\w*|dead|death\w*|died|dies|dying|deceased|fatal\w*|doa|cpr|coroner|unresponsive|not breathing|overdos\w*|victim\w*|arrest\w*|custody|handcuff\w*|warrant\w*|jail\w*|juvenile\w*|minors?|child\w*|kids?|infant\w*|bab(y|ies)|toddler\w*|teen\w*|student\w*|school\w*|shoot\w*|shots?|gun\w*|firearm\w*|weapon\w*|stab\w*|knife|assault\w*|domestic|suicid\w*|rape|sexual\w*|abuse\w*|missing person|amber alert|ambulance\w*|ems|medic\w*|paramedic\w*|hospital\w*|patient\w*|seizure\w*|cardiac|chest pain|stroke|trauma\w*|entrap\w*|personal injury|pursuit)\b/i;
+const SERIOUS = /\b(injur\w*|hurt|wound\w*|bleed\w*|blood\w*|dead|death\w*|died|dies|dying|deceased|fatal\w*|doa|cpr|coroner|unresponsive|not breathing|overdos\w*|victim\w*|arrest\w*|custody|handcuff\w*|warrant\w*|jail\w*|juvenile\w*|minors?|child\w*|kids?|infant\w*|bab(y|ies)|toddler\w*|teen\w*|student\w*|school\w*|shoot\w*|shots?|gun\w*|glock\w*|pistol\w*|rifle\w*|revolver\w*|9mm|ammo|ammunition|firearm\w*|weapon\w*|stab\w*|knife|assault\w*|domestic|suicid\w*|rape|sexual\w*|abuse\w*|missing person|amber alert|ambulance\w*|ems|medic\w*|paramedic\w*|hospital\w*|patient\w*|seizure\w*|cardiac|chest pain|stroke|trauma\w*|entrap\w*|personal injury|pursuit)\b/i;
 
 const storyText = (t) => [t.subject, t.why, ...t.facts.map((f) => `${f.label}: ${f.value}`), ...t.events.flatMap((e) => [e.note, e.transcript])].filter(Boolean).join('\n');
 

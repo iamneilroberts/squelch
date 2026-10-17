@@ -2,6 +2,7 @@
 import { listAnimations, getAnimation, deleteAnimation, updateAnimation, animDir } from './library.mjs';
 import { suggestions } from './humor.mjs';
 import { CapError, spentToday, dailyCap } from './spend.mjs';
+import { estimateJob, queueJob, activeJobs, JobError } from './jobs.mjs';
 
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'animation';
 
@@ -16,6 +17,15 @@ export async function studioRoute(req, res, url, { json, serveFile, readJson }) 
       return json(res, { ...await suggestions({ refresh: p.endsWith('refresh') }), today: spentToday(), cap: dailyCap() });
     } catch (e) {
       return json(res, { error: e.message }, e instanceof CapError ? 429 : 502);
+    }
+  }
+  if (p === 'jobs' && req.method === 'GET') return json(res, { jobs: activeJobs(), today: spentToday(), cap: dailyCap() });
+  if ((p === 'estimate' || p === 'jobs') && req.method === 'POST') {
+    const { thread_id, style } = await readJson(req);
+    try {
+      return json(res, p === 'estimate' ? await estimateJob(thread_id, style) : await queueJob(thread_id, style), p === 'jobs' ? 202 : 200);
+    } catch (e) {
+      return json(res, { error: e.message }, e instanceof JobError ? e.code : 502);
     }
   }
   const m = p.match(/^animations\/(\d+)(?:\/(rate|files\/([\w.-]+)))?$/);

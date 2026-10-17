@@ -1,0 +1,148 @@
+// Studio jobs: one at a time, server-side. Each runs script → pictures → render → files, metering every
+// model call and checking the daily cap before each one. Progress lives in memory; the row is the record.
+import { rmSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { db, getThread } from '../db.mjs';
+import { chatJson } from '../ai/llm.mjs';
+import { withTrace, priceOf } from '../meter.mjs';
+import { sources } from '../config.mjs';
+import { createAnimation, updateAnimation, getAnimation, animDir, scanFiles } from './library.mjs';
+import { guard, safeScore } from './humor.mjs';
+import { MODELS, estimate, checkCap, spentToday, dailyCap } from './spend.mjs';
+import { STYLES, SCRIPT_SCHEMA, scriptPrompt } from './script.mjs';
+import { pickClips, buildTrack } from './track.mjs';
+import { makeComic } from './comic.mjs';
+import { makeCartoon } from './cartoon.mjs';
+import { chromePath } from './browser.mjs';
+
+const PROMPT_VERSION = { comic: 'comic-1', cartoon: 'cartoon-1' };
+const PANELS = 5;
+const progress = new Map(); // id → { step, frac }
+
+// A server restart loses the job in progress; queued ones are picked up again.
+db.prepare(`UPDATE animations SET status = 'failed', error = 'The server restarted during the job', finished_at = ? WHERE status = 'running'`).run(new Date().toISOString());
+
+export class JobError extends Error { constructor(msg, code) { super(msg); this.code = code; } }
+
+// The story, if the content guard lets it be animated.
+function storyFor(threadId) {
+  const t = getThread(Number(threadId));
+  const why = guard(t);
+  if (why) throw new JobError(`The content guard keeps this story out (${why})`, 403);
+  if (!safeScore(t)) throw new JobError('This story isn’t scored as light and safe in its current form (Refresh scores new and changed stories)', 403);
+  return t;
+}
+
+// What a job should cost, call by call, from per-token prices.
+export async function estimateJob(threadId, style) {
+  if (!STYLES[style]) throw new JobError('unknown style', 400);
+  const t = storyFor(threadId);
+  const kind = STYLES[style].kind;
+  const said = t.events.map((e) => e.transcript || '').join(' ').length;
+  const lines = [{ purpose: 'studio:script', model: MODELS.script(), usd: await estimate(MODELS.script(), { inTok: 1800 + said / 3.5, outTok: 2500 }) }];
+  if (kind === 'comic') lines.push({ purpose: 'studio:image', model: MODELS.image(), calls: PANELS, usd: PANELS * await estimate(MODELS.image(), { inTok: 2200, imageTok: 1290 }) });
+  else lines.push({ purpose: 'studio:cartoon', model: MODELS.cartoon(), usd: await estimate(MODELS.cartoon(), { inTok: 9000, outTok: 14000 }) });
+  const usd = lines.reduce((a, l) => a + l.usd, 0);
+  const today = spentToday();
+  return {
+    kind, style, usd, lines, today, cap: dailyCap(), fits: today + usd <= dailyCap(),
+    format: kind === 'comic' ? 'mp4+web' : chromePath() ? 'mp4+web' : 'web',
+    note: kind === 'cartoon' ? 'A cartoon that fails its check is rewritten once, which can roughly double its cost.' : 'A panel that comes back without a picture is redrawn once.',
+  };
+}
+
+export async function queueJob(threadId, style) {
+  const est = await estimateJob(threadId, style);
+  if (!est.fits) throw new JobError(`That would pass today’s Studio cap: $${est.today.toFixed(3)} spent, about $${est.usd.toFixed(3)} more, cap $${est.cap.toFixed(2)} (STUDIO_DAILY_USD)`, 429);
+  const t = getThread(Number(threadId));
+  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind] });
+  setImmediate(pump);
+  return getAnimation(id);
+}
+
+export const activeJobs = () => db.prepare(`SELECT id, title, style, status, created_at FROM animations WHERE status IN ('queued', 'running') ORDER BY id`).all()
+  .map((r) => ({ ...r, progress: progress.get(r.id) || null }));
+
+let busy = false;
+async function pump() {
+  if (busy) return;
+  const next = db.prepare(`SELECT id FROM animations WHERE status = 'queued' ORDER BY id LIMIT 1`).get();
+  if (!next) return;
+  busy = true;
+  try { await run(next.id); } finally { busy = false; progress.delete(next.id); setImmediate(pump); }
+}
+setTimeout(pump, 5e3);
+
+async function run(id) {
+  const row = getAnimation(id);
+  const dir = animDir(id);
+  mkdirSync(dir, { recursive: true });
+  updateAnimation(id, { status: 'running', error: null });
+  const models = new Map(); // `${model}\n${purpose}` → { model, purpose, calls, cost }
+  let cost = 0;
+  const job = {
+    id, dir,
+    models: { image: MODELS.image(), cartoon: MODELS.cartoon() },
+    progress: (step, frac = null) => progress.set(id, { step, frac }),
+    // One paid call: refused first if it could pass the cap; its actual cost (usage.cost) is recorded.
+    async call(purpose, model, tokens, fn, costOf) {
+      checkCap(await estimate(model, tokens));
+      const key = `${model}\n${purpose}`;
+      const m = models.get(key) || { model, purpose, calls: 0, cost: 0 };
+      models.set(key, m);
+      m.calls++;
+      try {
+        const r = await fn();
+        const c = Number(costOf(r)) || 0;
+        m.cost += c; cost += c;
+        return r;
+      } finally {
+        updateAnimation(id, { models: [...models.values()].map((x) => ({ ...x, cost: +x.cost.toFixed(6) })), cost_usd: +cost.toFixed(6) });
+      }
+    },
+  };
+  try {
+    await withTrace({ kind: 'studio', label: row.title, source_id: row.source_id }, async () => {
+      const t = storyFor(row.thread_id); // checked again: the story may have changed since it was queued
+      const kind = STYLES[row.style].kind;
+      const src = sources.find((s) => s.id === t.source_id);
+      const subtitle = `${src?.area || src?.name || t.source_id} · real radio`;
+
+      job.progress('gathering the radio clips');
+      const clips = await pickClips(t);
+      if (!clips.length) throw new Error('None of the story’s recordings are left');
+
+      job.progress('writing the script');
+      const { system, user } = scriptPrompt(t, clips, row.style);
+      const model = MODELS.script();
+      const { data: script } = await job.call('studio:script', model, { inTok: (system.length + user.length) / 3.5, outTok: 2500 },
+        () => chatJson({ model, system, user, schema: SCRIPT_SCHEMA, name: 'script', maxTokens: 8000, purpose: 'studio:script' }),
+        (r) => r.costUsd ?? priceOf(model.split('/')[1].replaceAll('.', '-'), r.inTok, r.outTok)); // direct Anthropic calls report no cost
+      updateAnimation(id, { title: script.title || row.title });
+      writeFileSync(join(dir, 'script.json'), JSON.stringify(script, null, 1));
+
+      // Only the clips the script kept, in order, re-indexed for captions and panels.
+      const keep = [...new Set(script.use)].filter((i) => clips[i]).sort((a, b) => a - b);
+      const used = keep.length ? keep.map((i) => clips[i]) : clips;
+      const remap = (i) => Math.max(0, keep.filter((k) => k <= i).length - 1); // a dropped clip's panel starts on the kept one before it
+      script.captions = script.captions.map((c) => ({ ...c, clip: keep.length ? keep.indexOf(c.clip) : c.clip })).filter((c) => c.clip >= 0);
+      script.panels = script.panels.map((p) => ({ ...p, from_clip: keep.length ? remap(p.from_clip) : p.from_clip }));
+
+      job.progress('mixing the audio');
+      const file = join(dir, 'track.mp3');
+      const track = { ...await buildTrack(used, file, kind === 'comic' ? {} : { intro: 1.5, tail: 5 }), file };
+
+      const made = kind === 'comic' ? await makeComic(job, { script, track, style: row.style, subtitle }) : await makeCartoon(job, { script, track, subtitle });
+      rmSync(join(dir, 'work'), { recursive: true, force: true });
+      const files = scanFiles(id);
+      updateAnimation(id, {
+        status: 'done', finished_at: new Date().toISOString(), duration_s: made.duration_s, render_s: made.render_s, files, notes: made.notes ?? null,
+        format: files.some((f) => f.kind === 'mp4') ? 'mp4+web' : 'web',
+      });
+    });
+  } catch (e) {
+    console.warn(`[studio] job ${id} failed:`, e.message);
+    rmSync(join(dir, 'work'), { recursive: true, force: true });
+    updateAnimation(id, { status: 'failed', error: String(e.message).slice(0, 500), finished_at: new Date().toISOString(), files: scanFiles(id) });
+  }
+}

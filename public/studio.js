@@ -27,6 +27,11 @@ function suggestion(s) {
       <p class="pitch">${esc(s.pitch)}</p>
       <p class="anim-sub"><a href="/?story=${s.thread_id}">${esc(s.subject)}</a> · ${esc(s.source_id)} · ${s.clips} clip${s.clips === 1 ? '' : 's'} · ${ago(s.updated_at)}${s.stale ? ' · <i>changed since scored</i>' : ''}</p>
       <p class="why">${esc(s.why)}</p>
+      <div class="make">
+        <div class="keys" role="group" aria-label="Style">${Object.entries(STYLE).map(([k, n]) => `<button type="button" class="key" data-style="${k}" aria-pressed="${k === 'sunday'}">${n}${k === 'vector' ? ' cartoon' : ''}</button>`).join('')}</div>
+        <div class="keys"><button type="button" class="key" data-make>Make it</button></div>
+      </div>
+      <div class="quote" hidden></div>
     </div>
   </li>`;
 }
@@ -51,6 +56,47 @@ async function loadSuggestions(refresh) {
   finally { key.disabled = false; key.textContent = 'Refresh'; }
 }
 $('suggest-refresh').addEventListener('click', () => loadSuggestions(true));
+
+// Make it: pick a style, see the estimate, then queue.
+const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body) });
+$('suggests').addEventListener('click', async (e) => {
+  const li = e.target.closest('.suggest');
+  if (!li) return;
+  const quote = li.querySelector('.quote');
+  const style = e.target.closest('[data-style]');
+  if (style) { for (const b of li.querySelectorAll('[data-style]')) b.setAttribute('aria-pressed', String(b === style)); quote.hidden = true; return; }
+  const body = { thread_id: Number(li.dataset.thread), style: li.querySelector('[data-style][aria-pressed="true"]').dataset.style };
+  if (e.target.closest('[data-make]')) {
+    quote.hidden = false;
+    quote.innerHTML = '<span class="na">Pricing it…</span>';
+    try {
+      const q = await post('estimate', body);
+      quote.innerHTML = `<p><b>${q.kind === "comic" ? "Comic" : "Cartoon"}, ${esc(STYLE[q.style].toLowerCase())}</b> · ${esc(FORMAT[q.format])} · about <b>${usd(q.usd)}</b>
+        <span class="na">(${q.lines.map((l) => `${PURPOSE[l.purpose]}${l.calls ? ` ×${l.calls}` : ''} ${usd(l.usd)}`).join(' · ')})</span></p>
+        <p class="na">${esc(q.note)} Studio spend today ${usd(q.today)} of ${usd(q.cap)}.</p>
+        ${q.fits ? '<div class="keys"><button type="button" class="key" data-queue>Queue it</button></div>' : `<p class="err">That would pass today’s cap (STUDIO_DAILY_USD).</p>`}`;
+    } catch (err) { quote.innerHTML = `<p class="err">${esc(err.message)}</p>`; }
+  }
+  if (e.target.closest('[data-queue]')) {
+    try { await post('jobs', body); quote.hidden = true; loadJobs(); } catch (err) { quote.innerHTML = `<p class="err">${esc(err.message)}</p>`; }
+  }
+});
+
+/* ───────── Jobs ───────── */
+let polling = 0, hadJobs = false;
+async function loadJobs() {
+  clearTimeout(polling);
+  const { jobs } = await api('jobs').catch(() => ({ jobs: [] }));
+  $('jobs-page').hidden = !jobs.length;
+  $('jobs').innerHTML = jobs.map((j) => `<li class="job">
+    <b>${esc(j.title)}</b> <span class="na">· ${esc(STYLE[j.style])}</span>
+    <span class="job-step">${j.status === 'queued' ? 'Waiting its turn' : esc(j.progress?.step || 'Starting')}${j.progress?.frac != null ? ` · ${Math.round(j.progress.frac * 100)}%` : ''}</span>
+    <span class="job-bar"><span style="width:${j.progress?.frac != null ? Math.round(j.progress.frac * 100) : 0}%"></span></span>
+  </li>`).join('');
+  if (hadJobs && jobs.length < hadJobs) loadLibrary();
+  hadJobs = jobs.length;
+  if (jobs.length) polling = setTimeout(loadJobs, 2000);
+}
 
 /* ───────── Library ───────── */
 const fileUrl = (a, f, dl) => `/api/studio/animations/${a.id}/files/${encodeURIComponent(f.name)}${dl ? '?download' : ''}`;
@@ -122,4 +168,4 @@ $('library').addEventListener('click', async (e) => {
   }
 });
 
-fetch('/api/config').then((r) => r.json()).then((c) => { TZ = c.station?.timezone || TZ; }).catch(() => {}).finally(() => { loadSuggestions(false); loadLibrary(); });
+fetch('/api/config').then((r) => r.json()).then((c) => { TZ = c.station?.timezone || TZ; }).catch(() => {}).finally(() => { loadSuggestions(false); loadLibrary(); loadJobs(); });
