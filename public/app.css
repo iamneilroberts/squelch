@@ -209,7 +209,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .station-freq { font-family: var(--font-type); font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
 .station-name { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; }
-.station.link .station-freq::after { content: ' ↗'; font-size: 11px; }
+.station.link .station-freq::after {
+  content: ''; display: inline-block; width: 10px; height: 10px; margin-left: 3px; background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3.5 8.5l5-5M4.5 3.5h4v4' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
 .station:hover { background: oklch(1 0 0 / .3); }
 .station[aria-pressed="true"] { color: var(--needle); }
 .station.dimmed { opacity: .3; }
@@ -368,6 +371,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .tkey { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; width: 36px; padding: 8px 0 6px; font-size: 13px; letter-spacing: 0; line-height: 1; }
 /* Engraved symbols: ink-filled with a light lip below, like lettering stamped into bakelite. */
 .ico { width: 1em; height: 1em; fill: currentColor; vertical-align: -.12em; flex: none; }
+.ico.arrow { width: .8em; height: .8em; vertical-align: 0; }
+.badge-caps .ico.arrow { margin-left: -.3em; }
 .key .ico { width: 12px; height: 12px; filter: drop-shadow(0 1px 0 oklch(1 0 0 / .8)); }
 .scan-key .ico { width: 10px; height: 10px; }
 .tkey:disabled { opacity: .45; cursor: default; transform: translateY(1px); box-shadow: 0 1px 0 var(--bakelite-3); }
@@ -497,6 +502,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .bell svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 0 oklch(1 0 0 / .8)); }
 .bell .lamp { width: 7px; height: 7px; }
+.update-key { right: auto; left: 8px; font: 700 10px var(--font-type); letter-spacing: .06em; text-transform: uppercase; color: var(--red-ink); }
 .bell[aria-pressed="true"] .lamp { background: var(--lamp-amber); box-shadow: 0 0 6px var(--lamp-amber); }
 .notify-msg { margin: 12px 0; font-size: 13.5px; line-height: 1.5; }
 .notify-msg a { color: var(--blue-ink); }

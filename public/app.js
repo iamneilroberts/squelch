@@ -2,6 +2,7 @@
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // Engraved key symbols. Inline SVG, so phones can't swap in colour emoji for ▶ and friends.
+const ICON_ARROW = '<svg class="ico arrow" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'; // ↗ — iOS turns the character into a blue emoji
 const ICON_PLAY = '<svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 1.2v9.6L10.5 6z"/></svg>';
 let TZ = Intl.DateTimeFormat().resolvedOptions().timeZone; // replaced by the station's time zone at boot
 const hhmm = (iso) => new Date(iso).toLocaleTimeString('en-US', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false });
@@ -185,7 +186,7 @@ function tune(s) {
     radio.removeAttribute('src');
     radio.load();
     setLit(false);
-    const page = `<a href="${esc(s.listenUrl)}" target="_blank" rel="noopener">listen on ${s.listenUrl.includes('broadcastify') ? 'Broadcastify' : 'the feed’s page'} ↗</a>`;
+    const page = `<a href="${esc(s.listenUrl)}" target="_blank" rel="noopener">listen on ${s.listenUrl.includes('broadcastify') ? 'Broadcastify' : 'the feed’s page'} ${ICON_ARROW}</a>`;
     $('now-playing').innerHTML = s.streamUrl
       ? `<strong>${esc(s.short)}</strong> — ${page}, or <button type="button" class="linkish" id="bcfy-open">listen here with your Broadcastify Premium login</button>`
       : `<strong>${esc(s.short)}</strong> — ${page}`;
@@ -206,7 +207,7 @@ function tune(s) {
 function noSignal(s) {
   setLit(false);
   $('now-playing').innerHTML = s
-    ? `No signal from <strong>${esc(s.short)}</strong>. The direct stream didn't answer — <a href="${esc(s.listenUrl)}" target="_blank" rel="noopener">listen on the feed's page ↗</a>`
+    ? `No signal from <strong>${esc(s.short)}</strong>. The direct stream didn't answer — <a href="${esc(s.listenUrl)}" target="_blank" rel="noopener">listen on the feed's page ${ICON_ARROW}</a>`
     : 'That recording has expired.';
 }
 
@@ -376,7 +377,7 @@ radio.addEventListener('playing', () => {
     $('now-playing').innerHTML = radio.dataset.label;
   } else if (state.tuned) {
     const s = state.tuned;
-    $('now-playing').innerHTML = `Receiving <strong>${esc(s.short)}</strong> · ${esc(s.name)} · via <a href="${esc(s.listenUrl)}" target="_blank" rel="noopener">Broadcastify ↗</a>`;
+    $('now-playing').innerHTML = `Receiving <strong>${esc(s.short)}</strong> · ${esc(s.name)} · via <a href="${esc(s.listenUrl)}" target="_blank" rel="noopener">Broadcastify ${ICON_ARROW}</a>`;
   }
 });
 radio.addEventListener('pause', () => setLit(false));
@@ -1205,6 +1206,15 @@ $('notify-guests').addEventListener('change', async (e) => {
   e.target.checked = Boolean(notify.status.guests);
 });
 
+/* ───────── Updates: a Home Screen app has no reload button, so offer one when a new version is installed ───────── */
+async function checkVersion() {
+  const r = await getJson('/api/version').catch(() => null);
+  if (r?.version && state.version && r.version !== state.version) $('btn-update').hidden = false;
+}
+$('btn-update').addEventListener('click', () => location.reload());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkVersion(); });
+setInterval(checkVersion, 5 * 60e3);
+
 /* ───────── Your own Broadcastify Premium login (for visitors who aren't the owner) ───────── */
 document.addEventListener('click', (e) => {
   if (e.target.id === 'bcfy-open') { $('bcfy-form').hidden = false; $('bcfy-form').elements.username.focus(); }
@@ -1283,6 +1293,7 @@ async function boot() {
   for (const i of incidents) state.incidents.set(i.id, i);
   state.calls = calls;
   state.digests = digests;
+  state.version = config.version;
   ccIdle();
   buildSelector();
   setRegion(location.hash.slice(1) || store.get('pcm.region') || 'all', { fly: false });

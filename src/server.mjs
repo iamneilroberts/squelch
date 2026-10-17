@@ -50,6 +50,9 @@ const hideFrom = (remote) => remote && !settings.tunnelTranscripts;
 const canEdit = (req) => !isRemote(req) || settings.owners.includes(String(req.headers['cf-access-authenticated-user-email'] || '').toLowerCase());
 
 configureNotify({ allowGuests: () => settings.guestNotifications });
+// The page's own files, newest change first. An open page (often a Home Screen app, which has no
+// reload button) compares it with the version it loaded and offers to reload.
+const appVersion = () => String(Math.round(Math.max(...['index.html', 'app.js', 'app.css', 'sw.js'].map((f) => statSync(join('public', f)).mtimeMs))));
 
 const json = (res, body, code = 200) => {
   res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -197,7 +200,8 @@ createServer(async (req, res) => {
   const hidden = hideFrom(remote);
   const out = (body, code) => json(res, hidden ? scrub(body) : body, code);
   try {
-    if (p === '/api/config') return json(res, { station, regions, viewer: { remote, transcripts: !hidden, canShare: canEdit(req), canListen: canEdit(req) || Boolean(sessionCreds(req)), broadcastifyUser: sessionCreds(req)?.user || null, sharing: settings.tunnelTranscripts }, sources: sources.map((s) => ({ ...s, status: status[s.id] || { state: 'standby' } })) });
+    if (p === '/api/version') return json(res, { version: appVersion() });
+    if (p === '/api/config') return json(res, { version: appVersion(), station, regions, viewer: { remote, transcripts: !hidden, canShare: canEdit(req), canListen: canEdit(req) || Boolean(sessionCreds(req)), broadcastifyUser: sessionCreds(req)?.user || null, sharing: settings.tunnelTranscripts }, sources: sources.map((s) => ({ ...s, status: status[s.id] || { state: 'standby' } })) });
     if (p === '/api/settings' && req.method === 'POST') {
       if (!canEdit(req)) return json(res, { error: 'Only the owner can change this' }, 403);
       const body = JSON.parse(await new Promise((r) => { let s = ''; req.on('data', (d) => { s += d; }); req.on('end', () => r(s || '{}')); }));
