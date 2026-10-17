@@ -1304,12 +1304,12 @@ async function widerCatchup() {
   const id = storyId, b = $('story-wider'), out = $('story-wider-out');
   b.disabled = true;
   b.textContent = 'Looking across channels…';
-  const r = await postJson(`/api/threads/${id}/wider`, {}).catch(() => null);
+  const r = await postJson(`/api/threads/${id}/wider`, {}).catch((e) => ({ error: e.status && /\D/.test(e.message) ? e.message : '' })); // the server's reason, e.g. no model key
   b.disabled = false;
   b.textContent = 'Wider catch-up';
   if (storyId !== id) return;
   out.hidden = false;
-  if (!r?.clips) return void (out.innerHTML = '<p class="story-summary">Couldn’t look across channels just now. Try again in a minute.</p>');
+  if (!r?.clips) return void (out.innerHTML = `<p class="story-summary">Couldn’t look across channels${r?.error ? `: ${esc(r.error)}` : ' just now. Try again in a minute.'}</p>`);
   if (!r.related) return void (out.innerHTML = '<p class="story-summary">Nothing on other channels ties in to this story yet.</p>');
   widerClips = r.clips.map((c, i, all) => ({ src: `/audio/${encodeURIComponent(c.audio)}`, label: `${i + 1} of ${all.length} · ${hhmm(c.at)} ${state.byId.get(c.source_id)?.short || ''}` }));
   out.innerHTML = `<p class="story-summary">${esc(r.summary)}</p><ol class="story-log">${r.clips.map((c, i) => `<li><time>${hhmm(c.at)}</time>`
