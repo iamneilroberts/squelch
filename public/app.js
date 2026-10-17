@@ -713,8 +713,9 @@ function syncTransport() {
   $('btn-stop').disabled = !loaded;
   $('btn-pause').disabled = !loaded;
   $('btn-pause').setAttribute('aria-pressed', String(loaded && radio.paused && !radio.ended)); // latches down while paused, like a tape-deck pause key
-  $('btn-pause').setAttribute('aria-label', radio.paused ? 'Resume' : 'Pause');
-  $('btn-pause').title = radio.paused ? 'Resume' : 'Pause';
+  const resumes = loaded && radio.paused;
+  $('btn-pause').setAttribute('aria-label', resumes ? 'Resume' : 'Pause');
+  $('btn-pause').title = resumes ? 'Resume' : 'Pause';
   $('progress').hidden = !seekable;
   if (seekable) $('progress-bar').style.width = `${(radio.currentTime / radio.duration) * 100}%`;
   const live = loaded && !seekable && radio.dataset.kind === 'live';
