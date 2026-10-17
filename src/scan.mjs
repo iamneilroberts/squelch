@@ -6,13 +6,14 @@
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { bus } from './ingest/pipeline.mjs';
-import { scanCall, scanCallsSince } from './db.mjs';
+import { getThread, scanCall, scanCallsSince } from './db.mjs';
 
 const RATE = 16000, KBPS = 32; // the clips' own format (src/ingest/stream.mjs)
 const FRAME_S = 576 / RATE;    // an MPEG-2 Layer III frame holds 576 samples
 const LEAD = 3;                // seconds of audio kept written ahead of playback: enough for a browser to start promptly
 const LINGER = 2.5;            // after a transmission only a reply (or priority traffic) plays for this long, like the page's old scan
 const QUEUE_MAX = 20;          // stay close to live
+const CATCHUP_MAX = 30;        // a story's latest transmissions, at most
 
 const BITRATES = { 1: [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320], 2: [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160] };
 const RATES = { 3: [44100, 48000, 32000], 2: [22050, 24000, 16000], 0: [11025, 12000, 8000] };
@@ -65,31 +66,53 @@ function apply(s, settings) {
 }
 const eligible = (s, c) => (s.hold ? c.source_id === s.hold : s.channels.has(c.source_id));
 
-function enqueue(s, call, { replay = false } = {}) {
-  if (!call?.audio || (!replay && !eligible(s, call))) return;
-  const item = { call, replay, frames: null };
-  if (replay) s.queue.unshift(item);
-  else s.queue.push(item);
-  if (s.queue.length > QUEUE_MAX) s.queue.splice(s.queue.findIndex((q) => !q.replay), 1); // the oldest
+function enqueue(s, call) {
+  if (!call?.audio || !eligible(s, call)) return;
+  const item = { call, frames: null };
+  s.queue.push(item);
+  const live = s.queue.filter((q) => !q.tag);
+  if (live.length > QUEUE_MAX) s.queue = s.queue.filter((q) => q !== live[0]); // the oldest
   load(call.audio).then((f) => {
     item.frames = f;
-    // A replay, or priority traffic over an ordinary channel, cuts off what's playing.
-    const cur = s.current?.call;
-    if (cur && (replay || (s.pri.has(call.source_id) && !s.pri.has(cur.source_id)))) s.current = null;
+    // Priority traffic over an ordinary channel cuts off what's playing.
+    if (s.current && s.pri.has(call.source_id) && !s.pri.has(s.current.call.source_id)) cut(s);
   }, () => { s.queue = s.queue.filter((q) => q !== item); }); // clip expired or unreadable: skip it
 }
 
-// Next transmission: a replay, then priority channels, then oldest first. While lingering on a channel
-// after its transmission, only a reply on that channel or priority traffic may play.
+// Stop what's playing. A replay or catch-up transmission cut off this way starts again afterwards
+// (from queue position `at`).
+function cut(s, at = 0) {
+  const { call, tag, frames } = s.current;
+  if (tag) s.queue.splice(at, 0, { call, tag, frames });
+  s.current = null;
+}
+
+// A replay or a catch-up: transmissions the listener asked for, played in order ahead of anything new,
+// whatever channels are scanned. The first one cuts off what's playing.
+function enqueueList(s, calls, tag) {
+  const items = calls.filter((c) => c?.audio).map((call, i, all) => ({ call, tag: tag(i, all.length), frames: null }));
+  s.queue = [...items, ...s.queue];
+  for (const item of items) {
+    load(item.call.audio).then((f) => {
+      item.frames = f;
+      if (item === items[0] && s.current) cut(s, s.queue.indexOf(items.at(-1)) + 1);
+    }, () => { s.queue = s.queue.filter((q) => q !== item); });
+  }
+}
+
+// Next transmission: priority traffic, then a replay or catch-up (in order: a clip still encoding is
+// waited for), then oldest first. While lingering on a channel after its transmission, only a reply on
+// that channel or priority traffic may play.
 function pick(s) {
-  s.queue = s.queue.filter((q) => q.replay || eligible(s, q.call)); // channel changed, held elsewhere or locked out
+  s.queue = s.queue.filter((q) => q.tag || eligible(s, q.call)); // channel changed, held elsewhere or locked out
   const lingering = s.written < s.lingerUntil;
-  const ok = (q) => q.frames?.length && (q.replay || !lingering || q.call.source_id === s.lastSource || s.pri.has(q.call.source_id));
-  const q = s.queue.find((x) => ok(x) && x.replay) ?? s.queue.find((x) => ok(x) && s.pri.has(x.call.source_id)) ?? s.queue.find(ok);
+  const ok = (q) => q.frames?.length && (!lingering || q.call.source_id === s.lastSource || s.pri.has(q.call.source_id));
+  const asked = s.queue.find((x) => x.tag);
+  const q = s.queue.find((x) => !x.tag && ok(x) && s.pri.has(x.call.source_id)) ?? (asked ? (asked.frames ? asked : null) : s.queue.find(ok));
   if (!q) return;
   s.queue = s.queue.filter((x) => x !== q);
-  s.current = { call: q.call, frames: q.frames, i: 0 };
-  const play = { sid: s.sid, offset: s.written, duration: q.frames.length * FRAME_S, tag: q.replay ? 'REPLAY' : s.hold ? 'HOLD' : s.pri.has(q.call.source_id) ? 'PRI' : '', call: q.call };
+  s.current = { call: q.call, frames: q.frames, tag: q.tag, i: 0 };
+  const play = { sid: s.sid, offset: s.written, duration: q.frames.length * FRAME_S, tag: q.tag || (s.hold ? 'HOLD' : s.pri.has(q.call.source_id) ? 'PRI' : ''), call: q.call };
   s.plays.push(play);
   if (s.plays.length > 30) s.plays.shift();
   s.announce(play);
@@ -130,13 +153,24 @@ export async function scanStream(req, res, params, announce) {
   pump(s);
 }
 
-// POST /api/scan/<sid> — the page's channels, priority and hold changed, or PREV asked for a replay.
+// POST /api/scan/<sid> — the page's channels, priority and hold changed, PREV asked for a replay, or
+// Catch up asked for a story so far (`catchup`: its thread id; its transmissions that added something,
+// or with `all` (or when none did) every one; 0 ends a catch-up).
 export function updateScan(sid, body) {
   const s = sessions.get(sid);
   if (!s) return null;
   apply(s, body);
-  if (s.current && !eligible(s, s.current.call)) s.current = null; // locked out or held elsewhere mid-transmission
-  if (body.replay) enqueue(s, scanCall(Number(body.replay)), { replay: true });
+  if (s.current && !s.current.tag && !eligible(s, s.current.call)) s.current = null; // locked out or held elsewhere mid-transmission
+  if (body.replay) enqueueList(s, [scanCall(Number(body.replay))], () => 'REPLAY');
+  if (body.catchup !== undefined) {
+    const t = getThread(Number(body.catchup));
+    const clips = (t?.events ?? []).filter((e) => e.audio);
+    const noted = body.all ? [] : clips.filter((e) => e.note);
+    const calls = (noted.length ? noted : clips).slice(-CATCHUP_MAX).map((e) => scanCall(e.id)); // none added anything: play them all
+    s.queue = s.queue.filter((q) => !q.tag?.startsWith('CATCH UP'));
+    if (s.current?.tag?.startsWith('CATCH UP')) s.current = null;
+    enqueueList(s, calls, (i, n) => `CATCH UP ${i + 1}/${n}`);
+  }
   return { plays: s.plays };
 }
 

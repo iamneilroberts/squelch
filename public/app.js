@@ -453,6 +453,7 @@ const scan = {
   history: [],        // channels the scan stopped on, oldest first
   back: 0,            // how many steps PREV has walked back
   last: new Map(),    // channel id → its most recent transmission (for PREV replay)
+  catchup: null,      // thread id of the story Catch up is playing, or null
   lockouts: loadSet('pcm.lockouts'),
   priority: loadSet('pcm.priority'),
 };
@@ -463,7 +464,7 @@ const shortOf = (id) => esc(state.byId.get(id)?.short || id);
 
 function startScan() {
   if (state.tuned || radio.getAttribute('src')) powerOff();
-  Object.assign(scan, { on: true, hold: null, history: [], back: 0, current: null, idle: true, shown: null, lastCall: null });
+  Object.assign(scan, { on: true, hold: null, history: [], back: 0, current: null, idle: true, shown: null, lastCall: null, catchup: null });
   $('dial').classList.add('scanning');
   syncScanKeys();
   scanIdle();
@@ -485,6 +486,8 @@ function syncScanKeys() {
   $('btn-hold').setAttribute('aria-pressed', Boolean(scan.hold));
   $('btn-hold').textContent = scan.hold ? 'Resume' : 'Hold';
   $('btn-prev').disabled = !scan.on || scan.history.length < 1;
+  $('btn-catchup').disabled = !scan.on || !(scan.catchup || scan.lastCall?.thread_id);
+  $('btn-catchup').setAttribute('aria-pressed', Boolean(scan.catchup));
 }
 
 // The scan's audio is one stream from the server (src/scan.mjs), so it keeps playing with a phone locked.
@@ -512,7 +515,7 @@ function scanReconnect() {
   clearTimeout(scan.retry);
   scan.retry = setTimeout(scanConnect, 3000);
 }
-// Channels, priority or hold changed (or PREV wants a replay): tell the server's scan.
+// Channels, priority or hold changed (or PREV wants a replay, or Catch up a story): tell the server's scan.
 function scanSync(extra = {}) {
   if (scan.on && scan.sid) postJson(`/api/scan/${scan.sid}`, { ...scanSettings(), ...extra }).catch(() => {});
 }
@@ -550,7 +553,11 @@ function scanPlaying(p) {
   scan.idle = false;
   scan.current = c.source_id;
   scan.last.set(c.source_id, c);
-  if (p.tag !== 'REPLAY') {
+  // Catch up stays on from its key until its last transmission, through priority traffic and replays that
+  // cut in. (Catch-up audio already in the stream's lead still plays after it's stopped, without relighting it.)
+  const part = p.tag.match(/^CATCH UP (\d+)\/(\d+)$/);
+  if (part && part[1] === part[2]) scan.catchup = null;
+  if (p.tag !== 'REPLAY' && !part) {
     if (scan.history[scan.history.length - 1] !== c.source_id) scan.history.push(c.source_id);
     if (scan.history.length > 30) scan.history.shift();
     scan.back = 0;
@@ -663,6 +670,19 @@ function scanPrev() {
 $('btn-scan').addEventListener('click', () => (scan.on ? powerOff() : startScan()));
 $('btn-hold').addEventListener('click', toggleHold);
 $('btn-prev').addEventListener('click', scanPrev);
+
+// Catch up: the story of the transmission on air (or just played), its transmissions that added something
+// played inside the scan stream, so it works with the phone locked; the story card opens to read along.
+function scanCatchup() {
+  if (!scan.on) return;
+  const id = scan.catchup ? 0 : scan.lastCall?.thread_id;
+  if (id === undefined || id === null) return;
+  scan.catchup = id || null;
+  syncScanKeys();
+  scanSync({ catchup: id });
+  if (id) openStory(id);
+}
+$('btn-catchup').addEventListener('click', scanCatchup);
 
 /* ───────── Transport: stop, pause/resume, seek ───────── */
 const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -1210,6 +1230,11 @@ async function openStory(id, { play = false } = {}) {
   if (play) playStory();
 }
 function playStory() {
+  if (scan.on && storyId && radio.dataset.kind === 'scan' && !radio.paused) { // inside the scan stream, so it keeps playing with the phone locked
+    scan.catchup = storyId;
+    syncScanKeys();
+    return scanSync({ catchup: storyId, all: true });
+  }
   const [first, ...rest] = storyClips;
   if (first) playRecording(first.src, first.label, 'clip', rest);
 }
