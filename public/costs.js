@@ -112,15 +112,26 @@ const FLAG_PATH = 'M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.0
 const flag = (category) => (category === 'notable' || category === 'breaking'
   ? `<svg class="flag ${category}" viewBox="0 0 24 24" role="img" aria-label="${category}"><title>${category}</title><path d="${FLAG_PATH}"/></svg>` : '');
 
+const dur = (sec) => (sec == null ? '' : sec < 60 ? `${Math.round(sec)} s` : `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`);
+
+// Two lines per clip: who, how much audio (the whole story's, when there is one) and cost; then what it was about.
 function renderTraces(list) {
   traces = list;
   if (!list.length) { $('traces').innerHTML = '<li class="empty">No traces yet. They appear as soon as a clip is transcribed.</li>'; return; }
   $('traces').innerHTML = list.map((t) => {
-    const desc = t.kind === 'digest' ? `<b>Daily log</b> ${esc(t.label)}`
-      : `${flag(t.category)}<b class="snip-feed">${esc(t.label)}</b> ${what(t) ? esc(what(t)) : '<i>no speech kept</i>'}`;
+    const digest = t.kind === 'digest';
+    const meta = digest ? 'daily log'
+      : t.thread_id ? `${t.story_clips} clip${t.story_clips === 1 ? '' : 's'} · ${dur(t.story_seconds)}`
+        : t.call_id ? `${dur(t.duration)} clip` : 'discarded';
+    const desc = digest ? esc(t.label)
+      : t.subject || t.headline ? esc(t.subject || t.headline)
+        : t.transcript ? `<q>${esc(t.transcript)}</q>` : '<i>no speech kept</i>';
     const notable = t.category && t.category !== 'routine';
     return `<li><button type="button" class="trace${notable ? ' notable' : ''}" data-id="${t.id}">
-      <span>${hhmm(t.at)}</span><span class="feed">${esc(t.kind === 'digest' ? 'digest' : t.label)}</span><span class="snip">${desc}</span><span class="ms">${ms(t.ms)}</span><span class="usd">${usd(t.cost)}</span>
+      <span class="t-time">${hhmm(t.at)}</span>
+      <span class="t-who">${flag(t.category)}<b>${esc(digest ? 'Digest' : t.label)}</b> <span class="t-meta">${meta}</span></span>
+      <span class="t-usd">${usd(t.cost)}</span>
+      <span class="t-desc">${desc}</span>
     </button></li>`;
   }).join('');
 }
@@ -139,6 +150,7 @@ function openTrace(t) {
   const facts = [
     ['When', `${new Date(t.at).toLocaleString('en-US', { timeZone: TZ, dateStyle: 'medium', timeStyle: 'short' })}${t.duration ? ` · ${Math.round(t.duration)} s of audio` : ''}`],
     ['Cost', `${usd(t.cost)} · ${ms(t.ms)} end to end`],
+    t.thread_id && ['Story', `${t.story_clips} clip${t.story_clips === 1 ? '' : 's'} · ${dur(t.story_seconds)} of audio`],
     t.headline && ['Incident', esc(t.headline)],
     t.category && ['Triage', `${flag(t.category)} ${esc(t.category)}`],
     t.jev_news != null && ['Jev gate', `speech ${t.jev_speech?.toFixed(2)} · newsworthy ${t.jev_news.toFixed(2)}`],
