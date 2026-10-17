@@ -107,7 +107,9 @@ async function loadJobs() {
 }
 
 /* ───────── Library ───────── */
-const fileUrl = (a, f, dl) => `/api/studio/animations/${a.id}/files/${encodeURIComponent(f.name)}${dl ? '?download' : ''}`;
+// An installed phone app has no back button, so a download there opens in a browser sheet (with Done) instead of stranding the app.
+const dlAttr = matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'target="_blank" rel="noopener"' : 'download';
+const fileUrl = (a, f, dl) =>`/api/studio/animations/${a.id}/files/${encodeURIComponent(f.name)}${dl ? '?download' : ''}`;
 const playable = (a) => ({ mp4: a.files.find((f) => f.kind === 'mp4'), web: a.files.find((f) => f.kind === 'web') });
 
 function player(a) {
@@ -141,7 +143,7 @@ function card(a) {
         <dt>Asked by</dt><dd>${esc(a.requested_by || 'owner')}</dd>
       </dl>
       <div class="anim-actions">
-        ${a.files.filter((f) => f.kind === 'mp4' || f.kind === 'web').map((f) => `<a class="key" href="${fileUrl(a, f, true)}" download>${f.kind === 'mp4' ? 'MP4' : 'HTML'} <span class="na">${mb(f.bytes)}</span></a>`).join('')}
+        ${a.files.filter((f) => f.kind === 'mp4' || f.kind === 'web').map((f) => `<a class="key" href="${fileUrl(a, f, true)}" ${dlAttr}>${f.kind === 'mp4' ? 'MP4' : 'HTML'} <span class="na">${mb(f.bytes)}</span></a>`).join('')}
         ${ACCESS === 'owner' ? '<button type="button" class="key danger" data-delete>Delete</button>' : ''}
       </div>
     </div>
