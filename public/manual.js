@@ -10,7 +10,7 @@ function show() {
   $('tab-how').setAttribute('aria-selected', String(!ledger));
   $('tab-ledger').setAttribute('aria-selected', String(ledger));
   document.title = ledger ? 'Station Ledger' : 'Station Manual';
-  if (ledger && !ledgerLoaded) { ledgerLoaded = true; import('./costs.js'); }
+  if (ledger && !ledgerLoaded) { ledgerLoaded = true; import(document.querySelector('link[rel="modulepreload"]').href); }
   const target = !ledger && location.hash && document.querySelector(location.hash);
   if (target) target.scrollIntoView();
 }
