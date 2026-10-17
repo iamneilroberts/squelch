@@ -9,7 +9,7 @@ export const DEFAULT_THREAD_MODEL = 'openai/gpt-6-luna';
 const SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['same', 'subject', 'facts', 'note'],
+  required: ['same', 'subject', 'facts', 'note', 'type', 'alert', 'why'],
   properties: {
     same: { type: 'boolean', description: 'true if the new transmission continues the current story' },
     subject: { type: 'string', description: 'Max 8 words, e.g. "Structure fire, Elm St"' },
@@ -24,6 +24,9 @@ const SCHEMA = {
       },
     },
     note: { type: 'string', description: 'One short line for the chronology, or empty' },
+    type: { type: 'string', enum: ['fire', 'medical', 'crash', 'rescue', 'hazmat', 'police', 'pursuit', 'aviation', 'marine', 'rail', 'weather', 'routine', 'other'] },
+    alert: { type: 'number', description: '0 to 1: how much the story as it stands now deserves a notification' },
+    why: { type: 'string', description: 'Max 10 words: what makes it notable, or empty' },
   },
 };
 
@@ -44,6 +47,17 @@ facts — the story's key facts as it stands now, at most 6, each a short label 
 Only state what was said. Empty list for routine traffic with nothing to track.
 
 note — one short line (max 14 words) for the chronology: what this transmission adds, e.g. "Engine 6 on scene, smoke showing from roof", "Command established, Elm St command". Empty when it adds nothing (noise, bare acknowledgements).
+
+type — what kind of story it is ("routine" for chatter with nothing to track).
+
+alert — 0 to 1, for the whole story as it stands now (not just this transmission), judged as a local news editor would:
+- 0–0.2 routine traffic, unit status, minor medical or lift assists, normal ATC
+- 0.3–0.5 an ordinary incident worth a glance: a crash without serious injury, an alarm, a small outside fire
+- 0.6–0.8 a significant incident: working structure fire, crash with injuries or entrapment, pursuit, missing child, water rescue, hazmat leak, road closed
+- 0.9–1 a major event: multiple alarms or mutual aid, mass casualties, aircraft or vessel in distress (mayday, pan-pan), officer needs help, large evacuation
+Raise it as a story escalates; never lower it below an earlier peak just because the latest transmission is routine.
+
+why — max 10 words on what makes it notable ("Second alarm requested, crews pulled out"), empty for routine.
 
 Never include personal names, phone numbers or plates anywhere.`;
 

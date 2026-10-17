@@ -117,6 +117,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   margin-right: -.5em;
   text-transform: uppercase;
   color: var(--walnut-900);
+  text-decoration: none;
 }
 .badge-sub {
   font-family: var(--font-type);
@@ -485,6 +486,31 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .story-log .play { margin-top: 0; }
 .story-log .story-more { display: block; font-style: italic; color: var(--ink-soft); }
 
+/* Notifications: a bakelite bell key on the grille; its lamp glows while this browser is subscribed. */
+.bell {
+  position: absolute; top: 8px; right: 8px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 7px 5px; border: 0; border-radius: 4px; cursor: pointer;
+  color: var(--walnut-900);
+  background: linear-gradient(180deg, oklch(0.97 0.02 90), var(--bakelite-2));
+  box-shadow: 0 3px 0 var(--bakelite-3), 0 4px 5px oklch(0 0 0 / .4), inset 0 1px 0 oklch(1 0 0 / .8);
+}
+.bell svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 0 oklch(1 0 0 / .8)); }
+.bell .lamp { width: 7px; height: 7px; }
+.bell[aria-pressed="true"] .lamp { background: var(--lamp-amber); box-shadow: 0 0 6px var(--lamp-amber); }
+.notify-msg { margin: 12px 0; font-size: 13.5px; line-height: 1.5; }
+.notify-msg a { color: var(--blue-ink); }
+.notify-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.notify-row .key { min-width: 0; padding: 10px 14px 8px; }
+.notify fieldset { margin: 12px 0 0; padding: 8px 10px 10px; border: 1px dashed var(--bakelite-3); border-radius: 3px; }
+.notify legend { padding: 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+.notify-level label { display: block; padding: 3px 0; font-size: 13px; }
+.notify-hint { margin: 0 0 6px; font-size: 12px; font-style: italic; color: var(--ink-soft); }
+.notify-favs { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 36vh; overflow-y: auto; font-size: 13px; }
+.notify-favs span { color: var(--ink-soft); }
+.notify .cc-src { background: oklch(0.16 0.01 60); }
+.notify-guests { display: block; margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--bakelite-3); font-size: 13px; }
+
 /* ───────────── Desk: chart + printer ───────────── */
 .desk {
   display: grid;
@@ -734,6 +760,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .badge { padding: 6px 16px 5px; transform: rotate(-1.5deg); }
   .badge-script { font-size: 26px; }
   .badge-caps { font-size: 12px; }
+  .badge-sub { display: none; } /* the region name costs a line the phone needs */
   .dial-scroll { -webkit-overflow-scrolling: touch; }
   .dial { height: 82px; }
   .dial-bands { top: 5px; }

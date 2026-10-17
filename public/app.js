@@ -1049,6 +1049,95 @@ $('story').addEventListener('click', (e) => {
 });
 $('story').addEventListener('close', () => { storyId = null; });
 
+/* ───────── Notifications (Web Push — setup in docs/NOTIFICATIONS.md) ─────────
+   One subscription per browser, with its own sensitivity and favourite channels. iPhones only allow
+   push for sites added to the Home Screen and opened from there. */
+const notify = { reg: null, sub: null, status: null };
+const postJson = (url, body) => getJson(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+const canPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const needsHomeScreen = /iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone;
+const vapidKey = (b64) => Uint8Array.from(atob((b64 + '='.repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+
+async function notifyInit() {
+  if (canPush) {
+    notify.reg = await navigator.serviceWorker.register('/sw.js').catch(() => null);
+    notify.sub = await notify.reg?.pushManager.getSubscription().catch(() => null);
+  }
+  notify.status = await postJson('/api/notify/status', { endpoint: notify.sub?.endpoint }).catch(() => null);
+  const st = notify.status;
+  $('btn-notify').hidden = !st || !(st.allowed || st.owner); // the owner sees it even before setup, to find the instructions
+  $('btn-notify').setAttribute('aria-pressed', String(Boolean(st?.sub)));
+}
+
+function renderNotify() {
+  const st = notify.status;
+  const sub = st?.sub;
+  const usable = st?.ready && st.allowed && canPush && notify.reg;
+  $('notify-msg').innerHTML = !st ? 'Couldn’t reach the receiver.'
+    : !st.ready ? 'Not set up on this receiver yet: add VAPID keys to <code>.env</code> and restart — see <a href="https://github.com/iamneilroberts/squelch/blob/main/docs/NOTIFICATIONS.md" target="_blank" rel="noopener">docs/NOTIFICATIONS.md</a>.'
+      : !st.allowed ? 'Notifications here are for the receiver’s owner.'
+        : !canPush && needsHomeScreen ? 'On iPhone: tap <strong>Share → Add to Home Screen</strong>, open the receiver from the Home Screen, then turn notifications on here.'
+          : !usable ? 'This browser can’t receive push notifications.'
+            : sub ? 'On for this browser. You’ll get one notification per story, and another only if it escalates.'
+              : 'Get a notification when something notable happens — a working fire, a pursuit, an aircraft in trouble.';
+  $('notify-toggle').hidden = !usable;
+  $('notify-toggle').textContent = sub ? 'Turn off' : 'Turn on';
+  $('notify-test').hidden = !usable || !sub;
+  $('notify-prefs').hidden = !usable || !sub;
+  if (sub) {
+    for (const r of document.querySelectorAll('[name="notify-level"]')) r.checked = r.value === sub.level;
+    $('notify-favs').innerHTML = [...state.byId.values()].filter((s) => s.kind !== 'link')
+      .map((s) => `<li><label><input type="checkbox" value="${esc(s.id)}"${sub.favorites.includes(s.id) ? ' checked' : ''}> ${ccTag(s.id)} <strong>${esc(s.short)}</strong> <span>${esc(s.name)}</span></label></li>`).join('');
+  }
+  $('notify-guests-row').hidden = !st?.owner || !st.ready;
+  $('notify-guests').checked = Boolean(st?.guests);
+}
+
+async function notifyToggle() {
+  const st = notify.status;
+  try {
+    if (st.sub) {
+      await notify.sub?.unsubscribe().catch(() => {});
+      await postJson('/api/notify/unsubscribe', { endpoint: notify.sub?.endpoint });
+      notify.sub = null;
+      st.sub = null;
+    } else {
+      if (await Notification.requestPermission() !== 'granted') {
+        $('notify-msg').textContent = 'Notifications are blocked for this site in the browser’s settings.';
+        return;
+      }
+      notify.sub = await notify.reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey(st.publicKey) });
+      st.sub = await postJson('/api/notify/subscribe', { subscription: notify.sub.toJSON(), level: 'normal', favorites: [] });
+    }
+  } catch (e) {
+    $('notify-msg').textContent = `Couldn’t change notifications: ${e.message}`;
+    return;
+  }
+  $('btn-notify').setAttribute('aria-pressed', String(Boolean(st.sub)));
+  renderNotify();
+}
+
+async function notifySavePrefs() {
+  const level = document.querySelector('[name="notify-level"]:checked')?.value;
+  const favorites = [...$('notify-favs').querySelectorAll('input:checked')].map((i) => i.value);
+  notify.status.sub = await postJson('/api/notify/prefs', { endpoint: notify.sub.endpoint, level, favorites }).catch(() => notify.status.sub);
+}
+
+$('btn-notify').addEventListener('click', () => { renderNotify(); $('notify').showModal(); });
+$('notify-close').addEventListener('click', () => $('notify').close());
+$('notify').addEventListener('click', (e) => { if (e.target === $('notify')) $('notify').close(); });
+$('notify-toggle').addEventListener('click', notifyToggle);
+$('notify-test').addEventListener('click', async () => {
+  const r = await postJson('/api/notify/test', { endpoint: notify.sub?.endpoint }).catch(() => ({}));
+  $('notify-msg').textContent = r.sent ? 'Test sent — it should arrive in a few seconds.' : 'The test didn’t go through. Try turning notifications off and on again.';
+});
+$('notify-prefs').addEventListener('change', notifySavePrefs);
+$('notify-guests').addEventListener('change', async (e) => {
+  const s = await postJson('/api/settings', { guestNotifications: e.target.checked }).catch(() => null);
+  if (s) notify.status.guests = s.guestNotifications;
+  e.target.checked = Boolean(notify.status.guests);
+});
+
 /* ───────── Your own Broadcastify Premium login (for visitors who aren't the owner) ───────── */
 document.addEventListener('click', (e) => {
   if (e.target.id === 'bcfy-open') { $('bcfy-form').hidden = false; $('bcfy-form').elements.username.focus(); }
@@ -1110,6 +1199,7 @@ function setupShareToggle(on) {
 
 /* ───────── Boot ───────── */
 async function boot() {
+  const opened = new URLSearchParams(location.search); // ?story= from a notification; read before setRegion rewrites the URL
   const [config, incidents, calls, digests] = await Promise.all([getJson('/api/config'), getJson('/api/incidents'), getJson('/api/calls'), getJson('/api/digests')]);
   state.regions = config.regions;
   state.sources = config.sources;
@@ -1117,7 +1207,6 @@ async function boot() {
   TZ = config.station.timezone || TZ;
   tick();
   document.querySelector('.badge-script').textContent = config.station.script;
-  document.querySelector('.badge-caps').textContent = config.station.caps;
   document.title = `${config.station.script} ${config.station.caps}`;
   $('tab-traffic').hidden = !config.viewer?.transcripts; // the server sends no raw traffic to tunnel visitors
   state.viewer = config.viewer || {};
@@ -1134,6 +1223,8 @@ async function boot() {
   addEventListener('hashchange', () => setRegion(location.hash.slice(1) || 'all'));
   connect();
   startScan(); // open scanning; awaitTap() covers the browser's no-sound-before-a-tap rule
+  notifyInit();
+  if (opened.get('story')) openStory(opened.get('story')); // opened from a notification: show that story
   setInterval(refreshAircraft, 15e3);
   setInterval(refreshTrains, 60e3);
   setInterval(refreshShips, 30e3);

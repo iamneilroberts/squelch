@@ -144,6 +144,9 @@ db.exec(`CREATE TABLE IF NOT EXISTS threads (
   started_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 )`);
+for (const col of ['type TEXT', 'alert REAL NOT NULL DEFAULT 0', 'why TEXT']) {
+  try { db.exec(`ALTER TABLE threads ADD COLUMN ${col}`); } catch { /* already there */ }
+}
 db.exec('CREATE INDEX IF NOT EXISTS threads_source ON threads (source_id, updated_at)');
 db.exec('CREATE INDEX IF NOT EXISTS calls_thread ON calls (thread_id)');
 
@@ -157,10 +160,11 @@ export function currentThread(sourceId, minutes = 30) {
 }
 
 // Continue thread `threadId`, or start a new one when it's null. Returns the thread id.
-export function saveThread(callId, sourceId, at, threadId, { subject, facts, note }) {
+export function saveThread(callId, sourceId, at, threadId, { subject, facts, note, type, alert, why }) {
   let id = threadId;
-  if (id) db.prepare('UPDATE threads SET subject = ?, facts = ?, updated_at = ? WHERE id = ?').run(subject, JSON.stringify(facts), at, id);
-  else id = Number(db.prepare('INSERT INTO threads (source_id, subject, facts, started_at, updated_at) VALUES (?,?,?,?,?)').run(sourceId, subject, JSON.stringify(facts), at, at).lastInsertRowid);
+  const a = Math.max(0, Math.min(1, Number(alert) || 0));
+  if (id) db.prepare('UPDATE threads SET subject = ?, facts = ?, updated_at = ?, type = ?, alert = ?, why = ? WHERE id = ?').run(subject, JSON.stringify(facts), at, type || null, a, why || null, id);
+  else id = Number(db.prepare('INSERT INTO threads (source_id, subject, facts, started_at, updated_at, type, alert, why) VALUES (?,?,?,?,?,?,?,?)').run(sourceId, subject, JSON.stringify(facts), at, at, type || null, a, why || null).lastInsertRowid);
   db.prepare('UPDATE calls SET thread_id = ?, subject = ?, note = ? WHERE id = ?').run(id, subject, note || null, callId);
   return id;
 }

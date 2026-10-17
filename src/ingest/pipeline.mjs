@@ -10,6 +10,7 @@ import { startStream } from './stream.mjs';
 import { transcribe, transcriberReady } from '../ai/transcribe.mjs';
 import { triage } from '../ai/triage.mjs';
 import { nextThread } from '../ai/thread.mjs';
+import { considerThread } from '../notify.mjs';
 import { llmReady } from '../ai/llm.mjs';
 import { geocode } from './geocode.mjs';
 
@@ -115,6 +116,7 @@ async function handleClip(source, clip) {
   }
   setGate(callId, g, decision);
   const { thread_id, subject } = await threadP;
+  considerThread(thread_id).catch((e) => console.warn('[notify]', e.message));
   let category = 'routine';
   let incidentId = null;
   for (const it of items) {

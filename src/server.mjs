@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, createReadStream, existsSync, statSync } f
 import { join, extname, normalize, dirname } from 'node:path';
 import { recentIncidents, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues, getThread } from './db.mjs';
 import { buildCues, toVtt } from './ingest/captions.mjs';
+import { pushReady, publicKey, LEVELS, configureNotify, subscription, subscribe, setPrefs, unsubscribe, sendTest } from './notify.mjs';
 import { startIngest, bus, status, GATE, VAD } from './ingest/pipeline.mjs';
 import { overlays, startShips } from './overlays.mjs';
 import { buildDigest, dayBounds, localDate } from './digest.mjs';
@@ -38,6 +39,7 @@ const SETTINGS = join('data', 'settings.json');
 // remotely) come from OWNER_EMAILS in .env, or an "owners" list in data/settings.json.
 const settings = {
   tunnelTranscripts: false,
+  guestNotifications: false, // let tunnel guests subscribe to push notifications (as a demo)
   owners: (process.env.OWNER_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean),
   ...(existsSync(SETTINGS) ? JSON.parse(readFileSync(SETTINGS, 'utf8')) : {}),
 };
@@ -45,6 +47,8 @@ const hideFrom = (remote) => remote && !settings.tunnelTranscripts;
 // Who may flip settings: anyone on the LAN, or an owner signed in through Cloudflare Access
 // (Access sets this header on every request it lets through the tunnel).
 const canEdit = (req) => !isRemote(req) || settings.owners.includes(String(req.headers['cf-access-authenticated-user-email'] || '').toLowerCase());
+
+configureNotify({ allowGuests: () => settings.guestNotifications });
 
 const json = (res, body, code = 200) => {
   res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -67,7 +71,6 @@ function brand(html) {
   return html
     .replace(/<title>Squelch<\/title>/, `<title>${escHtml(`${station.script} ${station.caps}`)}</title>`)
     .replace(/(class="badge-script">)[^<]*/, `$1${escHtml(station.script)}`)
-    .replace(/(class="badge-caps">)[^<]*/, `$1${escHtml(station.caps)}`)
     .replace(/(id="badge-sub">)[^<]*/, `$1${escHtml(station.badge)}`);
 }
 
@@ -198,10 +201,25 @@ createServer(async (req, res) => {
       if (!canEdit(req)) return json(res, { error: 'Only the owner can change this' }, 403);
       const body = JSON.parse(await new Promise((r) => { let s = ''; req.on('data', (d) => { s += d; }); req.on('end', () => r(s || '{}')); }));
       if (typeof body.tunnelTranscripts === 'boolean') settings.tunnelTranscripts = body.tunnelTranscripts;
+      if (typeof body.guestNotifications === 'boolean') settings.guestNotifications = body.guestNotifications;
       writeFileSync(SETTINGS, JSON.stringify(settings, null, 2));
       console.log(`[settings] remote transcripts ${settings.tunnelTranscripts ? 'ON' : 'off'} (by ${remote ? req.headers['cf-access-authenticated-user-email'] : 'LAN'})`);
       broadcast('settings', { sharing: settings.tunnelTranscripts });
       return json(res, settings);
+    }
+    // Notifications. The browser's push endpoint identifies its subscription, so it travels in POST bodies only.
+    if (p.startsWith('/api/notify/') && req.method === 'POST') {
+      const body = await readJson(req);
+      const owner = canEdit(req);
+      const allowed = pushReady && (owner || settings.guestNotifications);
+      const action = p.slice('/api/notify/'.length);
+      if (action === 'status') return json(res, { ready: pushReady, publicKey, allowed, owner, guests: settings.guestNotifications, levels: Object.keys(LEVELS), sub: body.endpoint ? subscription(body.endpoint) : null });
+      if (!allowed) return json(res, { error: pushReady ? 'Notifications are only for the owner here' : 'Notifications aren’t set up on this receiver' }, 403);
+      if (action === 'subscribe') return json(res, subscribe(body, { owner, label: remote ? req.headers['cf-access-authenticated-user-email'] : 'LAN' }));
+      if (action === 'prefs') return json(res, setPrefs(body.endpoint, body) ?? { error: 'not subscribed' });
+      if (action === 'unsubscribe') { unsubscribe(body.endpoint); return json(res, { ok: true }); }
+      if (action === 'test') return json(res, { sent: await sendTest(body.endpoint) });
+      return json(res, { error: 'unknown' }, 404);
     }
     if (p === '/api/incidents') return out(recentIncidents(Number(url.searchParams.get('hours') || 12)));
     if (p === '/api/calls') return json(res, hidden ? [] : recentCalls(Number(url.searchParams.get('limit') || 150)));
@@ -264,6 +282,16 @@ createServer(async (req, res) => {
       if (!call.cues) setCues(call.id, cues);
       res.writeHead(200, { 'Content-Type': 'text/vtt; charset=utf-8', 'Cache-Control': 'no-cache' });
       return res.end(toVtt(cues));
+    }
+    // Web app manifest, named after the station. Needed to add the receiver to a phone's Home Screen,
+    // which iPhones require before they deliver push notifications.
+    if (p === '/manifest.webmanifest') {
+      res.writeHead(200, { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'no-cache' });
+      return res.end(JSON.stringify({
+        name: `${station.script} ${station.caps}`, short_name: station.script, start_url: '/', display: 'standalone',
+        background_color: '#3b2414', theme_color: '#5a3a22',
+        icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }],
+      }));
     }
     if (p.startsWith('/audio/')) return serveFile(res, join('data', 'audio'), decodeURIComponent(p.slice(7)), req.headers.range);
     if (p.startsWith('/reels/')) return serveFile(res, join('data', 'digests'), decodeURIComponent(p.slice(7)), req.headers.range);

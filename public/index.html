@@ -6,6 +6,9 @@
 <title>Squelch</title>
 <meta name="description" content="Local scanner radio, transcribed, triaged into incidents and mapped.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%235a3a22'/%3E%3Crect x='4' y='8' width='24' height='10' rx='2' fill='%23f2c66b'/%3E%3Crect x='15' y='6' width='2' height='14' fill='%23c0392b'/%3E%3Ccircle cx='10' cy='24' r='3' fill='%23efe6d2'/%3E%3Ccircle cx='22' cy='24' r='3' fill='%23efe6d2'/%3E%3C/svg%3E">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#5a3a22">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Yellowtail&display=swap" rel="stylesheet">
@@ -19,9 +22,13 @@
     <div class="grille">
       <div class="badge">
         <span class="badge-script">Squelch</span>
-        <span class="badge-caps">Monitor</span>
+        <a class="badge-caps" href="https://github.com/iamneilroberts/squelch" target="_blank" rel="noopener" title="Squelch on GitHub">GitHub ↗</a>
         <span class="badge-sub" id="badge-sub"></span>
       </div>
+      <button class="bell" id="btn-notify" hidden aria-pressed="false" aria-label="Notifications" title="Notifications">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+        <span class="lamp" aria-hidden="true"></span>
+      </button>
     </div>
 
     <div class="tuner">
@@ -122,6 +129,23 @@
   <header class="story-head"><h2 id="story-title"></h2><button type="button" class="key tkey story-close" id="story-close" aria-label="Close"><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
   <dl class="story-facts" id="story-facts"></dl>
   <ol class="story-log" id="story-log"></ol>
+</dialog>
+<dialog class="story notify" id="notify" aria-labelledby="notify-title">
+  <header class="story-head"><h2 id="notify-title">Notifications</h2><button type="button" class="key tkey story-close" id="notify-close" aria-label="Close"><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
+  <p class="notify-msg" id="notify-msg"></p>
+  <div class="notify-row"><button type="button" class="key" id="notify-toggle" hidden>Turn on</button><button type="button" class="key" id="notify-test" hidden>Send a test</button></div>
+  <div id="notify-prefs" hidden>
+    <fieldset class="notify-level"><legend>Sensitivity</legend>
+      <label><input type="radio" name="notify-level" value="quiet"> <strong>Quiet</strong> — major events only</label>
+      <label><input type="radio" name="notify-level" value="normal"> <strong>Normal</strong> — significant incidents</label>
+      <label><input type="radio" name="notify-level" value="chatty"> <strong>Chatty</strong> — anything worth a glance</label>
+    </fieldset>
+    <fieldset><legend>★ Favourite channels</legend>
+      <p class="notify-hint">Stories on favourites notify one step sooner.</p>
+      <ul class="notify-favs" id="notify-favs"></ul>
+    </fieldset>
+  </div>
+  <label class="notify-guests" id="notify-guests-row" hidden><input type="checkbox" id="notify-guests"> Let guests turn on notifications (demo)</label>
 </dialog>
 <audio id="radio" preload="none"></audio>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
