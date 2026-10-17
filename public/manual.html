@@ -9,9 +9,11 @@
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="costs.css">
 <link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="changes.css">
 <!-- The server stamps this with the file's version; manual.js imports the Ledger from it, so a cached old copy is never paired with new styles. -->
 <link rel="modulepreload" href="costs.js">
 <link rel="modulepreload" href="studio.js">
+<link rel="modulepreload" href="changes.js">
 </head>
 <body>
 <div class="ledger-wrap">
@@ -22,6 +24,7 @@
       <button class="key" role="tab" id="tab-how" aria-controls="how">How it works</button>
       <button class="key" role="tab" id="tab-ledger" aria-controls="ledger">Ledger</button>
       <button class="key" role="tab" id="tab-studio" aria-controls="studio" hidden>Studio</button>
+      <button class="key" role="tab" id="tab-changes" aria-controls="changes">What’s new</button>
     </div>
     <div class="keys" role="group" aria-label="Period" id="period" hidden>
       <button class="key" data-h="1">1 h</button>
@@ -432,6 +435,13 @@ npm start</pre>
         <div class="keys"><button type="button" class="key" id="t-flagged" aria-pressed="false">Flagged only</button></div>
       </div>
       <ol class="traces" id="traces"></ol>
+    </section>
+  </main>
+
+  <main class="book" id="changes" role="tabpanel" aria-labelledby="tab-changes" hidden>
+    <section class="page wide" aria-labelledby="h-changes">
+      <h2 id="h-changes">What’s new</h2>
+      <div id="changes-list"><p class="na">Loading…</p></div>
     </section>
   </main>
 

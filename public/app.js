@@ -207,6 +207,10 @@ $('look').addEventListener('change', (e) => {
   store.set('pcm.dial', e.target.value);
   applyDialStyle();
 });
+// A dot on Look and on its What's new link until the newest change has been opened (the manual's What's new tab saves it).
+fetch('/api/changes?limit=1').then((r) => r.json()).then((j) => {
+  if (j.head && store.get('pcm.changesSeen') !== j.head) for (const el of document.querySelectorAll('.changes-open, #btn-look')) el.classList.add('has-changes');
+}).catch(() => {});
 $('look-close').addEventListener('click', () => $('look').close());
 $('look').addEventListener('click', (e) => { if (e.target === $('look')) $('look').close(); }); // tap on the backdrop
 

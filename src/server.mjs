@@ -17,10 +17,11 @@ import { station, regions, sources, configFile } from './config.mjs';
 import { scanStream, updateScan, scanPlays } from './scan.mjs';
 import { widerCatchup } from './ai/wider.mjs';
 import { studioRoute } from './studio/routes.mjs';
+import { changes } from './changes.mjs';
 import { reportRoute, reportStatus } from './report.mjs';
 
 const PORT = Number(process.env.PORT || 8077);
-const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json', '.json': 'application/json' };
 const ZIPPED = new Set(['.html', '.js', '.css', '.svg', '.json', '.webmanifest']);
 const zips = (res) => /\bgzip\b/.test(res.req?.headers['accept-encoding'] || '');
 
@@ -69,7 +70,7 @@ const studioAccess = (req) => {
 configureNotify({ allowGuests: () => settings.guestNotifications });
 // The page's own files, newest change first. An open page (often a Home Screen app, which has no
 // reload button) compares it with the version it loaded and offers to reload.
-const appVersion = () => String(Math.round(Math.max(...['index.html', 'app.js', 'app.css', 'sw.js', 'manual.html', 'manual.js', 'costs.js', 'costs.css', 'studio.js', 'studio.css']
+const appVersion = () => String(Math.round(Math.max(...['index.html', 'app.js', 'app.css', 'sw.js', 'manual.html', 'manual.js', 'costs.js', 'costs.css', 'studio.js', 'studio.css', 'changes.js', 'changes.css']
   .map((f) => statSync(join('public', f)).mtimeMs))));
 
 const json = (res, body, code = 200) => {
@@ -329,6 +330,7 @@ createServer(async (req, res) => {
       res.setHeader('Set-Cookie', 'bcfy=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0');
       return json(res, { ok: true });
     }
+    if (p === '/api/changes') return json(res, await changes(Number(url.searchParams.get('limit')) || 200));
     // Squelch Studio (src/studio/): spends money and shows drafts. The owner has it all; guests get what guestStudio allows.
     if (p.startsWith('/api/studio/')) {
       const access = studioAccess(req);

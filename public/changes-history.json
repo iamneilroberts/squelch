@@ -1,0 +1,17 @@
+{
+  "title": "Before release",
+  "note": "Squelch was built in the open from 16 October 2026. Everything below was already working in the first release; the list above starts after it.",
+  "entries": [
+    { "title": "A live map of incidents", "body": "Fires, crashes, rescues, police calls and hazards are pinned on a map as they happen, each with what was said and the audio clip behind it." },
+    { "title": "A tabletop radio you can tune", "body": "A tuning dial, band keys and a Location knob pick the feeds. Choose an area and the receiver switches to that area's channels and map." },
+    { "title": "Scan", "body": "Scan plays each new transmission from the channels you pick, back to back, about a minute behind live. Hold and Resume pause it, Prev steps back to a channel it stopped on, and tapping a station while scanning marks it priority or locks it out." },
+    { "title": "Every transmission transcribed", "body": "Recorded feeds are cut into short clips and turned into text. Silent and empty clips are dropped first so nothing is spent on them, and a speech check keeps junk transcripts from becoming incidents." },
+    { "title": "Static and hum filtered out", "body": "Clips that are only hum or hiss are discarded before transcription, and the rest are trimmed to the parts with a voice, so Scan no longer plays dead air." },
+    { "title": "A daily log", "body": "After midnight each area's day is read back and the best stories are printed in a green-bar log, with a highlight reel of the real audio." },
+    { "title": "Map layers", "body": "Optional layers show aircraft, Amtrak trains, weather alerts, tide gauges and ships." },
+    { "title": "The Station Ledger", "body": "A cost page lists every AI and API call the receiver makes, with timing, size and price, so you can see where the money goes." },
+    { "title": "Private by default for visitors", "body": "People who reach the receiver from outside the home network see incidents and the map but not raw transcripts, unless the owner turns sharing on. Visitors can listen live with their own Broadcastify Premium login, which the server keeps only in memory." },
+    { "title": "Made for a phone", "body": "A swipeable dial, one row of band keys, big playback keys and a volume knob that goes to 11, with the layout checked at phone width." },
+    { "title": "More areas", "body": "The Location knob covers several regions, and each region carries its own vocabulary so place names are heard correctly." }
+  ]
+}

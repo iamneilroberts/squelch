@@ -1,0 +1,15 @@
+/* What's new: days of changes on the Ledger's paper. Tokens come from app.css and costs.css. */
+.chg-day { margin: 0 0 22px; }
+.chg-day h3 { margin: 0 0 6px; font-family: var(--font-caps); font-size: 18px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--red-ink); }
+.chg-list { list-style: none; margin: 0; padding: 0; }
+.chg { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--ledger-rule); line-height: 1.45; }
+.chg > details, .chg > .chg-line { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.chg summary { cursor: pointer; }
+.chg details p { margin: 6px 0 2px 14px; font-size: 13px; color: var(--ink-soft); }
+.chg a { color: var(--blue-ink); }
+.sha { flex: none; font-size: 11.5px; color: var(--ink-soft); text-decoration: none; }
+.chg-docs { margin-top: 6px; font-size: 13px; }
+.chg-docs > summary { cursor: pointer; color: var(--ink-soft); }
+.chg-before { margin-top: 30px; padding-top: 14px; border-top: 2px solid var(--ink); }
+.chg-before .chg { display: block; }
+#tab-changes.has-news { white-space: nowrap; }

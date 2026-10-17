@@ -973,6 +973,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* Problems & suggestions */
 button.report-open { font: inherit; cursor: pointer; background: none; border: 0; padding: 0; min-height: 44px; }
 .notify > .report-open { margin-top: 14px; min-height: 44px; }
+.notify > a.changes-open { display: block; margin-top: 14px; padding-top: 12px; min-height: 32px; font: inherit; color: inherit; cursor: pointer; }
 .report-text { display: block; margin: 12px 0 8px; font-size: 13px; }
 .report-text textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px; font: 14px/1.4 var(--font-type); resize: vertical; }
 .report-ctx { display: block; margin-bottom: 8px; font-size: 13px; }
@@ -994,4 +995,4 @@ button.report-open { font: inherit; cursor: pointer; background: none; border: 0
 .report-reply { margin: 6px 0 0; padding: 6px 10px; border-left: 3px solid var(--red-ink); background: oklch(0 0 0 / .04); line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
 .report-reply footer { margin-top: 4px; font-size: 11px; font-style: italic; color: var(--ink-soft); white-space: normal; }
 .report-link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--blue-ink); }
-.has-news::after { content: ''; display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; vertical-align: middle; background: var(--lamp-red); box-shadow: 0 0 5px var(--lamp-red); }
+.has-news::after, .has-changes::after { content: ''; display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; vertical-align: middle; background: var(--lamp-red); box-shadow: 0 0 5px var(--lamp-red); }
