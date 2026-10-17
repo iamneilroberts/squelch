@@ -21,8 +21,8 @@ const IMAGE_TOKENS = 1290; // one generated image, as Gemini bills it
 export const panelPrompt = (style, cast, scene, k, ref, notes = '') => `STYLE (keep identical across the series): ${STYLES[style].art}, vertical 4:5 portrait composition, a single picture filling the whole frame, no panel border, no margins.
 CAST: ${cast}
 ${RULES}
-No readable text, logos or numbers anywhere except the exact words given in quotes below.
-${ref ? 'Match the attached reference panel EXACTLY in drawing style, line weight, colour palette and character designs. This is the next panel of the same comic.\n' : ''}${notesBlock(notes) ? `${notesBlock(notes).trim()}\n` : ''}PANEL ${k}: ${scene}`;
+${notesBlock(notes) ? `${notesBlock(notes).trim()}\n` : ''}No readable text, logos or numbers anywhere except the exact words given in quotes below.
+${ref ? 'Match the attached reference panel EXACTLY in drawing style, line weight, colour palette and character designs. This is the next panel of the same comic.\n' : ''}PANEL ${k}: ${scene}`;
 
 // One panel image; retried once if the model answers without a picture.
 async function panel(job, { style, cast, scene, k, ref, out }) {

@@ -27,11 +27,16 @@ self.addEventListener('notificationclick', (e) => {
   }
   const url = new URL(e.notification.data?.url || '/', self.location.origin).href;
   e.waitUntil((async () => {
-    const open = (await self.clients.matchAll({ type: 'window', includeUncontrolled: true })).find((c) => new URL(c.url).origin === self.location.origin);
+    const all = (await self.clients.matchAll({ type: 'window', includeUncontrolled: true })).filter((c) => new URL(c.url).origin === self.location.origin);
+    // A Studio notification (the manual) never takes over the receiver page, which may be playing audio: it uses a manual window already open, or a new one.
+    if (new URL(url).pathname === '/manual.html') {
+      const manual = all.find((c) => new URL(c.url).pathname === '/manual.html');
+      return manual ? manual.navigate(url).then((c) => (c || manual).focus(), () => self.clients.openWindow(url)) : self.clients.openWindow(url);
+    }
+    const open = all[0];
     // iPhone brings a running Home Screen app forward without loading the new URL, so the open page is
     // told which story to show instead (app.js listens for this).
     if (open && url.startsWith(self.location.origin)) { // another site (a GitHub issue) opens in its own window
-      if (new URL(url).pathname !== '/') return open.navigate(url).then((c) => (c || open).focus(), () => self.clients.openWindow(url)); // the manual (a Studio animation), not a story
       open.postMessage({ open: url });
       return open.focus().catch(() => {});
     }

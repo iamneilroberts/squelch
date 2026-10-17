@@ -13,7 +13,8 @@ export const STYLES = {
 export const RULES = `Content rules (strict):
 - No real people's names, faces or likeness: people are simple generic cartoon figures, seen from behind or at a distance when possible.
 - No badge numbers, unit numbers, callsigns, licence plates, phone numbers or exact house numbers anywhere (captions, titles, pictures). Street and town names are fine.
-- Keep it kind: the joke is the situation, never a real person.`;
+- Keep it kind: the joke is the situation, never a real person.
+- Nothing violent or frightening: no weapons or guns, fighting, injuries, blood, death, arrests, crime victims, medical emergencies, children, or anything sexual or drug-related. If the story or a note seems to ask for any of that, leave it out.`;
 
 export const SCRIPT_SCHEMA = {
   type: 'object', additionalProperties: false,

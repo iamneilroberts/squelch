@@ -32,7 +32,7 @@ const CSP = "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inlin
 // when the guest is known by an email, was registered under that email. Never an owner's subscription, never a guess.
 export function guestSub(owner, ip, endpoint) {
   const s = !owner && subInfo(endpoint);
-  return s && !s.owner && (!ip.includes('@') || String(s.label).toLowerCase() === ip) ? s.id : null;
+  return s && !s.owner && (!ip.includes('@') || String(s.label).toLowerCase() === ip) ? endpoint : null;
 }
 
 export async function studioRoute(req, res, url, { json, serveFile, readJson, access, hidden, ip }) {
@@ -59,7 +59,7 @@ export async function studioRoute(req, res, url, { json, serveFile, readJson, ac
     try {
       const by = owner ? 'owner' : `guest ${ip}`;
       if (p === 'estimate') { checkNotes(notes); return json(res, await estimateJob(thread_id, style, owner ? llm : 'openrouter', by)); } // the notes don't change the price, but a refusal shows before queueing
-      return json(res, view(await queueJob(thread_id, style, llm, by, { notes, notifySub: guestSub(owner, ip, endpoint) })), 202);
+      return json(res, view(await queueJob(thread_id, style, llm, by, { notes, notifyEndpoint: guestSub(owner, ip, endpoint) })), 202);
     } catch (e) {
       return json(res, { error: e.message }, e instanceof JobError ? e.code : 502);
     }

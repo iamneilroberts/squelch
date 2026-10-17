@@ -24,7 +24,9 @@ const SERIOUS = /\b(injur\w*|hurt|wound\w*|bleed\w*|blood\w*|dead|death\w*|died|
 const storyText = (t) => [t.subject, t.why, ...t.facts.map((f) => `${f.label}: ${f.value}`), ...t.events.flatMap((e) => [e.note, e.transcript])].filter(Boolean).join('\n');
 
 // The serious word in a piece of text, or null: the same word list the guard applies to a story.
-export const flagged = (text) => SERIOUS.exec(text)?.[0] ?? null;
+// Violence, sex and drugs aren't in the story guard (stories rarely say them) but must not get in through viewer notes or model output.
+const EXTRA = /\b(kill\w*|murder\w*|violen\w*|bomb\w*|explo(?:de|des|ded|sion\w*)|terror\w*|attack\w*|gore|gory|tortur\w*|nude|naked|sex|sexy|porn\w*|cocaine|heroin|meth|drugs?|gangs?|crime|criminal\w*)\b/i;
+export const flagged = (text) => SERIOUS.exec(text)?.[0] ?? EXTRA.exec(text)?.[0] ?? null;
 
 // Why a story can't be animated, or null when it can.
 export function guard(t) {

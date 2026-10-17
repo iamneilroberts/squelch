@@ -16,8 +16,8 @@ import { makeCartoon } from './cartoon.mjs';
 import { chromePath } from './browser.mjs';
 import { studioJson, pickProvider, defaultProvider, subscriptionModel, PROVIDERS } from './llm.mjs';
 import { directorPrompt } from './director.mjs';
-import { cleanNotes } from './notes.mjs';
-import { pushTo, ownerSubIds } from '../notify.mjs';
+import { cleanNotes, guardOutput } from './notes.mjs';
+import { pushTo, ownerSubIds, subInfo } from '../notify.mjs';
 
 // The cartoon is two-pass (director + library) unless STUDIO_CARTOON_MODE=oneshot; the row's prompt_version records which.
 const cartoonMode = () => (process.env.STUDIO_CARTOON_MODE === 'oneshot' ? 'oneshot' : 'twopass');
@@ -80,7 +80,7 @@ export function checkNotes(raw) {
 
 // `by` is 'owner' or 'guest <email or address>'. A guest's job always plans with OpenRouter (never the owner's Claude subscription)
 // and is limited to GUEST_JOBS_PER_DAY a day per guest and to the guests' share of the daily cap.
-export async function queueJob(threadId, style, llm, by = 'owner', { notes = '', notifySub = null } = {}) {
+export async function queueJob(threadId, style, llm, by = 'owner', { notes = '', notifyEndpoint = null } = {}) {
   const guest = by !== 'owner';
   const instructions = checkNotes(notes);
   const est = await estimateJob(threadId, style, guest ? 'openrouter' : llm, by);
@@ -88,7 +88,7 @@ export async function queueJob(threadId, style, llm, by = 'owner', { notes = '',
   if (!est.dailyOk) throw new JobError(`That would pass today’s Studio cap: $${est.today.toFixed(3)} spent, about $${est.usd.toFixed(3)} more, cap $${est.cap.toFixed(2)} (STUDIO_DAILY_USD)`, 429);
   if (guest && guestJobsToday(by, dayBounds(localDate())[0]) >= GUEST_JOBS_PER_DAY) throw new JobError(`Guests can make ${GUEST_JOBS_PER_DAY} animations a day each, and you’ve made them for today. Try again tomorrow.`, 429);
   const t = getThread(Number(threadId));
-  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind](), llm: est.llm, requested_by: by, est_usd: est.usd, instructions, notify_sub: guest ? notifySub : null });
+  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind](), llm: est.llm, requested_by: by, est_usd: est.usd, instructions, notify_endpoint: guest ? notifyEndpoint : null });
   setImmediate(pump);
   return getAnimation(id);
 }
@@ -102,7 +102,13 @@ export async function notifyFinished(id) {
   const a = getAnimation(id);
   if (!a || (a.status !== 'done' && a.status !== 'failed')) return { to: [], sent: 0 };
   const guest = a.requested_by?.startsWith('guest');
-  const to = guest ? (a.notify_sub ? [a.notify_sub] : []) : ownerSubIds();
+  let to;
+  if (!guest) to = ownerSubIds();
+  else {
+    // The browser is found again by its endpoint now, not by a stored id (ids are reused after a delete); it must still be a guest's, and the same person's when they are known by email.
+    const s = subInfo(a.notify_endpoint), key = a.requested_by.slice(6);
+    to = s && !s.owner && (!key.includes('@') || String(s.label).toLowerCase() === key) ? [s.id] : [];
+  }
   const title = a.title.length > 60 ? `${a.title.slice(0, 59)}…` : a.title;
   // A guest isn't shown the engine's error text, so they get a plain reason.
   const why = guest ? 'it didn\'t work out' : String(a.error || 'it failed').replace(/\s+/g, ' ').slice(0, 80);
@@ -182,6 +188,8 @@ async function run(id) {
       const { system, user } = scriptPrompt(t, clips, row.style, job.notes);
       const provider = row.llm || defaultProvider();
       const { data: script } = await studioJson(job, { provider, purpose: 'studio:script', model: MODELS.script(), system, user, schema: SCRIPT_SCHEMA, name: 'script', maxTokens: 8000, outTok: 2500 });
+      const hit = guardOutput(script); // what the model wrote is checked too, whatever the notes said
+      if (hit) throw new Error(`The content guard stopped the script (it mentions “${hit.toLowerCase()}”)`);
       updateAnimation(id, { title: script.title || row.title });
       writeFileSync(join(dir, 'script.json'), JSON.stringify(script, null, 1));
 

@@ -7,7 +7,7 @@ import { Script } from 'node:vm';
 import { RULES } from './script.mjs';
 import { scrub } from './track.mjs';
 import { studioJson } from './llm.mjs';
-import { notesBlock } from './notes.mjs';
+import { notesBlock, guardOutput } from './notes.mjs';
 
 const ASSETS = new URL('./assets/', import.meta.url).pathname;
 export const LIB = readFileSync(join(ASSETS, 'cartoon-lib.js'), 'utf8');
@@ -151,6 +151,8 @@ export async function direct(job, { script, tl, provider, model }) {
       ask = `${user}\n\nYour previous reply failed: ${e.message}. Reply with the whole beat sheet JSON.`;
       continue;
     }
+    const hit = guardOutput(raw);
+    if (hit) throw new Error(`The content guard stopped the cartoon plan (it mentions “${hit.toLowerCase()}”)`);
     const { beat, problems } = checkBeat(raw, tl, script.punch);
     if (beat && (!problems.length || attempt)) return { beat, problems };
     last = problems;

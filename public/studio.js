@@ -124,7 +124,7 @@ async function loadJobs() {
   const gone = [...seenJobs.keys()].filter((id) => !jobs.some((j) => j.id === id));
   seenJobs = new Map(jobs.map((j) => [j.id, j]));
   if (gone.length) {
-    const list = await loadLibrary();
+    const list = await loadLibrary().catch(() => []); // one failed request mustn't end the polling
     // Mine only: the owner's own jobs, or what a guest queued from this tab. (Another guest's job is none of theirs.)
     for (const a of list) if (gone.includes(a.id) && (a.status === 'done' || a.status === 'failed') && (ACCESS === 'owner' ? a.requested_by === 'owner' : mine.has(a.id))) toast(a);
   }

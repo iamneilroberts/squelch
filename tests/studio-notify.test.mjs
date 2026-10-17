@@ -18,7 +18,7 @@ process.chdir(mkdtempSync(join(tmpdir(), 'studio-notify-cwd-')));
 const sent = []; // { endpoint, payload }
 webpush.sendNotification = async (sub, body) => { sent.push({ endpoint: sub.endpoint, payload: JSON.parse(body) }); return { statusCode: 201 }; };
 
-const { subscribe, configureNotify, subInfo } = await import('../src/notify.mjs');
+const { subscribe, unsubscribe, configureNotify, subInfo } = await import('../src/notify.mjs');
 const { createAnimation, updateAnimation, getAnimation } = await import('../src/studio/library.mjs');
 const { pump, notifyFinished } = await import('../src/studio/jobs.mjs');
 const { guestSub } = await import('../src/studio/routes.mjs');
@@ -56,7 +56,7 @@ test('owner job failed (the real runner, failing before any model call): owner b
 });
 
 test('guest job done: only the browser it was queued from', async () => {
-  const id = queued({ requested_by: 'guest ann@example.com', notify_sub: subInfo(GUEST1).id });
+  const id = queued({ requested_by: 'guest ann@example.com', notify_endpoint: GUEST1 });
   updateAnimation(id, { status: 'done' });
   await notifyFinished(id);
   const got = who();
@@ -66,7 +66,7 @@ test('guest job done: only the browser it was queued from', async () => {
 });
 
 test('guest job failed: a plain reason, never the engine\'s error text', async () => {
-  const id = queued({ requested_by: 'guest bob@example.com', notify_sub: subInfo(GUEST2).id });
+  const id = queued({ requested_by: 'guest bob@example.com', notify_endpoint: GUEST2 });
   await pump();
   const got = who();
   console.log('guest failed ->', got);
@@ -76,7 +76,7 @@ test('guest job failed: a plain reason, never the engine\'s error text', async (
 });
 
 test('guest with no subscription: nobody is told, owners included', async () => {
-  const id = queued({ requested_by: 'guest 203.0.113.9', notify_sub: null });
+  const id = queued({ requested_by: 'guest 203.0.113.9', notify_endpoint: null });
   updateAnimation(id, { status: 'done' });
   const r = await notifyFinished(id);
   console.log('guest, no subscription ->', r.to, who());
@@ -87,7 +87,7 @@ test('guest with no subscription: nobody is told, owners included', async () => 
 
 test('guest notifications switched off: a guest\'s subscription is skipped', async () => {
   guestsAllowed = false;
-  const id = queued({ requested_by: 'guest ann@example.com', notify_sub: subInfo(GUEST1).id });
+  const id = queued({ requested_by: 'guest ann@example.com', notify_endpoint: GUEST1 });
   updateAnimation(id, { status: 'done' });
   assert.equal((await notifyFinished(id)).sent, 0);
   guestsAllowed = true;
@@ -99,11 +99,31 @@ test('a job that is still queued or running sends nothing', async () => {
 });
 
 test('which subscription a guest\'s job may use: theirs only', () => {
-  assert.equal(guestSub(false, 'ann@example.com', GUEST1), subInfo(GUEST1).id);
+  assert.equal(guestSub(false, 'ann@example.com', GUEST1), GUEST1);
   assert.equal(guestSub(false, 'ann@example.com', GUEST2), null, 'another guest\'s browser, under a different email');
   assert.equal(guestSub(false, 'ann@example.com', OWNER1), null, 'an owner browser');
   assert.equal(guestSub(false, '203.0.113.9', OWNER1), null, 'an owner browser, guest known by address only');
   assert.equal(guestSub(false, 'ann@example.com', 'https://push.example/unknown'), null);
   assert.equal(guestSub(false, 'ann@example.com', undefined), null);
   assert.equal(guestSub(true, 'owner', OWNER1), null, 'owner jobs use all owner browsers instead');
+});
+
+test('a deleted subscription whose id is reused by someone else is not notified', async () => {
+  const mine = sub('guest-3', false, 'cy@example.com'); // the newest row, so its id is the one SQLite hands out next
+  const id = queued({ requested_by: 'guest cy@example.com', notify_endpoint: mine });
+  updateAnimation(id, { status: 'done' });
+  const oldId = subInfo(mine).id;
+  unsubscribe(mine);
+  const stranger = sub('guest-4', false, 'dan@example.com');
+  assert.equal(subInfo(stranger).id, oldId, 'the id really was reused');
+  const r = await notifyFinished(id);
+  assert.deepEqual(r.to, []);
+  assert.deepEqual(sent, []);
+});
+
+test('a job whose stored endpoint now belongs to a different person, or an owner, sends nothing', async () => {
+  const a = queued({ requested_by: 'guest ann@example.com', notify_endpoint: GUEST2 }); // bob's browser on ann's job
+  const b = queued({ requested_by: 'guest 203.0.113.9', notify_endpoint: OWNER1 });
+  for (const id of [a, b]) { updateAnimation(id, { status: 'done' }); assert.deepEqual((await notifyFinished(id)).to, []); }
+  assert.deepEqual(sent, []);
 });
