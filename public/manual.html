@@ -185,6 +185,7 @@
         </tbody>
       </table></div>
       <p>Models were picked with the bench (<code>npm run bench</code>) and can be overridden in <code>.env</code>. The <a href="#ledger">Ledger</a> tab shows actual spend, call by call.</p>
+      <p>The Ledger opens on <strong>Where the money goes</strong>: the period's spend, the rate per day and per 30 days, then each channel's share split by stage (speech-to-text, gate, story, triage), with its cost per kept transmission and how many of its clips had no speech. Tap a channel to list its clips. <strong>Ways to spend less</strong> names up to five changes, each with what it would save per day and the setting to change; it lists only those worth a cent a day or more. <strong>Behind the scenes</strong> sorts clips by newest, costliest or channel, and can show one channel or only flagged clips; the Ledger remembers these choices.</p>
     </section>
 
     <h2 class="part">Set up</h2>
@@ -349,6 +350,16 @@ npm start</pre>
   </main>
 
   <main class="book" id="ledger" role="tabpanel" aria-labelledby="tab-ledger" hidden>
+    <section class="page wide" aria-labelledby="h-money">
+      <h2 id="h-money">Where the money goes</h2>
+      <div id="money"></div>
+    </section>
+
+    <section class="page wide" aria-labelledby="h-save">
+      <h2 id="h-save">Ways to spend less</h2>
+      <ol class="tips" id="tips"></ol>
+    </section>
+
     <section class="page" aria-labelledby="h-balance">
       <h2 id="h-balance">Balance</h2>
       <dl class="leaders" id="balance"></dl>
@@ -374,6 +385,15 @@ npm start</pre>
       <p class="hint">One line per radio clip or digest. Tap a line for the details: the recording, its story, and each AI and API call on a timeline.
         <svg class="flag notable" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></svg> notable &nbsp;
         <svg class="flag breaking" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></svg> breaking, as triage judged them.</p>
+      <div class="trace-tools">
+        <div class="keys" role="group" aria-label="Sort" id="t-sort">
+          <button type="button" class="key" data-sort="new">Newest</button>
+          <button type="button" class="key" data-sort="cost">Costliest</button>
+          <button type="button" class="key" data-sort="channel">Channel</button>
+        </div>
+        <select id="t-source" aria-label="Channel"><option value="">All channels</option></select>
+        <div class="keys"><button type="button" class="key" id="t-flagged" aria-pressed="false">Flagged only</button></div>
+      </div>
       <ol class="traces" id="traces"></ol>
     </section>
   </main>

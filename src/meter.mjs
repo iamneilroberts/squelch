@@ -113,18 +113,73 @@ export function costSummary(hours) {
   return { hours, since, coveredHours, rows, clips };
 }
 
-export function recentTraces(limit = 40, kind = null) {
-  const traces = db.prepare(`SELECT t.*, c.transcript, c.category, c.jev_speech, c.jev_news,
+// sort: new | cost | channel (each channel's five costliest, costliest channel first).
+export function recentTraces({ limit = 40, kind = null, sort = 'new', source = null, flagged = false, hours = null } = {}) {
+  const where = ['EXISTS (SELECT 1 FROM spans s WHERE s.trace_id = t.id)'], args = [];
+  if (hours) { where.push('t.at >= ?'); args.push(new Date(Date.now() - hours * 3600e3).toISOString()); }
+  if (kind) { where.push('t.kind = ?'); args.push(kind); }
+  if (source) { where.push('t.source_id = ?'); args.push(source); }
+  if (flagged) where.push(`c.category IN ('notable', 'breaking')`);
+  const pick = `SELECT t.id, t.source_id, (SELECT SUM(cost) FROM spans s WHERE s.trace_id = t.id) AS cost
+    FROM traces t LEFT JOIN calls c ON c.id = t.call_id WHERE ${where.join(' AND ')}`;
+  const ids = db.prepare(sort === 'new' ? `${pick} ORDER BY t.id DESC LIMIT ?`
+    : sort === 'cost' || source ? `${pick} ORDER BY cost DESC NULLS LAST, t.id DESC LIMIT ?`
+      : `SELECT id FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY source_id ORDER BY cost DESC NULLS LAST, id DESC) AS rn,
+          SUM(cost) OVER (PARTITION BY source_id) AS total FROM (${pick}))
+        WHERE rn <= 5 ORDER BY total DESC NULLS LAST, source_id, cost DESC NULLS LAST LIMIT ?`)
+    .all(...args, limit).map((r) => r.id);
+  if (!ids.length) return [];
+  const rows = new Map(db.prepare(`SELECT t.*, c.transcript, c.category, c.jev_speech, c.jev_news,
       c.audio, c.duration, c.subject, c.thread_id, c.incident_id, i.headline,
       (SELECT COUNT(*) FROM calls x WHERE x.thread_id = c.thread_id) AS story_clips,
       (SELECT SUM(duration) FROM calls x WHERE x.thread_id = c.thread_id) AS story_seconds,
       (SELECT SUM(cost) FROM spans s WHERE s.trace_id = t.id) AS cost,
       (SELECT MAX(offset_ms + ms) FROM spans s WHERE s.trace_id = t.id) AS ms
     FROM traces t LEFT JOIN calls c ON c.id = t.call_id LEFT JOIN incidents i ON i.id = c.incident_id
-    WHERE EXISTS (SELECT 1 FROM spans s WHERE s.trace_id = t.id) ${kind ? 'AND t.kind = ?' : ''}
-    ORDER BY t.id DESC LIMIT ?`).all(...(kind ? [kind, limit] : [limit]));
+    WHERE t.id IN (${ids.map(() => '?').join()})`).all(...ids).map((t) => [t.id, t]));
   const spans = db.prepare('SELECT * FROM spans WHERE trace_id = ? ORDER BY offset_ms');
-  return traces.map((t) => ({ ...t, spans: spans.all(t.id) }));
+  return ids.map((id) => ({ ...rows.get(id), spans: spans.all(id) }));
+}
+
+// Where the money goes: spend per channel (split by stage) and the clips behind it. Spend with no
+// channel (daily logs, catch-ups) sits under source_id null, so the channels add up to `total`.
+// "Empty" clips were transcribed and came back with no speech (not dropped later by the gate).
+// Grouping by trace_id tempts SQLite to walk the whole of spans_trace; INDEXED BY keeps it to the period.
+// `triage` prices the LLM triage that ran on calls Jev rated routine-ish, for the gate's thresholds.
+export function spendInsight(hours, skipBelow) {
+  const since = new Date(Date.now() - hours * 3600e3).toISOString();
+  const channels = new Map();
+  const ch = (id) => channels.get(id) ?? channels.set(id, { source_id: id, label: null, cost: 0, stages: {}, clips: 0, kept: 0, transcribed: 0, empty: 0, emptyCost: 0 }).get(id);
+  for (const r of db.prepare(`SELECT t.source_id, s.purpose, SUM(s.cost) AS cost, COUNT(*) AS n
+    FROM spans s LEFT JOIN traces t ON t.id = s.trace_id WHERE s.at >= ? AND s.cost > 0 GROUP BY 1, 2`).all(since)) {
+    const c = ch(r.source_id);
+    c.cost += r.cost;
+    c.stages[r.purpose] = r.cost;
+  }
+  // With MAX(t.id), SQLite takes the bare t.label from that same row: the channel's current short name.
+  for (const { lastId, ...r } of db.prepare(`SELECT t.source_id, MAX(t.id) AS lastId, t.label, COUNT(*) AS clips, COUNT(t.call_id) AS kept,
+      SUM(x.stt IS NOT NULL) AS transcribed,
+      SUM(x.stt IS NOT NULL AND t.call_id IS NULL AND NOT x.gated) AS empty,
+      SUM(CASE WHEN t.call_id IS NULL AND NOT x.gated THEN x.stt END) AS emptyCost
+    FROM traces t LEFT JOIN (SELECT trace_id, SUM(CASE WHEN kind = 'stt' AND ok THEN COALESCE(cost, 0) END) AS stt, MAX(purpose = 'gate') AS gated
+      FROM spans INDEXED BY spans_at WHERE at >= ? AND trace_id IS NOT NULL GROUP BY trace_id) x ON x.trace_id = t.id
+    WHERE t.kind = 'clip' AND t.at >= ? GROUP BY t.source_id`).all(since, since)) {
+    Object.assign(ch(r.source_id), { ...r, emptyCost: r.emptyCost || 0 });
+  }
+  const triaged = db.prepare(`SELECT c.gate, c.jev_news AS p, c.category != 'routine' AS news, SUM(s.cost) AS cost
+    FROM spans s INDEXED BY spans_at JOIN traces t ON t.id = s.trace_id JOIN calls c ON c.id = t.call_id
+    WHERE s.at >= ? AND s.purpose = 'triage' AND c.jev_news IS NOT NULL GROUP BY s.trace_id`).all(since);
+  const sum = (rs) => ({ n: rs.length, cost: rs.reduce((a, r) => a + (r.cost || 0), 0), missed: rs.filter((r) => r.news).length });
+  return {
+    hours, since,
+    total: [...channels.values()].reduce((a, c) => a + c.cost, 0),
+    channels: [...channels.values()].sort((a, b) => b.cost - a.cost),
+    triage: {
+      skipBelow,
+      audit: sum(triaged.filter((r) => r.gate === 'audit')),
+      raise: [0.3, 0.4, 0.5].filter((t) => t > skipBelow).map((t) => ({ t, ...sum(triaged.filter((r) => r.gate === 'pass' && r.p < t)) })),
+    },
+  };
 }
 
 // Shadow-mode scorecard: Jev's gate vs. the LLM triage verdict on the same live transcripts.

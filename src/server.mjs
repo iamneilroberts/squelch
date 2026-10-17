@@ -12,7 +12,7 @@ import { startIngest, bus, status, GATE, VAD } from './ingest/pipeline.mjs';
 import { overlays, startShips } from './overlays.mjs';
 import { buildDigest, dayBounds, localDate } from './digest.mjs';
 import { llmReady } from './ai/llm.mjs';
-import { costSummary, recentTraces, gateAgreement, vadReport, squelchReport } from './meter.mjs';
+import { costSummary, recentTraces, spendInsight, gateAgreement, vadReport, squelchReport } from './meter.mjs';
 import { station, regions, sources, configFile } from './config.mjs';
 import { scanStream, updateScan, scanPlays } from './scan.mjs';
 import { widerCatchup } from './ai/wider.mjs';
@@ -269,7 +269,14 @@ createServer(async (req, res) => {
       const hours = Math.min(24 * 30, Number(url.searchParams.get('hours') || 24));
       return json(res, { ...costSummary(hours), gate: { ...gateAgreement(hours), ...GATE }, vad: { ...vadReport(hours), ...VAD, squelch: squelchReport(hours) } });
     }
-    if (p === '/api/traces') return out(recentTraces(Math.min(200, Number(url.searchParams.get('limit') || 40)), url.searchParams.get('kind')));
+    if (p === '/api/costs/insight') return json(res, spendInsight(Math.min(24 * 30, Number(url.searchParams.get('hours') || 24)), GATE.skipBelow));
+    if (p === '/api/traces') {
+      const q = url.searchParams;
+      return out(recentTraces({
+        limit: Math.min(200, Number(q.get('limit') || 40)), kind: q.get('kind'), sort: q.get('sort') || 'new',
+        source: q.get('source'), flagged: q.get('flagged') === '1', hours: Math.min(24 * 30, Number(q.get('hours') || 0)) || null,
+      }));
+    }
     const m = p.match(/^\/api\/digests\/(\d{4}-\d{2}-\d{2})\/([a-z-]+)(\/build)?$/);
     if (m) {
       const [, date, region, build] = m;
