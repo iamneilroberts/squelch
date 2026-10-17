@@ -2,7 +2,7 @@
 import { EventEmitter } from 'node:events';
 import { rmSync, renameSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { insertCall, tagCall, createIncident, updateIncident, openIncidentsFor, expireAudio, pruneHistory, setGate, currentThread, saveThread, joinThread, incidentForThread } from '../db.mjs';
+import { insertCall, tagCall, createIncident, updateIncident, openIncidentsFor, expireAudio, pruneHistory, setGate, currentThread, openThreads, saveThread, joinThread, incidentForThread, threadForIncident, moveToThread } from '../db.mjs';
 import { withTrace, linkTraceToCall, pruneSpans, span, setTraceVad } from '../meter.mjs';
 import { loudnessSpread } from './vad.mjs';
 import { gate } from '../ai/jev.mjs';
@@ -105,10 +105,11 @@ async function handleClip(source, clip) {
   // The channel's story runs beside triage. On failure the call just isn't added to it.
   // A transmission of four words or fewer ("Copy", "Engine 6 in service") joins the current story without a call.
   const current = currentThread(source.id);
+  const stories = openThreads(source.id);
   const threadP = current && transcript.split(/\s+/).length <= 4
     ? Promise.resolve({ thread_id: joinThread(callId, current.id, clip.at), subject: current.subject, facts: current.facts })
-    : nextThread({ source, current, transcript }).then(
-      (t) => ({ thread_id: saveThread(callId, source.id, clip.at, t.same && current ? current.id : null, t), subject: t.subject, facts: t.facts }),
+    : nextThread({ source, stories, transcript }).then(
+      (t) => ({ thread_id: saveThread(callId, source.id, clip.at, stories.some((s) => s.id === t.story) ? t.story : null, t), subject: t.subject, facts: t.facts }),
       () => ({ thread_id: null, subject: current?.subject ?? null, facts: [] }));
   setStatus(source.id, { lastCall: clip.at, error: null });
 
@@ -122,8 +123,7 @@ async function handleClip(source, clip) {
     items = await runTriage();
   }
   setGate(callId, g, decision);
-  const { thread_id, subject, facts } = await threadP;
-  considerThread(thread_id).catch((e) => console.warn('[notify]', e.message));
+  let { thread_id, subject, facts } = await threadP;
   let category = 'routine';
   let incidentId = null;
   // One story, one incident: a "new" event of the same type as the story's incident updates that incident.
@@ -155,6 +155,10 @@ async function handleClip(source, clip) {
     category = it.category === 'breaking' || category === 'breaking' ? 'breaking' : it.category;
     bus.emit('incident', saved);
   }
+  // The story follows the incident: a call triaged to an incident that another recent story holds joins that story.
+  const home = incidentId && thread_id ? threadForIncident(incidentId, callId) : null;
+  if (home && home !== thread_id) [subject, thread_id] = [moveToThread(callId, thread_id, home), home];
+  considerThread(thread_id).catch((e) => console.warn('[notify]', e.message));
   tagCall(callId, incidentId, category);
   bus.emit('call', { id: callId, source_id: source.id, at: clip.at, duration: clip.duration, audio: clip.audio, transcript, incident_id: incidentId, category, subject, thread_id });
 }

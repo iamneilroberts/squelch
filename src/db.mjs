@@ -184,6 +184,31 @@ export function incidentForThread(threadId, minutes = 60) {
     WHERE c.thread_id = ? AND i.updated_at >= ? ORDER BY c.at DESC LIMIT 1`).get(threadId, since) ?? null;
 }
 
+// The channel's stories heard within `minutes`, most recent first, for the story model to choose among.
+export function openThreads(sourceId, minutes = 120, limit = 6) {
+  const since = new Date(Date.now() - minutes * 60e3).toISOString();
+  const calls = db.prepare('SELECT note, transcript FROM calls WHERE thread_id = ? ORDER BY id');
+  return db.prepare('SELECT * FROM threads WHERE source_id = ? AND updated_at >= ? ORDER BY updated_at DESC LIMIT ?').all(sourceId, since, limit).map((t, i) => {
+    const c = calls.all(t.id);
+    return { id: t.id, subject: t.subject, facts: JSON.parse(t.facts), updated_at: t.updated_at, notes: c.map((x) => x.note).filter(Boolean).slice(i ? -4 : -12), transcripts: i ? [] : c.slice(-2).map((x) => x.transcript) };
+  });
+}
+
+// The story an incident's other calls belong to, if it was heard within `minutes`.
+export function threadForIncident(incidentId, callId, minutes = 120) {
+  const since = new Date(Date.now() - minutes * 60e3).toISOString();
+  return db.prepare(`SELECT c.thread_id FROM calls c JOIN threads t ON t.id = c.thread_id
+    WHERE c.incident_id = ? AND c.id != ? AND t.updated_at >= ? ORDER BY c.at DESC LIMIT 1`).get(incidentId, callId, since)?.thread_id ?? null;
+}
+
+// Move a call to story `to`; a story it leaves empty is deleted. Returns `to`'s subject.
+export function moveToThread(callId, from, to) {
+  db.prepare('UPDATE calls SET thread_id = ?, subject = (SELECT subject FROM threads WHERE id = ?) WHERE id = ?').run(to, to, callId);
+  db.prepare('UPDATE threads SET updated_at = MAX(updated_at, (SELECT at FROM calls WHERE id = ?)) WHERE id = ?').run(callId, to);
+  if (!db.prepare('SELECT 1 FROM calls WHERE thread_id = ?').get(from)) db.prepare('DELETE FROM threads WHERE id = ?').run(from);
+  return db.prepare('SELECT subject FROM threads WHERE id = ?').get(to).subject;
+}
+
 // Add a call to a story as it stands (no new note, subject or facts). Returns the thread id.
 export function joinThread(callId, threadId, at) {
   db.prepare('UPDATE threads SET updated_at = ? WHERE id = ?').run(at, threadId);
