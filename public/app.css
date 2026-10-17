@@ -511,7 +511,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .follow .quiet { font-weight: 400; font-style: italic; color: var(--ink-soft); }
 .follow-log { list-style: none; display: grid; gap: 4px; margin: 0; padding: 0; font-size: 13px; line-height: 1.4; }
 .follow-log li { display: grid; grid-template-columns: 44px 1fr; gap: 8px; }
-.follow-log li.fresh { margin: 0 -6px; padding: 0 6px; background: oklch(0.93 0.08 90 / .8); }
+:is(.follow-log, .story-log) li.fresh { margin: 0 -6px; padding: 0 6px; background: oklch(0.93 0.08 90 / .8); }
 .follow-log time { font-weight: 700; color: var(--red-ink); }
 .follow-log p { margin: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
 .new { padding: 0 4px; border-radius: 2px; background: var(--red-ink); color: var(--paper); font: 700 10px/1.4 var(--font-type); letter-spacing: .08em; text-transform: uppercase; font-style: normal; }
@@ -538,7 +538,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .story-log li { display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; align-items: start; }
 .story-log time { font-weight: 700; color: var(--red-ink); }
 .story-log .play { margin-top: 0; }
-.story-log .story-more { display: block; font-style: italic; color: var(--ink-soft); }
+.story-log .transcript { margin-top: 3px; }
+.story-log .story-quiet { display: block; }
+.story-quiet summary { list-style: none; font-style: italic; color: var(--ink-soft); cursor: pointer; }
+.story-quiet summary::-webkit-details-marker { display: none; }
+.story-quiet summary::after { content: ' ▾'; font-style: normal; }
+.story-quiet details[open] summary::after { content: ' ▴'; }
+.story-quiet .story-log { padding: 6px 0 0 14px; border-top: 0; }
 
 /* Notifications: a bakelite bell key on the grille; its lamp glows while this browser is subscribed. */
 .bell {
@@ -885,6 +891,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .tkey { width: 44px; padding: 10px 0 8px; } /* 44 px touch targets */
   .tkey.scan-key { width: auto; min-width: 44px; padding: 10px 8px 8px; letter-spacing: .08em; }
   .follow-key { min-height: 44px; padding: 0 12px; }
+  .story .play, .story-close { min-width: 44px; min-height: 44px; }
+  .story-play, .story-feedback .key, .story-quiet summary { min-height: 44px; }
+  .story-quiet summary { display: flex; align-items: center; gap: 6px; }
+  .story-head { flex-wrap: wrap; }
+  #story-follow { order: 1; flex-basis: 100%; } /* under the title, which needs the width */
   .chart { min-height: 52vh; }
   .printer { min-height: 70vh; }
   .strip { padding: 8px 12px; }

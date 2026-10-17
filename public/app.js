@@ -1359,8 +1359,11 @@ function connect() {
 let storyId = null;
 let storyClips = []; // every transmission in the story with audio, oldest first
 let widerClips = []; // the wider catch-up's transmissions, in the order they went out
+const storySeen = new Map(); // story id → its newest transmission this page has shown on the card
+let storyBase = null; // on the open card, transmissions after this id are NEW
+const quietOpen = new Set(); // quiet runs opened on the card, by their oldest transmission's id
 async function openStory(id, { play = false } = {}) {
-  if (Number(id) !== storyId) $('story-wider-out').hidden = true;
+  if (Number(id) !== storyId) { $('story-wider-out').hidden = true; storyBase = storySeen.get(Number(id)) ?? null; }
   storyId = Number(id);
   await renderStory();
   if (storyId && !$('story').open) $('story').showModal();
@@ -1382,8 +1385,9 @@ function playNext() {
 }
 async function renderStory() {
   const t = await fetch(`/api/threads/${storyId}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-  if (!t) return;
+  if (!t || t.id !== storyId) return;
   const short = state.byId.get(t.source_id)?.short || '';
+  const card = $('story'), top = card.scrollTop, height = card.scrollHeight;
   storyClips = t.events.filter((e) => e.audio).map((e, i, all) => ({ src: `/audio/${encodeURIComponent(e.audio)}`, label: `${i + 1} of ${all.length} · ${hhmm(e.at)} ${short}` }));
   $('story-play').hidden = !storyClips.length;
   $('story-play').innerHTML = `${ICON_PLAY} Play all · ${storyClips.length} transmission${storyClips.length > 1 ? 's' : ''}`;
@@ -1392,12 +1396,31 @@ async function renderStory() {
   $('story-title').innerHTML = `${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}`;
   $('story-follow').innerHTML = followKey(t.id);
   $('story-facts').innerHTML = t.facts.map((f) => `<dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd>`).join('');
-  const notes = t.events.filter((e) => e.note);
-  const quiet = t.events.length - notes.length;
-  $('story-log').innerHTML = notes.map((e) => `<li><time>${hhmm(e.at)}</time><span>${esc(e.note)}</span>${e.audio
-    ? `<button class="play" data-src="/audio/${encodeURIComponent(e.audio)}" data-label="${esc(`${hhmm(e.at)} ${state.byId.get(t.source_id)?.short || ''}`)}" aria-label="Play">${ICON_PLAY}</button>` : ''}</li>`).join('')
-    + (quiet ? `<li class="story-more">+ ${quiet} more transmission${quiet > 1 ? 's' : ''} with nothing new</li>` : '');
+  const newest = Math.max(0, ...t.events.map((e) => e.id));
+  storyBase ??= newest; // first opening in this page: nothing is NEW yet
+  storySeen.set(t.id, newest);
+  const isNew = (e) => e.id > storyBase;
+  const row = (e) => `<li${isNew(e) ? ' class="fresh"' : ''}><time>${hhmm(e.at)}</time><div>${isNew(e) ? '<span class="new">New</span> ' : ''}${esc(e.note)}`
+    + `${e.transcript ? `<p class="transcript">“${esc(e.transcript)}”</p>` : ''}</div>${e.audio
+    ? `<button class="play" data-src="/audio/${encodeURIComponent(e.audio)}" data-label="${esc(`${hhmm(e.at)} ${short}`)}" aria-label="Play">${ICON_PLAY}</button>` : ''}</li>`;
+  // Newest first; each run of transmissions with no note folds into one "+ N quiet" line.
+  const runs = [];
+  for (const e of t.events.toReversed()) {
+    if (!e.note && Array.isArray(runs.at(-1))) runs.at(-1).push(e);
+    else runs.push(e.note ? e : [e]);
+  }
+  $('story-log').innerHTML = runs.map((r) => {
+    if (!Array.isArray(r)) return row(r);
+    const key = String(r.at(-1).id);
+    return `<li class="story-quiet"><details data-run="${key}"${quietOpen.has(key) ? ' open' : ''}><summary>+ ${r.length} quiet${r.some(isNew) ? ' <span class="new">New</span>' : ''}</summary>`
+      + `<ol class="story-log">${r.map(row).join('')}</ol></details></li>`;
+  }).join('');
+  if (top) card.scrollTop = top + card.scrollHeight - height; // what was in view stays put as transmissions land above it
 }
+$('story').addEventListener('toggle', (e) => { // doesn't bubble
+  const key = e.target.dataset?.run;
+  if (key) e.target.open ? quietOpen.add(key) : quietOpen.delete(key);
+}, true);
 document.addEventListener('click', (e) => {
   const f = e.target.closest('[data-follow]');
   if (f) return setFollow(Number(f.dataset.follow));
