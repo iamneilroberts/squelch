@@ -62,3 +62,8 @@
 .job-step { text-align: right; color: var(--blue-ink); }
 .job-bar { grid-column: 1 / -1; height: 8px; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--paper); }
 .job-bar span { display: block; height: 100%; background: var(--blue-ink); transition: width .4s; }
+
+/* Guests: the owner's three-way control. */
+#guest-control .keys { display: inline-flex; margin-top: 8px; }
+#guest-control .key { min-width: 0; padding: 9px 14px 7px; font-size: 11px; }
+#guest-control .hint { margin: 8px 0 0; }

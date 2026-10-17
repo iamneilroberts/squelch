@@ -1,4 +1,4 @@
-// Station Manual: "How it works", the Ledger, and (for the owner) the Studio. The Ledger's code (costs.js)
+// Station Manual: "How it works", the Ledger, and the Studio (the owner's; guests too if the owner lets them). The Ledger's code (costs.js)
 // and the Studio's (studio.js) load on first open.
 const $ = (id) => document.getElementById(id);
 const loaded = new Set();
@@ -23,8 +23,8 @@ $('tab-ledger').addEventListener('click', () => { location.hash = 'ledger'; });
 $('tab-studio').addEventListener('click', () => { location.hash = 'studio'; });
 addEventListener('hashchange', show);
 show();
-// The Studio is the owner's (LAN, or signed in through Cloudflare Access); everyone else never sees its tab.
-fetch('/api/config').then((r) => r.json()).then((c) => { owner = Boolean(c.viewer?.canShare); $('tab-studio').hidden = !owner; if (owner && location.hash === '#studio') show(); }).catch(() => {});
+// The Studio tab shows for the owner (LAN, or signed in through Cloudflare Access) and for guests when the owner's Guests setting allows it.
+fetch('/api/config').then((r) => r.json()).then((c) => { owner = (c.viewer?.studio || 'off') !== 'off'; $('tab-studio').hidden = !owner; if (owner && location.hash === '#studio') show(); }).catch(() => {});
 
 // A phone can bring this page back from memory after an update; check, and reload if anything changed.
 let version = null;

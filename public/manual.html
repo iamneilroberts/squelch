@@ -174,7 +174,7 @@
 
     <section class="page wide" id="animations">
       <h2>Studio</h2>
-      <p>The owner's desk for turning light stories into short funny animations over the real radio. It's the Studio tab here, shown only to the owner (on the LAN, or signed in through Cloudflare Access); every Studio request from anyone else gets <code>403</code>.</p>
+      <p>The owner's desk for turning light stories into short funny animations over the real radio. It's the Studio tab here, for the owner (on the LAN, or signed in through Cloudflare Access). Guests see it only when the owner turns on the <strong>Guests</strong> control at the top of the tab: <em>Off</em> (the default: no tab, and every Studio request gets <code>403</code>), <em>Watch</em> (guests see the library and the suggestions, play and rate animations) or <em>Make</em> (guests can also estimate and queue animations). A guest's rating replaces their own earlier one (one per animation per guest address). A guest's animation is always planned with OpenRouter, never the owner's Claude subscription; each guest address gets 2 a day, counted against <code>STUDIO_DAILY_USD</code>, and the content guard applies as always. Deleting, refreshing suggestions and the Guests control stay with the owner. Guests who can't read transcripts get Watch at most and no suggestions list. The library notes who asked for each animation; guest addresses are shown only to the owner.</p>
       <p><strong>Suggestions.</strong> Stories from the last 48 hours pass a content guard first: never medical calls, anything alerting at 0.5 or more, or a story that mentions injuries, deaths, victims, arrests, weapons, minors, ambulances or hospitals; it also needs recordings left and enough said. The rest are scored by the triage model, 12 stories a call: <em>humor</em> (0–100), a pitch of at most 12 words, and <em>safe</em>, which is false when someone was hurt, arrested or mocked. Unsafe ones are kept out too; "Kept out by the content guard" lists every exclusion and why. Scores are kept until the story changes, so <strong>Refresh</strong> only pays for new and changed stories (about a cent for a whole 48 hours) and shows what it spent.</p>
       <p><strong>Make it.</strong> Pick a style: <em>Sunday comic</em>, <em>Newspaper ink</em> or <em>Pixel art</em> make a comic (MP4 + web page); <em>Flat vector</em> makes a cartoon (MP4 + web page). <em>Plan with</em> picks who writes the script and the cartoon's plan: OpenRouter (metered) or the Claude subscription (the local Claude Code CLI, $0 here; <code>STUDIO_LLM</code> sets the default). The estimate comes first, from the models' per-token prices; then the job queues. One job runs at a time, on the server, with its progress on the page:</p>
       <ol>
@@ -436,6 +436,11 @@ npm start</pre>
   </main>
 
   <main class="book" id="studio" role="tabpanel" aria-labelledby="tab-studio" hidden>
+    <section class="page wide" aria-labelledby="h-guests" id="guest-control" hidden>
+      <h2 id="h-guests">Guests</h2>
+      <div class="keys" role="group" aria-label="What guests may do in the Studio" id="guest-keys"></div>
+      <p class="hint" id="guest-note"></p>
+    </section>
     <section class="page wide" aria-labelledby="h-suggest">
       <h2 id="h-suggest">Suggestions</h2>
       <div class="suggest-tools">

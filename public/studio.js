@@ -1,4 +1,4 @@
-// Squelch Studio — client. Owner-only; the server refuses everyone else.
+// Squelch Studio — client. The owner has it all; guests get what the owner's Guests setting allows (the server enforces it).
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const usd = (x) => (x == null ? '<span class="na">not metered</span>' : x === 0 ? '$0' : x < 0.01 ? `$${x.toFixed(4)}` : `$${x.toFixed(x < 1 ? 3 : 2)}`);
@@ -9,6 +9,8 @@ const when = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: TZ, mont
 const STYLE = { sunday: 'Sunday comic', ink: 'Newspaper ink', pixel: 'Pixel art', vector: 'Flat vector' };
 const FORMAT = { 'mp4+web': 'MP4 + web', web: 'Web' };
 const PURPOSE = { 'studio:humor': 'humor score', 'studio:script': 'script', 'studio:image': 'panels', 'studio:cartoon': 'cartoon', 'studio:director': 'director', 'studio:render': 'render' };
+let ACCESS = 'owner'; // owner | make | watch, from /api/config
+const canMake = () => ACCESS === 'owner' || ACCESS === 'make';
 let LLM = { llm: 'openrouter', providers: { openrouter: 'OpenRouter', claude: 'Claude subscription' } }; // who writes the script and plan; the server sends its default
 
 async function api(path, opts) {
@@ -28,9 +30,9 @@ function suggestion(s) {
       <p class="pitch">${esc(s.pitch)}</p>
       <p class="anim-sub"><a href="/?story=${s.thread_id}">${esc(s.subject)}</a> · ${esc(s.source_id)} · ${s.clips} clip${s.clips === 1 ? '' : 's'} · ${ago(s.updated_at)}${s.stale ? ' · <i>changed since scored</i>' : ''}</p>
       <p class="why">${esc(s.why)}</p>
-      <div class="make">
+      <div class="make"${canMake() ? '' : ' hidden'}>
         <div class="keys" role="group" aria-label="Style">${Object.entries(STYLE).map(([k, n]) => `<button type="button" class="key" data-style="${k}" aria-pressed="${k === 'sunday'}">${n}${k === 'vector' ? ' cartoon' : ''}</button>`).join('')}</div>
-        <div class="keys" role="group" aria-label="Plan with" title="Who writes the script and the cartoon's plan">${Object.entries(LLM.providers).map(([k, n]) => `<button type="button" class="key" data-llm="${k}" aria-pressed="${k === LLM.llm}">${esc(n)}</button>`).join('')}</div>
+        ${ACCESS === 'owner' ? `<div class="keys" role="group" aria-label="Plan with" title="Who writes the script and the cartoon's plan">${Object.entries(LLM.providers).map(([k, n]) => `<button type="button" class="key" data-llm="${k}" aria-pressed="${k === LLM.llm}">${esc(n)}</button>`).join('')}</div>` : ''}
         <div class="keys"><button type="button" class="key" data-make>Make it</button></div>
       </div>
       <div class="quote" hidden></div>
@@ -41,11 +43,11 @@ function suggestion(s) {
 function renderSuggestions(j) {
   const r = j.refresh;
   if (j.providers) LLM = { llm: j.llm, providers: j.providers };
-  $('suggest-note').innerHTML = `${j.scored} of ${j.candidates} light stories from the last 48 h scored${j.unscored ? `, ${j.unscored} new or changed (Refresh scores them)` : ''}.
+  $('suggest-note').innerHTML = `${j.scored} of ${j.candidates} light stories from the last 48 h scored${j.unscored && ACCESS === 'owner' ? `, ${j.unscored} new or changed (Refresh scores them)` : ''}.
     ${r ? `<b>This refresh: ${r.scored} scored for ${usd(r.cost)}.</b>` : ''} Studio spend today ${usd(j.today)} of ${usd(j.cap)}.`;
   $('suggests').innerHTML = j.top.length ? j.top.map(suggestion).join('') : '<li class="empty">Nothing scored yet. Refresh scores the last 48 hours (a cent or two).</li>';
   const out = $('kept-out');
-  out.hidden = !j.excluded.length;
+  out.hidden = !j.excluded.length; // the owner's: guests are sent none
   out.querySelector('summary').textContent = `Kept out by the content guard (${j.excluded.length})`;
   out.querySelector('ul').innerHTML = j.excluded.map((e) => `<li><a href="/?story=${e.id}">${esc(e.subject)}</a> <span class="na">· ${esc(e.reason)}</span></li>`).join('');
 }
@@ -91,6 +93,7 @@ $('suggests').addEventListener('click', async (e) => {
 let polling = 0, hadJobs = false;
 async function loadJobs() {
   clearTimeout(polling);
+  if (!canMake()) return;
   const { jobs } = await api('jobs').catch(() => ({ jobs: [] }));
   $('jobs-page').hidden = !jobs.length;
   $('jobs').innerHTML = jobs.map((j) => `<li class="job">
@@ -115,7 +118,7 @@ function player(a) {
   return `<div class="anim-poster"><span class="na">${a.status === 'failed' ? 'Failed' : 'Nothing to play yet'}</span></div>`;
 }
 
-const stars = (a) => `<div class="stars" role="group" aria-label="Rating">${[1, 2, 3, 4, 5].map((n) =>
+const stars = (a) => `<div class="stars" role="group" aria-label="${ACCESS === 'owner' ? 'Rating' : 'Your rating'}">${[1, 2, 3, 4, 5].map((n) =>
   `<button type="button" data-rate="${n}" aria-label="${n} of 5" aria-pressed="${a.rating >= n}">${a.rating >= n ? '★' : '☆'}</button>`).join('')}</div>`;
 
 function card(a) {
@@ -134,11 +137,12 @@ function card(a) {
         ${a.prompt_version ? `<dt>Prompt</dt><dd>${esc(a.prompt_version)}</dd>` : ''}
         ${a.thread_id ? `<dt>Story</dt><dd><a href="/?story=${a.thread_id}">#${a.thread_id}${a.source_id ? ` · ${esc(a.source_id)}` : ''}</a></dd>` : ''}
         ${a.notes ? `<dt>Notes</dt><dd>${esc(a.notes)}</dd>` : ''}
-        <dt>Rating</dt><dd>${stars(a)}</dd>
+        <dt>${ACCESS === 'owner' ? 'Rating' : 'Your rating'}</dt><dd>${stars(a)}${a.guest_ratings ? ` <span class="na">· guests ${a.guest_ratings.avg} of 5 (${a.guest_ratings.n})</span>` : ''}</dd>
+        <dt>Asked by</dt><dd>${esc(a.requested_by || 'owner')}</dd>
       </dl>
       <div class="anim-actions">
         ${a.files.filter((f) => f.kind === 'mp4' || f.kind === 'web').map((f) => `<a class="key" href="${fileUrl(a, f, true)}" download>${f.kind === 'mp4' ? 'MP4' : 'HTML'} <span class="na">${mb(f.bytes)}</span></a>`).join('')}
-        <button type="button" class="key danger" data-delete>Delete</button>
+        ${ACCESS === 'owner' ? '<button type="button" class="key danger" data-delete>Delete</button>' : ''}
       </div>
     </div>
   </li>`;
@@ -146,7 +150,7 @@ function card(a) {
 
 async function loadLibrary() {
   const list = await api('animations');
-  $('library').innerHTML = list.length ? list.map(card).join('') : '<li class="empty">Nothing yet. Make one from a suggestion above.</li>';
+  $('library').innerHTML = list.length ? list.map(card).join('') : `<li class="empty">Nothing yet.${canMake() ? ' Make one from a suggestion above.' : ''}</li>`;
 }
 
 $('library').addEventListener('click', async (e) => {
@@ -173,4 +177,29 @@ $('library').addEventListener('click', async (e) => {
   }
 });
 
-fetch('/api/config').then((r) => r.json()).then((c) => { TZ = c.station?.timezone || TZ; }).catch(() => {}).finally(() => { loadSuggestions(false); loadLibrary(); loadJobs(); });
+// The owner's three-way control for what guests may do here.
+const GUESTS = {
+  off: 'Guests don’t see the Studio.',
+  watch: 'Guests can play and rate what’s in the library, and see the suggestions. They can’t make anything.',
+  make: 'Guests can also make animations: 2 each per day, always planned with OpenRouter, counted against the daily Studio cap. Each costs you roughly $0.10–0.20.',
+};
+function guestControl(cur) {
+  $('guest-control').hidden = false;
+  const draw = (v) => {
+    $('guest-keys').innerHTML = Object.keys(GUESTS).map((k) => `<button type="button" class="key" data-guests="${k}" aria-pressed="${k === v}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('');
+    $('guest-note').textContent = GUESTS[v];
+  };
+  draw(cur);
+  $('guest-keys').addEventListener('click', async (e) => {
+    const k = e.target.closest('[data-guests]')?.dataset.guests;
+    if (!k) return;
+    try { const s = await post('../settings', { guestStudio: k }); draw(s.guestStudio); } catch (err) { $('guest-note').innerHTML = `<span class="err">${esc(err.message)}</span>`; }
+  });
+}
+
+fetch('/api/config').then((r) => r.json()).then((c) => {
+  TZ = c.station?.timezone || TZ;
+  ACCESS = c.viewer?.studio || 'owner';
+  if (ACCESS === 'owner') guestControl(c.viewer.guestStudio || 'off'); else $('suggest-refresh').parentElement.style.display = 'none';
+  if (!c.viewer?.transcripts) $('h-suggest').closest('section').hidden = true; // suggestions are built from transcripts
+}).catch(() => {}).finally(() => { if (!$('h-suggest').closest('section').hidden) loadSuggestions(false); loadLibrary(); loadJobs(); });

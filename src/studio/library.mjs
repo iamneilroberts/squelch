@@ -25,6 +25,16 @@ db.exec(`CREATE TABLE IF NOT EXISTS animations (
 )`);
 try { db.exec('ALTER TABLE animations ADD COLUMN llm TEXT'); } catch { /* already there */ } // openrouter | claude: who wrote the script and plan
 
+try { db.exec('ALTER TABLE animations ADD COLUMN requested_by TEXT'); } catch { /* already there */ } // null or 'owner', or 'guest <ip>'
+// A guest's rating of an animation: one per animation per IP, a later one replaces the earlier.
+db.exec(`CREATE TABLE IF NOT EXISTS animation_guest_ratings (
+  animation_id INTEGER NOT NULL,
+  ip TEXT NOT NULL,
+  rating INTEGER NOT NULL,
+  at TEXT NOT NULL,
+  PRIMARY KEY (animation_id, ip)
+)`);
+
 export const ANIM_DIR = join('data', 'animations');
 export const animDir = (id) => join(ANIM_DIR, String(id));
 
@@ -34,10 +44,10 @@ export const listAnimations = () => db.prepare('SELECT * FROM animations ORDER B
 export const getAnimation = (id) => parse(db.prepare('SELECT * FROM animations WHERE id = ?').get(id));
 
 export function createAnimation(a) {
-  const id = Number(db.prepare(`INSERT INTO animations (thread_id, source_id, title, style, format, status, created_at, finished_at, duration_s, render_s, cost_usd, models, prompt_version, files, error, notes, rating, llm)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(a.thread_id ?? null, a.source_id ?? null, a.title, a.style, a.format, a.status || 'queued',
+  const id = Number(db.prepare(`INSERT INTO animations (thread_id, source_id, title, style, format, status, created_at, finished_at, duration_s, render_s, cost_usd, models, prompt_version, files, error, notes, rating, llm, requested_by)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(a.thread_id ?? null, a.source_id ?? null, a.title, a.style, a.format, a.status || 'queued',
     a.created_at || new Date().toISOString(), a.finished_at ?? null, a.duration_s ?? null, a.render_s ?? null, a.cost_usd ?? null, JSON.stringify(a.models || []),
-    a.prompt_version ?? null, JSON.stringify(a.files || []), a.error ?? null, a.notes ?? null, a.rating ?? null, a.llm ?? null).lastInsertRowid);
+    a.prompt_version ?? null, JSON.stringify(a.files || []), a.error ?? null, a.notes ?? null, a.rating ?? null, a.llm ?? null, a.requested_by ?? null).lastInsertRowid);
   mkdirSync(animDir(id), { recursive: true });
   return id;
 }
@@ -52,6 +62,7 @@ export function updateAnimation(id, u) {
 
 export function deleteAnimation(id) {
   db.prepare('DELETE FROM animations WHERE id = ?').run(id);
+  db.prepare('DELETE FROM animation_guest_ratings WHERE animation_id = ?').run(id);
   rmSync(animDir(id), { recursive: true, force: true });
 }
 
@@ -61,3 +72,22 @@ export function scanFiles(id) {
   const dir = animDir(id);
   return readdirSync(dir).sort().map((name) => ({ name, kind: KIND[name.slice(name.lastIndexOf('.'))] || 'other', bytes: statSync(join(dir, name)).size }));
 }
+
+export function rateAsGuest(id, ip, rating) {
+  if (rating == null) db.prepare('DELETE FROM animation_guest_ratings WHERE animation_id = ? AND ip = ?').run(id, ip);
+  else db.prepare('INSERT OR REPLACE INTO animation_guest_ratings (animation_id, ip, rating, at) VALUES (?,?,?,?)').run(id, ip, rating, new Date().toISOString());
+}
+
+// What a viewer is shown of an animation. The owner sees who asked for it (a guest's IP included) and how guests rated it;
+// a guest sees only "owner" or "a guest", and their own rating in place of the owner's.
+export function viewOf(a, ip, owner) {
+  if (owner) {
+    const g = db.prepare('SELECT COUNT(*) AS n, AVG(rating) AS avg FROM animation_guest_ratings WHERE animation_id = ?').get(a.id);
+    return { ...a, requested_by: a.requested_by || 'owner', guest_ratings: g.n ? { n: g.n, avg: +g.avg.toFixed(1) } : null };
+  }
+  const mine = db.prepare('SELECT rating FROM animation_guest_ratings WHERE animation_id = ? AND ip = ?').get(a.id, ip);
+  return { ...a, requested_by: a.requested_by?.startsWith('guest') ? 'a guest' : 'owner', rating: mine?.rating ?? null };
+}
+
+// Guest jobs this IP has queued since local midnight (failed ones count: they spent money too).
+export const guestJobsToday = (by, since) => db.prepare('SELECT COUNT(*) AS n FROM animations WHERE requested_by = ? AND created_at >= ?').get(by, since).n;

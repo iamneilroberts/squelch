@@ -5,9 +5,10 @@ import { join } from 'node:path';
 import { db, getThread } from '../db.mjs';
 import { withTrace } from '../meter.mjs';
 import { sources } from '../config.mjs';
-import { createAnimation, updateAnimation, getAnimation, animDir, scanFiles } from './library.mjs';
+import { createAnimation, updateAnimation, getAnimation, animDir, scanFiles, guestJobsToday } from './library.mjs';
 import { guard, safeScore } from './humor.mjs';
 import { MODELS, estimate, checkCap, spentToday, dailyCap } from './spend.mjs';
+import { dayBounds, localDate } from '../digest.mjs';
 import { STYLES, SCRIPT_SCHEMA, scriptPrompt } from './script.mjs';
 import { pickClips, buildTrack } from './track.mjs';
 import { makeComic } from './comic.mjs';
@@ -63,11 +64,17 @@ export async function estimateJob(threadId, style, llm) {
   };
 }
 
-export async function queueJob(threadId, style, llm) {
-  const est = await estimateJob(threadId, style, llm);
+export const GUEST_JOBS_PER_DAY = 2;
+
+// `by` is 'owner' or 'guest <ip>'. A guest's job always plans with OpenRouter (never the owner's Claude subscription)
+// and is limited to GUEST_JOBS_PER_DAY a day per IP.
+export async function queueJob(threadId, style, llm, by = 'owner') {
+  const guest = by !== 'owner';
+  const est = await estimateJob(threadId, style, guest ? 'openrouter' : llm);
   if (!est.fits) throw new JobError(`That would pass today’s Studio cap: $${est.today.toFixed(3)} spent, about $${est.usd.toFixed(3)} more, cap $${est.cap.toFixed(2)} (STUDIO_DAILY_USD)`, 429);
+  if (guest && guestJobsToday(by, dayBounds(localDate())[0]) >= GUEST_JOBS_PER_DAY) throw new JobError(`Guests can make ${GUEST_JOBS_PER_DAY} animations a day each, and you’ve made them for today. Try again tomorrow.`, 429);
   const t = getThread(Number(threadId));
-  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind](), llm: est.llm });
+  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind](), llm: est.llm, requested_by: by });
   setImmediate(pump);
   return getAnimation(id);
 }

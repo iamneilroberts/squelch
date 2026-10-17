@@ -16,7 +16,7 @@ A scanner-radio receiver for your part of the world. Squelch listens to public s
 - **Daily log**: after midnight, each area's day is read back and the best storylines are printed, with a highlight reel of the real audio
 - **Live map layers**: aircraft (ADS-B), Amtrak trains, NWS weather alerts, tide gauges, ships (AIS)
 - **Station Manual** (`/manual.html`, linked at the bottom of the receiver): how every part works in detail, plus the **Ledger**: every AI and API call with timing, tokens and cost
-- **Studio** (owner only, in the Station Manual): suggests light stories ranked by humor and turns one into a short comic or cartoon over the real radio, as an MP4 and a web page, kept in a library with its models and cost
+- **Studio** (in the Station Manual; the owner decides whether guests can Watch or Make): suggests light stories ranked by humor and turns one into a short comic or cartoon over the real radio, as an MP4 and a web page, kept in a library with its models and cost
 - **Problems & suggestions**: a link in the Look card and the footer files a public GitHub issue (`REPORT_REPO`, default this repo) through the `gh` CLI; without `gh` it offers a prefilled new-issue link. **My reports** under the form shows each report's status label and the owner's replies, and notifies the reporter's browser when either changes
 
 ## Requirements

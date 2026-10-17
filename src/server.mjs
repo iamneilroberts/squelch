@@ -48,6 +48,7 @@ const SETTINGS = join('data', 'settings.json');
 const settings = {
   tunnelTranscripts: false,
   guestNotifications: false, // let tunnel guests subscribe to push notifications (as a demo)
+  guestStudio: 'off', // what tunnel guests may do in the Studio: off | watch | make
   owners: (process.env.OWNER_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean),
   ...(existsSync(SETTINGS) ? JSON.parse(readFileSync(SETTINGS, 'utf8')) : {}),
 };
@@ -55,6 +56,15 @@ const hideFrom = (remote) => remote && !settings.tunnelTranscripts;
 // Who may flip settings: anyone on the LAN, or an owner signed in through Cloudflare Access
 // (Access sets this header on every request it lets through the tunnel).
 const canEdit = (req) => !isRemote(req) || settings.owners.includes(String(req.headers['cf-access-authenticated-user-email'] || '').toLowerCase());
+
+// What this visitor may do in the Studio: 'owner', or for a guest the owner's setting. Guests who can't read
+// transcripts get at most 'watch'.
+const GUEST_STUDIO = ['off', 'watch', 'make'];
+const studioAccess = (req) => {
+  if (canEdit(req)) return 'owner';
+  const g = GUEST_STUDIO.includes(settings.guestStudio) ? settings.guestStudio : 'off';
+  return g === 'make' && hideFrom(true) ? 'watch' : g;
+};
 
 configureNotify({ allowGuests: () => settings.guestNotifications });
 // The page's own files, newest change first. An open page (often a Home Screen app, which has no
@@ -228,7 +238,7 @@ createServer(async (req, res) => {
   const out = (body, code) => json(res, hidden ? scrub(body) : body, code);
   try {
     if (p === '/api/version') return json(res, { version: appVersion() });
-    if (p === '/api/config') return json(res, { version: appVersion(), station, regions, viewer: { remote, transcripts: !hidden, canShare: canEdit(req), canListen: canEdit(req) || Boolean(sessionCreds(req)), broadcastifyUser: sessionCreds(req)?.user || null, sharing: settings.tunnelTranscripts }, sources: sources.map((s) => ({ ...s, status: status[s.id] || { state: 'standby' } })) });
+    if (p === '/api/config') return json(res, { version: appVersion(), station, regions, viewer: { remote, transcripts: !hidden, canShare: canEdit(req), canListen: canEdit(req) || Boolean(sessionCreds(req)), broadcastifyUser: sessionCreds(req)?.user || null, sharing: settings.tunnelTranscripts, studio: studioAccess(req), guestStudio: canEdit(req) ? settings.guestStudio : undefined }, sources: sources.map((s) => ({ ...s, status: status[s.id] || { state: 'standby' } })) });
     if (p === '/api/report/status') return reportStatus(url, res, json);
     if (p === '/api/report') return reportRoute(req, res, { json, readJson, canEdit, version: appVersion });
     if (p === '/api/settings' && req.method === 'POST') {
@@ -236,6 +246,7 @@ createServer(async (req, res) => {
       const body = JSON.parse(await new Promise((r) => { let s = ''; req.on('data', (d) => { s += d; }); req.on('end', () => r(s || '{}')); }));
       if (typeof body.tunnelTranscripts === 'boolean') settings.tunnelTranscripts = body.tunnelTranscripts;
       if (typeof body.guestNotifications === 'boolean') settings.guestNotifications = body.guestNotifications;
+      if (GUEST_STUDIO.includes(body.guestStudio)) settings.guestStudio = body.guestStudio;
       writeFileSync(SETTINGS, JSON.stringify(settings, null, 2));
       console.log(`[settings] remote transcripts ${settings.tunnelTranscripts ? 'ON' : 'off'} (by ${remote ? req.headers['cf-access-authenticated-user-email'] : 'LAN'})`);
       broadcast('settings', { sharing: settings.tunnelTranscripts });
@@ -318,8 +329,12 @@ createServer(async (req, res) => {
       res.setHeader('Set-Cookie', 'bcfy=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0');
       return json(res, { ok: true });
     }
-    // Squelch Studio (src/studio/): spends money and shows drafts, so it's owner-only.
-    if (p.startsWith('/api/studio/')) return canEdit(req) ? studioRoute(req, res, url, { json, serveFile, readJson }) : json(res, { error: 'Only the owner can use the Studio' }, 403);
+    // Squelch Studio (src/studio/): spends money and shows drafts. The owner has it all; guests get what guestStudio allows.
+    if (p.startsWith('/api/studio/')) {
+      const access = studioAccess(req);
+      return access === 'off' ? json(res, { error: 'Only the owner can use the Studio' }, 403)
+        : studioRoute(req, res, url, { json: hidden && access !== 'owner' ? (r, b, c) => json(r, scrub(b), c) : json, serveFile, readJson, access, hidden: hidden && access !== 'owner', ip: req.headers['cf-connecting-ip'] });
+    }
     if (p.startsWith('/listen/')) return relayStream(req, res, p.slice('/listen/'.length));
     // Scan as one stream that keeps playing with a phone locked (src/scan.mjs).
     if (p === '/scan/stream') return scanStream(req, res, url.searchParams, (play) => broadcast('scan', play, url.searchParams.get('page')));
