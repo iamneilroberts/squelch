@@ -4,6 +4,7 @@
 // channels, writes their MP3 frames at playing speed with silence frames between, and announces where
 // in the stream each one starts, so the page can show what's on air.
 import { spawn } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { bus } from './ingest/pipeline.mjs';
 import { getThread, scanCall, scanCallsSince } from './db.mjs';
@@ -47,10 +48,27 @@ function encode(input) {
 let silence = null;
 const ready = encode(['-f', 'lavfi', '-i', `anullsrc=r=${RATE}:cl=mono`, '-t', '1']).then((f) => { silence = f[Math.floor(f.length / 2)]; });
 
+// A clip the ingest wrote reservoir-free (src/ingest/stream.mjs) is spliced as it is: 16 kHz mono MPEG-2
+// frames that don't borrow bits from earlier frames (main_data_begin 0, the byte after the header and CRC).
+async function spliceable(file) {
+  const f = frames(await readFile(file));
+  return f.length && f.every((b) => ((b[1] >> 3) & 3) === 2 && ((b[2] >> 2) & 3) === 2 && b[3] >> 6 === 3 && b[b[1] & 1 ? 4 : 6] === 0) ? f : null;
+}
+
+// Older clips are re-encoded, at most two at a time (a catch-up can ask for 30 at once).
+let encoding = 0;
+const waiting = [];
+async function reencode(file) {
+  while (encoding >= 2) await new Promise((r) => waiting.push(r));
+  encoding++;
+  try { return await encode(['-i', file]); } finally { encoding--; waiting.shift()?.(); }
+}
+
 const encoded = new Map(); // clip file → Promise of its frames (shared by every listener; the newest 50 kept)
 function load(audio) {
   if (!encoded.has(audio)) {
-    encoded.set(audio, encode(['-i', join('data', 'audio', audio)]));
+    const file = join('data', 'audio', audio);
+    encoded.set(audio, spliceable(file).then((f) => f ?? reencode(file)));
     if (encoded.size > 50) encoded.delete(encoded.keys().next().value);
   }
   return encoded.get(audio);

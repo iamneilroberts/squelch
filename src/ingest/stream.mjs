@@ -75,6 +75,10 @@ export function startStream(source, { onClip, onStatus }) {
   return () => { stopped = true; clearInterval(poll); child?.kill(); };
 }
 
+// Clips are written without the bit reservoir or Xing/ID3 headers, so the scan stream (src/scan.mjs) can splice
+// their frames as they are.
+const CLIP_MP3 = ['-ac', '1', '-b:a', '32k', '-reservoir', '0', '-write_xing', '0', '-id3v2_version', '0'];
+
 // Strip silence gaps; skip the segment if less than MIN_SPEECH_SECONDS of audio is left.
 async function squelch(wav, source) {
   if (statSync(wav).size < 2000) return null;
@@ -84,7 +88,7 @@ async function squelch(wav, source) {
   mkdirSync(join('data', 'audio'), { recursive: true });
   await run('ffmpeg', ['-nostdin', '-loglevel', 'error', '-y', '-i', wav,
     '-af', `silenceremove=start_periods=1:start_threshold=${threshold}dB:stop_periods=-1:stop_duration=0.7:stop_threshold=${threshold}dB`,
-    '-ac', '1', '-b:a', '32k', out]);
+    ...CLIP_MP3, out]);
   // An all-silent segment leaves an empty file that ffprobe can't read — that's just "no speech".
   const duration = statSync(out, { throwIfNoEntry: false })?.size > 1000 ? await probeDuration(out).catch(() => 0) : 0;
   if (duration < MIN_SPEECH_SECONDS) { rmSync(out, { force: true }); return null; }
@@ -101,7 +105,7 @@ async function squelch(wav, source) {
   if (speech < duration * 0.85 && regions.length <= 60) {
     const trimmed = out.replace(/\.mp3$/, '.t.mp3');
     const keep = regions.map(([a, b]) => `between(t,${a.toFixed(2)},${b.toFixed(2)})`).join('+');
-    await run('ffmpeg', ['-nostdin', '-loglevel', 'error', '-y', '-i', out, '-af', `aselect='${keep}',asetpts=N/SR/TB`, '-ac', '1', '-b:a', '32k', trimmed]);
+    await run('ffmpeg', ['-nostdin', '-loglevel', 'error', '-y', '-i', out, '-af', `aselect='${keep}',asetpts=N/SR/TB`, ...CLIP_MP3, trimmed]);
     rmSync(out, { force: true });
     renameSync(trimmed, out);
     return { file: out, audio: name, duration: speech };
