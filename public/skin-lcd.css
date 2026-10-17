@@ -132,7 +132,8 @@
 /* signal: the bars light while a transmission is on air (the same cue as the magic eye) */
 [data-skin="lcd"] .faceplate:has(#eye.on) .lcd-bars i:nth-child(-n+4) { background: var(--lcd-ink); }
 [data-skin="lcd"] .lcd-name { grid-area: name; font-size: 54px; line-height: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
-[data-skin="lcd"] .lcd-freq { grid-area: freq; position: relative; justify-self: end; font-size: 48px; line-height: .85; white-space: nowrap; }
+[data-skin="lcd"] .lcd-freq { grid-area: freq; position: relative; justify-self: end; max-width: 100%; height: .85em; font-size: 48px; line-height: .85; white-space: nowrap; overflow: hidden; }
+[data-skin="lcd"] .lcd-freq:has(#lcd-freq:empty) .lcd-ghost { display: none; } /* idle: no readout, so no ghost segments */
 [data-skin="lcd"] .lcd-ghost { position: absolute; right: 0; top: 0; color: var(--lcd-ghost); text-shadow: none; }
 [data-skin="lcd"] .lcd-freq #lcd-freq { position: relative; }
 [data-skin="lcd"] .lcd-meta { grid-area: meta; display: flex; justify-content: space-between; gap: 8px; margin-top: 2px; font: 10px/1.2 var(--pix); text-transform: uppercase; }
@@ -375,9 +376,13 @@
 @media (min-width: 721px) and (max-width: 1000px) {
   [data-skin="lcd"] .desk { grid-template-columns: 1fr; }
 }
-@media (min-width: 1001px) and (min-height: 760px) {
+@media (min-width: 1001px) {
+  /* the map and the stories share one row of a set height; the stories scroll inside it */
   [data-skin="lcd"] .cabinet { height: auto; min-height: 100vh; }
-  [data-skin="lcd"] .chart, [data-skin="lcd"] .printer { min-height: 420px; }
+  [data-skin="lcd"] .desk { grid-template-rows: 420px; }
+  [data-skin="lcd"] .chart, [data-skin="lcd"] .printer { min-height: 0; height: 100%; }
+  [data-skin="lcd"] .printer { overflow: hidden; }
+  [data-skin="lcd"] .toggles { max-height: calc(100% - 60px); overflow-y: auto; }
 }
 
 /* ───────── Wide screens, base unit: a desktop scanner faceplate ─────────
@@ -493,8 +498,4 @@
     box-shadow: inset 0 0 0 3px #1a1b1d, inset 0 -6px 10px rgba(0, 0, 0, .45), 0 2px 4px rgba(0, 0, 0, .7); }
   [data-skin="lcd"][data-wide="base"] .scroll-knob:focus-visible { outline: 2px solid var(--led); border-radius: 50%; }
   [data-skin="lcd"][data-wide="base"] .desk { grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr); }
-}
-@media (min-width: 1200px) and (min-height: 760px) {
-  [data-skin="lcd"][data-wide="base"] .cabinet { height: 100vh; min-height: 0; }
-  [data-skin="lcd"][data-wide="base"] .chart, [data-skin="lcd"][data-wide="base"] .printer { min-height: 0; }
 }
