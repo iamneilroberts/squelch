@@ -715,7 +715,8 @@ $('progress').addEventListener('click', (e) => {
   if (Number.isFinite(radio.duration)) radio.currentTime = ((e.clientX - r.left) / r.width) * radio.duration;
 });
 addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && radio.getAttribute('src')) powerOff();
+  // Escape in an open card only closes the card.
+  if (e.key === 'Escape' && radio.getAttribute('src') && !document.querySelector('dialog[open]')) powerOff();
 });
 syncTransport();
 radio.addEventListener('error', () => {
