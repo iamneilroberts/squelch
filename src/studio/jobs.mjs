@@ -16,6 +16,7 @@ import { makeCartoon } from './cartoon.mjs';
 import { chromePath } from './browser.mjs';
 import { studioJson, pickProvider, defaultProvider, subscriptionModel, PROVIDERS } from './llm.mjs';
 import { directorPrompt } from './director.mjs';
+import { cleanNotes } from './notes.mjs';
 
 // The cartoon is two-pass (director + library) unless STUDIO_CARTOON_MODE=oneshot; the row's prompt_version records which.
 const cartoonMode = () => (process.env.STUDIO_CARTOON_MODE === 'oneshot' ? 'oneshot' : 'twopass');
@@ -69,16 +70,24 @@ export async function estimateJob(threadId, style, llm, by = 'owner') {
 
 export const GUEST_JOBS_PER_DAY = 2;
 
+// The viewer's notes, cleaned and guarded; a JobError (400) says why when they can't be used.
+export function checkNotes(raw) {
+  const { text, error } = cleanNotes(raw);
+  if (error) throw new JobError(error, 400);
+  return text;
+}
+
 // `by` is 'owner' or 'guest <email or address>'. A guest's job always plans with OpenRouter (never the owner's Claude subscription)
 // and is limited to GUEST_JOBS_PER_DAY a day per guest and to the guests' share of the daily cap.
-export async function queueJob(threadId, style, llm, by = 'owner') {
+export async function queueJob(threadId, style, llm, by = 'owner', { notes = '' } = {}) {
   const guest = by !== 'owner';
+  const instructions = checkNotes(notes);
   const est = await estimateJob(threadId, style, guest ? 'openrouter' : llm, by);
   if (!est.guestOk) throw new JobError(`Guests have used their share of today’s Studio budget (STUDIO_GUEST_USD, $${guestCap().toFixed(2)}). Try again tomorrow.`, 429);
   if (!est.dailyOk) throw new JobError(`That would pass today’s Studio cap: $${est.today.toFixed(3)} spent, about $${est.usd.toFixed(3)} more, cap $${est.cap.toFixed(2)} (STUDIO_DAILY_USD)`, 429);
   if (guest && guestJobsToday(by, dayBounds(localDate())[0]) >= GUEST_JOBS_PER_DAY) throw new JobError(`Guests can make ${GUEST_JOBS_PER_DAY} animations a day each, and you’ve made them for today. Try again tomorrow.`, 429);
   const t = getThread(Number(threadId));
-  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind](), llm: est.llm, requested_by: by, est_usd: est.usd });
+  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind](), llm: est.llm, requested_by: by, est_usd: est.usd, instructions });
   setImmediate(pump);
   return getAnimation(id);
 }
@@ -104,7 +113,7 @@ async function run(id) {
   const models = new Map(); // `${model}\n${purpose}` → { model, purpose, calls, cost }
   let cost = 0;
   const job = {
-    id, dir,
+    id, dir, notes: row.instructions || '',
     models: { image: MODELS.image(), cartoon: MODELS.cartoon(), director: MODELS.director() },
     progress: (step, frac = null) => progress.set(id, { step, frac }),
     // One paid call: refused first if it could pass the cap; its actual cost (usage.cost) is recorded.
@@ -152,7 +161,7 @@ async function run(id) {
       if (!clips.length) throw new Error('None of the story’s recordings are left');
 
       job.progress('writing the script');
-      const { system, user } = scriptPrompt(t, clips, row.style);
+      const { system, user } = scriptPrompt(t, clips, row.style, job.notes);
       const provider = row.llm || defaultProvider();
       const { data: script } = await studioJson(job, { provider, purpose: 'studio:script', model: MODELS.script(), system, user, schema: SCRIPT_SCHEMA, name: 'script', maxTokens: 8000, outTok: 2500 });
       updateAnimation(id, { title: script.title || row.title });

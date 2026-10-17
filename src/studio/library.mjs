@@ -27,6 +27,7 @@ try { db.exec('ALTER TABLE animations ADD COLUMN llm TEXT'); } catch { /* alread
 
 try { db.exec('ALTER TABLE animations ADD COLUMN requested_by TEXT'); } catch { /* already there */ } // null or 'owner', or 'guest <ip>'
 try { db.exec('ALTER TABLE animations ADD COLUMN est_usd REAL'); } catch { /* already there */ } // the estimate a job was queued at
+try { db.exec('ALTER TABLE animations ADD COLUMN instructions TEXT'); } catch { /* already there */ } // the viewer's cleaned notes for the artist
 // A guest's rating of an animation: one per animation per IP, a later one replaces the earlier.
 db.exec(`CREATE TABLE IF NOT EXISTS animation_guest_ratings (
   animation_id INTEGER NOT NULL,
@@ -45,10 +46,10 @@ export const listAnimations = () => db.prepare('SELECT * FROM animations ORDER B
 export const getAnimation = (id) => parse(db.prepare('SELECT * FROM animations WHERE id = ?').get(id));
 
 export function createAnimation(a) {
-  const id = Number(db.prepare(`INSERT INTO animations (thread_id, source_id, title, style, format, status, created_at, finished_at, duration_s, render_s, cost_usd, models, prompt_version, files, error, notes, rating, llm, requested_by, est_usd)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(a.thread_id ?? null, a.source_id ?? null, a.title, a.style, a.format, a.status || 'queued',
+  const id = Number(db.prepare(`INSERT INTO animations (thread_id, source_id, title, style, format, status, created_at, finished_at, duration_s, render_s, cost_usd, models, prompt_version, files, error, notes, rating, llm, requested_by, est_usd, instructions)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(a.thread_id ?? null, a.source_id ?? null, a.title, a.style, a.format, a.status || 'queued',
     a.created_at || new Date().toISOString(), a.finished_at ?? null, a.duration_s ?? null, a.render_s ?? null, a.cost_usd ?? null, JSON.stringify(a.models || []),
-    a.prompt_version ?? null, JSON.stringify(a.files || []), a.error ?? null, a.notes ?? null, a.rating ?? null, a.llm ?? null, a.requested_by ?? null, a.est_usd ?? null).lastInsertRowid);
+    a.prompt_version ?? null, JSON.stringify(a.files || []), a.error ?? null, a.notes ?? null, a.rating ?? null, a.llm ?? null, a.requested_by ?? null, a.est_usd ?? null, a.instructions || null).lastInsertRowid);
   mkdirSync(animDir(id), { recursive: true });
   return id;
 }
@@ -87,8 +88,9 @@ export function viewOf(a, ip, owner) {
     return { ...a, requested_by: a.requested_by || 'owner', guest_ratings: g.n ? { n: g.n, avg: +g.avg.toFixed(1) } : null };
   }
   const mine = db.prepare('SELECT rating FROM animation_guest_ratings WHERE animation_id = ? AND ip = ?').get(a.id, ip);
-  const { error, notes, ...rest } = a; // what went wrong and the engine's notes are the owner's
-  return { ...rest, requested_by: a.requested_by?.startsWith('guest') ? 'a guest' : 'owner', rating: mine?.rating ?? null };
+  const { error, notes, instructions, ...rest } = a; // what went wrong and the engine's notes are the owner's
+  const own = a.requested_by === `guest ${ip}`; // a guest reads the notes only on what they asked for themselves
+  return { ...rest, ...(own ? { instructions } : { has_instructions: Boolean(instructions) }), requested_by: a.requested_by?.startsWith('guest') ? 'a guest' : 'owner', rating: mine?.rating ?? null };
 }
 
 // Guest jobs this IP has queued since local midnight (failed ones count: they spent money too).

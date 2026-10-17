@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { openRouter } from '../ai/llm.mjs';
 import { STYLES, RULES } from './script.mjs';
+import { notesBlock } from './notes.mjs';
 import { timeCaptions, scrub } from './track.mjs';
 
 const run = promisify(execFile);
@@ -17,17 +18,17 @@ const UP = 4; // pans and zooms run on a 4× source, so each step moves a quarte
 const FADE = 0.5;
 const IMAGE_TOKENS = 1290; // one generated image, as Gemini bills it
 
-const panelPrompt = (style, cast, scene, k, ref) => `STYLE (keep identical across the series): ${STYLES[style].art}, vertical 4:5 portrait composition, a single picture filling the whole frame, no panel border, no margins.
+export const panelPrompt = (style, cast, scene, k, ref, notes = '') => `STYLE (keep identical across the series): ${STYLES[style].art}, vertical 4:5 portrait composition, a single picture filling the whole frame, no panel border, no margins.
 CAST: ${cast}
 ${RULES}
 No readable text, logos or numbers anywhere except the exact words given in quotes below.
-${ref ? 'Match the attached reference panel EXACTLY in drawing style, line weight, colour palette and character designs. This is the next panel of the same comic.\n' : ''}PANEL ${k}: ${scene}`;
+${ref ? 'Match the attached reference panel EXACTLY in drawing style, line weight, colour palette and character designs. This is the next panel of the same comic.\n' : ''}${notesBlock(notes) ? `${notesBlock(notes).trim()}\n` : ''}PANEL ${k}: ${scene}`;
 
 // One panel image; retried once if the model answers without a picture.
 async function panel(job, { style, cast, scene, k, ref, out }) {
   const model = job.models.image;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const content = [{ type: 'text', text: panelPrompt(style, cast, scene, k, ref) }];
+    const content = [{ type: 'text', text: panelPrompt(style, cast, scene, k, ref, job.notes) }];
     if (ref) content.push({ type: 'image_url', image_url: { url: `data:image/png;base64,${readFileSync(ref).toString('base64')}` } });
     const j = await job.call('studio:image', model, { inTok: ref ? 2200 : 350, imageTok: IMAGE_TOKENS }, () =>
       openRouter({ model, modalities: ['image', 'text'], image_config: { aspect_ratio: '4:5' }, messages: [{ role: 'user', content }] }, { purpose: 'studio:image' }), (r) => r.usage?.cost);

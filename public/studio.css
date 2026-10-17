@@ -71,3 +71,6 @@
 #guest-control .keys { display: inline-flex; margin-top: 8px; }
 #guest-control .key { min-width: 0; padding: 9px 14px 7px; font-size: 11px; }
 #guest-control .hint { margin: 8px 0 0; }
+.notes { display: block; flex: 1 1 100%; font-size: 12px; }
+.notes textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px; font: 14px/1.4 var(--font-type); resize: vertical; }
+.notes-foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 2px; font-size: 11px; }

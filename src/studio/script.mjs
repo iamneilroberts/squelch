@@ -1,6 +1,7 @@
 // Step one of every animation: a model reads the story and writes the script (title, captions per clip,
 // the closing gag, and the pictures), keeping to the content rules.
 import { sources } from '../config.mjs';
+import { notesBlock } from './notes.mjs';
 
 export const STYLES = {
   sunday: { kind: 'comic', name: 'Sunday comic', art: 'bold flat-colour Sunday-newspaper comic strip panel, thick clean black ink outlines, limited cheerful palette (mustard yellow, sky teal, brick red, cream), simple halftone-dot shading, friendly rounded cartoon shapes' },
@@ -45,12 +46,12 @@ export const SCRIPT_SCHEMA = {
   },
 };
 
-export function scriptPrompt(thread, clips, style) {
+export function scriptPrompt(thread, clips, style, notes = '') {
   const s = STYLES[style];
   const src = sources.find((x) => x.id === thread.source_id);
   const system = `You write scripts for short, gentle, funny animations of real police, fire and marine radio traffic. The real radio audio plays underneath, so captions follow what is actually said; the pictures supply the joke.
 ${RULES}
-The format is a ${s.kind === 'comic' ? `vertical comic: 4–5 still panels in ${s.name} style, with slow pans and zooms` : 'flat vector SVG cartoon with characters that move'}.`;
+The format is a ${s.kind === 'comic' ? `vertical comic: 4–5 still panels in ${s.name} style, with slow pans and zooms` : 'flat vector SVG cartoon with characters that move'}.${notesBlock(notes)}`;
   const user = JSON.stringify({
     story: thread.subject, type: thread.type, facts: thread.facts.map((f) => `${f.label}: ${f.value}`),
     channel: src ? `${src.name}${src.area ? `, ${src.area}` : ''}` : thread.source_id,

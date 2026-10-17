@@ -8,6 +8,7 @@ import { join, resolve } from 'node:path';
 import { Script } from 'node:vm';
 import { openRouter } from '../ai/llm.mjs';
 import { RULES } from './script.mjs';
+import { notesBlock } from './notes.mjs';
 import { scrub, timeCaptions } from './track.mjs';
 import { withBrowser } from './browser.mjs';
 import { direct, LIB, ENGINE } from './director.mjs';
@@ -115,15 +116,16 @@ async function captureMp4(browser, job, file, audio, total, out) {
 async function oneShot(job, { script, tl, file, label, track }) {
   const brief = JSON.stringify({ title: tl.title, cast: script.cast, beats: script.beats, TL: tl }, null, 1);
   const model = job.models.cartoon;
+  const system = SYSTEM + notesBlock(job.notes);
   let code = '', problem = null, played = false;
   for (let attempt = 0; attempt < 2; attempt++) {
     job.progress(attempt ? 'fixing the cartoon (second try)' : 'writing the cartoon');
     const user = attempt
       ? `${brief}\n\nYour previous code failed: ${problem}\nHere it is; reply with the whole corrected code.\n\`\`\`js\n${code}\n\`\`\``
       : `${brief}\n\nReference:\n\`\`\`js\n${REFERENCE}\n\`\`\``;
-    const j = await job.call('studio:cartoon', model, { inTok: (SYSTEM.length + user.length) / 3.3, outTok: 14000 }, () => openRouter({
+    const j = await job.call('studio:cartoon', model, { inTok: (system.length + user.length) / 3.3, outTok: 14000 }, () => openRouter({
       model, max_tokens: 32000, reasoning: { effort: 'low' },
-      messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: user }],
+      messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
     }, { purpose: 'studio:cartoon' }), (r) => r.usage?.cost);
     if (j.choices?.[0]?.finish_reason === 'length') { problem = 'it was cut off (too long); make it shorter'; code = ''; continue; }
     code = extractCode(j.choices?.[0]?.message?.content || '');

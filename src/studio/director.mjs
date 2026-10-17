@@ -7,6 +7,7 @@ import { Script } from 'node:vm';
 import { RULES } from './script.mjs';
 import { scrub } from './track.mjs';
 import { studioJson } from './llm.mjs';
+import { notesBlock } from './notes.mjs';
 
 const ASSETS = new URL('./assets/', import.meta.url).pathname;
 export const LIB = readFileSync(join(ASSETS, 'cartoon-lib.js'), 'utf8');
@@ -65,10 +66,10 @@ Reply with the beat sheet JSON only.`;
 const EXAMPLES = ['dog-parade', 'gator-mailbox'].map((k) => JSON.parse(readFileSync(join(ASSETS, 'beats', `${k}.json`), 'utf8')));
 const exampleText = (x, i) => `EXAMPLE ${i + 1}: "${x.beat.title}"\ntimeline: ${JSON.stringify(x.timeline)}\nbeat sheet: ${JSON.stringify(x.beat)}`;
 
-export function directorPrompt(script, tl) {
+export function directorPrompt(script, tl, notes = '') {
   const timeline = { END: tl.end, TOTAL: tl.total, clips: tl.clips.map((c) => ({ start: c.start, dur: c.dur, clock: c.clock })), captions: tl.captions };
   const user = `${catalogueText()}\n\n${EXAMPLES.map(exampleText).join('\n\n')}\n\nTHIS STORY\nscript: ${JSON.stringify({ title: script.title, cast: script.cast, beats: script.beats, punch: script.punch })}\ntimeline: ${JSON.stringify(timeline)}\n\nPlan the cartoon: ${tl.end < 20 ? '3–5' : '4–8'} scenes, each at least 2 s, from 0 to END=${tl.end}, then the 3 punch lines and the finale stars.`;
-  return { system: SYSTEM, user };
+  return { system: SYSTEM + notesBlock(notes), user };
 }
 
 // ---------- checking and tidying the sheet ----------
@@ -138,7 +139,7 @@ export function checkBeat(raw, tl, fallbackPunch = []) {
 
 // Writes the beat sheet: one call, and one repair call if the sheet has problems. Returns the tidied sheet.
 export async function direct(job, { script, tl, provider, model }) {
-  const { system, user } = directorPrompt(script, tl);
+  const { system, user } = directorPrompt(script, tl, job.notes);
   let ask = user, last = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     job.progress(attempt ? 'directing the cartoon (fixing the plan)' : 'directing the cartoon');

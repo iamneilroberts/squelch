@@ -3,7 +3,7 @@
 import { listAnimations, getAnimation, deleteAnimation, updateAnimation, animDir, rateAsGuest, viewOf } from './library.mjs';
 import { suggestions } from './humor.mjs';
 import { CapError, spentToday, dailyCap } from './spend.mjs';
-import { estimateJob, queueJob, activeJobs, JobError } from './jobs.mjs';
+import { estimateJob, queueJob, activeJobs, checkNotes, JobError } from './jobs.mjs';
 import { defaultProvider, PROVIDERS } from './llm.mjs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -47,10 +47,11 @@ export async function studioRoute(req, res, url, { json, serveFile, readJson, ac
   if ((p === 'jobs' || p === 'estimate') && !owner && access !== 'make') return deny('make animations here');
   if (p === 'jobs' && req.method === 'GET') return json(res, { jobs: activeJobs(), today: spentToday(), cap: dailyCap() });
   if ((p === 'estimate' || p === 'jobs') && req.method === 'POST') {
-    const { thread_id, style, llm } = await readJson(req);
+    const { thread_id, style, llm, notes } = await readJson(req);
     try {
       const by = owner ? 'owner' : `guest ${ip}`;
-      return json(res, p === 'estimate' ? await estimateJob(thread_id, style, owner ? llm : 'openrouter', by) : view(await queueJob(thread_id, style, llm, by)), p === 'jobs' ? 202 : 200);
+      if (p === 'estimate') { checkNotes(notes); return json(res, await estimateJob(thread_id, style, owner ? llm : 'openrouter', by)); } // the notes don't change the price, but a refusal shows before queueing
+      return json(res, view(await queueJob(thread_id, style, llm, by, { notes })), 202);
     } catch (e) {
       return json(res, { error: e.message }, e instanceof JobError ? e.code : 502);
     }

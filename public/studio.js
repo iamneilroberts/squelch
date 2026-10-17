@@ -33,6 +33,9 @@ function suggestion(s) {
       <div class="make"${canMake() ? '' : ' hidden'}>
         <div class="keys" role="group" aria-label="Style">${Object.entries(STYLE).map(([k, n]) => `<button type="button" class="key" data-style="${k}" aria-pressed="${k === 'sunday'}">${n}${k === 'vector' ? ' cartoon' : ''}</button>`).join('')}</div>
         ${ACCESS === 'owner' ? `<div class="keys" role="group" aria-label="Plan with" title="Who writes the script and the cartoon's plan">${Object.entries(LLM.providers).map(([k, n]) => `<button type="button" class="key" data-llm="${k}" aria-pressed="${k === LLM.llm}">${esc(n)}</button>`).join('')}</div>` : ''}
+        <label class="notes"><span>Your notes for the artist <i class="na">(optional)</i></span>
+          <textarea maxlength="400" rows="2" placeholder="Make the dogs wear tiny hats; keep it gentle" data-notes></textarea>
+          <span class="notes-foot"><span class="na">Colour and detail ideas only; it can’t change the facts or the rules.</span><span class="na" data-count>0 / 400</span></span></label>
         <div class="keys"><button type="button" class="key" data-make>Make it</button></div>
       </div>
       <div class="quote" hidden></div>
@@ -64,6 +67,10 @@ $('suggest-refresh').addEventListener('click', () => loadSuggestions(true));
 
 // Make it: pick a style, see the estimate, then queue.
 const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body) });
+$('suggests').addEventListener('input', (e) => {
+  const t = e.target.closest('[data-notes]');
+  if (t) t.closest('.notes').querySelector('[data-count]').textContent = `${t.value.length} / 400`;
+});
 $('suggests').addEventListener('click', async (e) => {
   const li = e.target.closest('.suggest');
   if (!li) return;
@@ -72,7 +79,7 @@ $('suggests').addEventListener('click', async (e) => {
   if (style) { for (const b of li.querySelectorAll('[data-style]')) b.setAttribute('aria-pressed', String(b === style)); quote.hidden = true; return; }
   const llm = e.target.closest('[data-llm]');
   if (llm) { for (const b of li.querySelectorAll('[data-llm]')) b.setAttribute('aria-pressed', String(b === llm)); quote.hidden = true; return; }
-  const body = { thread_id: Number(li.dataset.thread), style: li.querySelector('[data-style][aria-pressed="true"]').dataset.style, llm: li.querySelector('[data-llm][aria-pressed="true"]')?.dataset.llm };
+  const body = { thread_id: Number(li.dataset.thread), style: li.querySelector('[data-style][aria-pressed="true"]').dataset.style, llm: li.querySelector('[data-llm][aria-pressed="true"]')?.dataset.llm, notes: li.querySelector('[data-notes]').value };
   if (e.target.closest('[data-make]')) {
     quote.hidden = false;
     quote.innerHTML = '<span class="na">Pricing it…</span>';
@@ -151,6 +158,7 @@ function card(a) {
         ${a.prompt_version ? `<dt>Prompt</dt><dd>${esc(a.prompt_version)}</dd>` : ''}
         ${a.thread_id ? `<dt>Story</dt><dd><a href="/?story=${a.thread_id}">#${a.thread_id}${a.source_id ? ` · ${esc(a.source_id)}` : ''}</a></dd>` : ''}
         ${a.notes ? `<dt>Notes</dt><dd>${esc(a.notes)}</dd>` : ''}
+        ${a.instructions ? `<dt>Artist notes</dt><dd>${esc(a.instructions)}</dd>` : a.has_instructions ? '<dt>Artist notes</dt><dd class="na">custom notes: yes</dd>' : ''}
         <dt>${ACCESS === 'owner' ? 'Rating' : 'Your rating'}</dt><dd>${stars(a)}${a.guest_ratings ? ` <span class="na">· guests ${a.guest_ratings.avg} of 5 (${a.guest_ratings.n})</span>` : ''}</dd>
         <dt>Asked by</dt><dd>${esc(a.requested_by || 'owner')}</dd>
       </dl>
