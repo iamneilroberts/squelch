@@ -57,13 +57,15 @@ export function startStream(source, { onClip, onStatus }) {
       if (files.length) { backoff = 5; onStatus({ state: 'receiving', lastSegment: new Date().toISOString() }); }
       for (const f of files.slice(0, -1)) {
         const wav = join(dir, f);
+        let clip = null;
         try {
-          const clip = await squelch(wav, source);
+          clip = await squelch(wav, source);
           if (clip) await onClip({ ...clip, at: stampToIso(f) });
         } catch (e) {
           onStatus({ state: 'receiving', error: e.message });
         } finally {
           rmSync(wav, { force: true });
+          if (clip) rmSync(clip.wav, { force: true });
         }
       }
     } finally {
@@ -79,38 +81,45 @@ export function startStream(source, { onClip, onStatus }) {
 // their frames as they are.
 const CLIP_MP3 = ['-ac', '1', '-b:a', '32k', '-reservoir', '0', '-write_xing', '0', '-id3v2_version', '0'];
 
-// Strip silence gaps; skip the segment if less than MIN_SPEECH_SECONDS of audio is left.
+// Strip silence gaps; skip the segment if less than MIN_SPEECH_SECONDS of audio is left. The whole chain stays WAV and
+// the stored MP3 is encoded once at the end; the final WAV is returned too (`wav`), for lossless STT, and the caller deletes it.
 async function squelch(wav, source) {
   if (statSync(wav).size < 2000) return null;
   const threshold = source.squelchDb ?? -42;
   const name = `${source.id}-${Date.now()}.mp3`;
   const out = join('data', 'audio', name);
+  const raw = out.replace(/\.mp3$/, '.wav');
+  const trimmed = out.replace(/\.mp3$/, '.t.wav');
   mkdirSync(join('data', 'audio'), { recursive: true });
-  await run('ffmpeg', ['-nostdin', '-loglevel', 'error', '-y', '-i', wav,
-    '-af', `silenceremove=start_periods=1:start_threshold=${threshold}dB:stop_periods=-1:stop_duration=0.7:stop_threshold=${threshold}dB`,
-    ...CLIP_MP3, out]);
-  // An all-silent segment leaves an empty file that ffprobe can't read — that's just "no speech".
-  const duration = statSync(out, { throwIfNoEntry: false })?.size > 1000 ? await probeDuration(out).catch(() => 0) : 0;
-  if (duration < MIN_SPEECH_SECONDS) { rmSync(out, { force: true }); return null; }
-  if (process.env.ADAPTIVE_SQUELCH === '0') return { file: out, audio: name, duration };
-
-  // Adaptive squelch: on feeds with a constant hum or open carrier, silenceremove keeps everything.
-  // Keep only what rises above this clip's own noise floor; drop the clip if that's under 1 s.
-  const { regions, speech } = await speechRegions(out);
-  if (speech < MIN_ADAPTIVE_SPEECH) {
-    rmSync(out, { force: true });
-    noteSquelchDrop(source.id, duration);
-    return null;
+  let clip = null;
+  try {
+    await run('ffmpeg', ['-nostdin', '-loglevel', 'error', '-y', '-i', wav,
+      '-af', `silenceremove=start_periods=1:start_threshold=${threshold}dB:stop_periods=-1:stop_duration=0.7:stop_threshold=${threshold}dB`, raw]);
+    // An all-silent segment leaves a header-only file that ffprobe can't read — that's just "no speech".
+    const duration = statSync(raw, { throwIfNoEntry: false })?.size > 1000 ? await probeDuration(raw).catch(() => 0) : 0;
+    if (duration < MIN_SPEECH_SECONDS) return null;
+    let kept = duration;
+    if (process.env.ADAPTIVE_SQUELCH !== '0') {
+      // Adaptive squelch: on feeds with a constant hum or open carrier, silenceremove keeps everything.
+      // Keep only what rises above this clip's own noise floor; drop the clip if that's under 1 s.
+      const { regions, speech } = await speechRegions(raw);
+      if (speech < MIN_ADAPTIVE_SPEECH) {
+        noteSquelchDrop(source.id, duration);
+        return null;
+      }
+      if (speech < duration * 0.85 && regions.length <= 60) {
+        const keep = regions.map(([a, b]) => `between(t,${a.toFixed(2)},${b.toFixed(2)})`).join('+');
+        await run('ffmpeg', ['-nostdin', '-loglevel', 'error', '-y', '-i', raw, '-af', `aselect='${keep}',asetpts=N/SR/TB`, trimmed]);
+        renameSync(trimmed, raw);
+        kept = speech;
+      }
+    }
+    await run('ffmpeg', ['-nostdin', '-loglevel', 'error', '-y', '-i', raw, ...CLIP_MP3, out]);
+    clip = { file: out, audio: name, duration: kept, wav: raw };
+    return clip;
+  } finally {
+    if (!clip) for (const f of [raw, trimmed, out]) rmSync(f, { force: true });
   }
-  if (speech < duration * 0.85 && regions.length <= 60) {
-    const trimmed = out.replace(/\.mp3$/, '.t.mp3');
-    const keep = regions.map(([a, b]) => `between(t,${a.toFixed(2)},${b.toFixed(2)})`).join('+');
-    await run('ffmpeg', ['-nostdin', '-loglevel', 'error', '-y', '-i', out, '-af', `aselect='${keep}',asetpts=N/SR/TB`, ...CLIP_MP3, trimmed]);
-    rmSync(out, { force: true });
-    renameSync(trimmed, out);
-    return { file: out, audio: name, duration: speech };
-  }
-  return { file: out, audio: name, duration };
 }
 
 async function probeDuration(file) {

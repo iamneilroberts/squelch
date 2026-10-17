@@ -68,7 +68,7 @@ async function viaOpenRouter(file, model, vocab) {
 
 async function viaWhisper(file, vocab) {
   const form = new FormData();
-  form.append('file', new Blob([await readFile(file)], { type: 'audio/mpeg' }), basename(file));
+  form.append('file', new Blob([await readFile(file)], { type: extname(file) === '.wav' ? 'audio/wav' : 'audio/mpeg' }), basename(file));
   form.append('model', process.env.TRANSCRIBE_MODEL || 'whisper-large-v3-turbo');
   form.append('language', 'en');
   form.append('prompt', [UNITS, vocab].filter(Boolean).join(', '));

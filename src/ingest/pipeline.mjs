@@ -39,6 +39,8 @@ export const VAD = {
   auditRate: Number(process.env.VAD_AUDIT_RATE || 0.05),    // share of quiet clips transcribed anyway
 };
 
+const STT_INPUT = process.env.STT_INPUT || 'mp3'; // mp3 | wav
+
 export function startIngest(sources, regions) {
   regionById = new Map(regions.map((r) => [r.id, r]));
   const missing = [(!transcriberReady() || !llmReady()) && 'OPENROUTER_API_KEY'].filter(Boolean);
@@ -79,7 +81,8 @@ async function handleClip(source, clip) {
     if (skip) { rmSync(clip.file, { force: true }); return; }
   }
 
-  const { text: transcript } = await transcribe(clip.file, undefined, region?.vocab);
+  // STT_INPUT=wav transcribes the lossless clip instead of the stored MP3.
+  const { text: transcript } = await transcribe(STT_INPUT === 'wav' ? clip.wav : clip.file, undefined, region?.vocab);
   if (!transcript) {
     // Shadow mode keeps real "no speech" clips (capped) so the detector can be calibrated on actual feed noise.
     const dir = join('data', 'vad-samples');
