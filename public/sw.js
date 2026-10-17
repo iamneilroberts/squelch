@@ -1,5 +1,7 @@
 // Service worker: shows push notifications and opens the receiver when one is tapped.
 // It doesn't cache or intercept anything else.
+self.addEventListener('install', () => self.skipWaiting()); // an open Home Screen app never closes, so don't wait for it to
+
 self.addEventListener('push', (e) => {
   const d = e.data?.json() ?? {};
   e.waitUntil(self.registration.showNotification(d.title || 'Squelch', {
@@ -26,8 +28,11 @@ self.addEventListener('notificationclick', (e) => {
   const url = new URL(e.notification.data?.url || '/', self.location.origin).href;
   e.waitUntil((async () => {
     const open = (await self.clients.matchAll({ type: 'window', includeUncontrolled: true })).find((c) => new URL(c.url).origin === self.location.origin);
+    // iPhone brings a running Home Screen app forward without loading the new URL, so the open page is
+    // told which story to show instead (app.js listens for this).
     if (open) {
-      try { return await (await open.navigate(url))?.focus(); } catch { /* not controlled by this worker: open a new one */ }
+      open.postMessage({ open: url });
+      return open.focus().catch(() => {});
     }
     return self.clients.openWindow(url);
   })());

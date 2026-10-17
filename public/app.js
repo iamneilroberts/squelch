@@ -214,6 +214,7 @@ function noSignal(s) {
 function powerOff() {
   stopScan();
   clearTimeout(tuneTimer);
+  playlist = [];
   radio.pause();
   radio.removeAttribute('src');
   radio.load(); // drop the connection to a live stream instead of buffering it in the background
@@ -225,8 +226,11 @@ function powerOff() {
   syncTransport();
 }
 
-function playRecording(src, label, kind = 'clip') {
+// rest: recordings to play after this one (a story's Play all); any other playback drops them.
+let playlist = [];
+function playRecording(src, label, kind = 'clip', rest = []) {
   if (kind === 'clip') stopScan(); // playing one recording by hand ends a scan
+  playlist = rest;
   state.tuned = null;
   clearTimeout(tuneTimer);
   ccLoad(src);
@@ -385,6 +389,7 @@ radio.addEventListener('ended', () => {
   setLit(false);
   if (radio.dataset.kind === 'scan') return scanAfterTransmission();
   if (radio.dataset.kind !== 'clip') return;
+  if (playlist.length) return playNext();
   const c = callByAudio(decodeURIComponent(radio.getAttribute('src') || '').replace(/^\/audio\//, ''));
   $('now-playing').innerHTML = `Finished — ${c ? titleOf(c) : `<strong>${esc(radio.dataset.label)}</strong>`}`;
 });
@@ -620,6 +625,7 @@ syncTransport();
 radio.addEventListener('error', () => {
   if (!radio.getAttribute('src')) return;
   if (radio.dataset.kind === 'scan') return scanNext(); // recording expired — move on
+  if (radio.dataset.kind === 'clip' && playlist.length) return playNext();
   clearTimeout(tuneTimer);
   noSignal(radio.dataset.kind === 'clip' ? null : state.tuned);
 });
@@ -1121,14 +1127,28 @@ function connect() {
 
 /* ───────── Channel story: tap a title line for the conversation's key facts and chronology ───────── */
 let storyId = null;
-async function openStory(id) {
+let storyClips = []; // every transmission in the story with audio, oldest first
+async function openStory(id, { play = false } = {}) {
   storyId = Number(id);
   await renderStory();
   if (storyId && !$('story').open) $('story').showModal();
+  if (play) playStory();
+}
+function playStory() {
+  const [first, ...rest] = storyClips;
+  if (first) playRecording(first.src, first.label, 'clip', rest);
+}
+function playNext() {
+  const [next, ...rest] = playlist;
+  playRecording(next.src, next.label, 'clip', rest);
 }
 async function renderStory() {
   const t = await fetch(`/api/threads/${storyId}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   if (!t) return;
+  const short = state.byId.get(t.source_id)?.short || '';
+  storyClips = t.events.filter((e) => e.audio).map((e, i, all) => ({ src: `/audio/${encodeURIComponent(e.audio)}`, label: `${i + 1} of ${all.length} · ${hhmm(e.at)} ${short}` }));
+  $('story-play').hidden = !storyClips.length;
+  $('story-play').innerHTML = `${ICON_PLAY} Play all · ${storyClips.length} transmission${storyClips.length > 1 ? 's' : ''}`;
   $('story-feedback').hidden = notify.opened?.story !== t.id;
   $('story-title').innerHTML = `${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}`;
   $('story-facts').innerHTML = t.facts.map((f) => `<dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd>`).join('');
@@ -1145,6 +1165,7 @@ document.addEventListener('click', (e) => {
   openStory(link.dataset.thread);
 });
 $('story-close').addEventListener('click', () => $('story').close());
+$('story-play').addEventListener('click', playStory);
 $('story').addEventListener('click', (e) => {
   if (e.target === $('story')) return $('story').close(); // tap on the backdrop
   const play = e.target.closest('.play');
@@ -1349,6 +1370,15 @@ function setupShareToggle(on) {
   });
 }
 
+// A tapped notification (?n=&story=): show its story and play it from the first transmission.
+function fromNotification(q) {
+  const n = Number(q.get('n'));
+  const story = Number(q.get('story'));
+  if (!story) return;
+  if (n) notify.ready.then(() => trackNotification(n, story));
+  openStory(story, { play: true });
+}
+
 /* ───────── Boot ───────── */
 async function boot() {
   const opened = new URLSearchParams(location.search); // ?story= from a notification; read before setRegion rewrites the URL
@@ -1376,9 +1406,11 @@ async function boot() {
   addEventListener('hashchange', () => setRegion(location.hash.slice(1) || 'all'));
   connect();
   startScan(); // open scanning; awaitTap() covers the browser's no-sound-before-a-tap rule
-  const fromNotification = opened.get('n') && opened.get('story');
-  notifyInit().then(() => { if (fromNotification) trackNotification(Number(opened.get('n')), Number(opened.get('story'))); });
-  if (opened.get('story')) openStory(opened.get('story')); // opened from a notification: show that story
+  notify.ready = notifyInit();
+  fromNotification(opened);
+  navigator.serviceWorker?.addEventListener('message', (e) => { // tapped while the app was already open (sw.js)
+    if (e.data?.open) fromNotification(new URL(e.data.open, location.href).searchParams);
+  });
   setInterval(refreshAircraft, 15e3);
   setInterval(refreshTrains, 60e3);
   setInterval(refreshShips, 30e3);

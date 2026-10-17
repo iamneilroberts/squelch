@@ -521,6 +521,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .notify fieldset .key, .story-feedback .key { min-width: 0; padding: 8px 12px 6px; font-size: 11px; }
 .story-feedback { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 12px; padding-top: 10px; border-top: 2px solid var(--red-ink); font-size: 13px; }
 .story-feedback[hidden] { display: none; }
+.story-play { display: inline-flex; align-items: center; gap: 6px; min-width: 0; margin: 4px 0 10px; padding: 8px 12px 6px; font-size: 11px; }
+.story-play[hidden] { display: none; }
 .notify-guests { display: block; margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--bakelite-3); font-size: 13px; }
 
 /* ───────────── Desk: chart + printer ───────────── */
