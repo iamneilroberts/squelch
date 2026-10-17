@@ -98,7 +98,12 @@ function buildDial() {
   const sources = visibleSources();
   const present = BANDS.filter((b) => sources.some((s) => s.band === b.id));
   const order = present.flatMap((b) => sources.filter((s) => s.band === b.id));
-  const GAP = 0.7, PAD = 0.6;
+  const style = document.documentElement.dataset.dial;
+  const tight = style === 'rule' && narrow.matches; // the phone's slide rule: names only, packed closer
+  const SPAN = tight ? 66 : 90; // px of dial per station
+  const sc = $('dial').parentElement;
+  // The drum leaves half a window before the first station and after the last, so each can sit under its fixed needle.
+  const GAP = tight ? 0 : 0.7, PAD = style === 'drum' ? Math.max(0.6, sc.clientWidth / 2 / SPAN) : 0.6;
   const total = PAD * 2 + order.length - 1 + GAP * (present.length - 1);
   let pos = PAD, prevBand = null;
   for (const s of order) {
@@ -110,9 +115,8 @@ function buildDial() {
   const half = 50 / total;
   // Every station gets at least ~90 px of dial (the widest label is ~85 px), so labels never collide;
   // when that's wider than the window the dial scrolls (with edge fades as the cue).
-  $('dial').style.minWidth = `${Math.max(640, Math.round(total * 90))}px`;
+  $('dial').style.minWidth = `${Math.max(tight ? 0 : 640, Math.round(total * SPAN))}px`;
   requestAnimationFrame(() => {
-    const sc = $('dial').parentElement;
     sc.classList.toggle('scrolls', sc.scrollWidth > sc.clientWidth + 4);
   });
 
@@ -170,6 +174,28 @@ function moveNeedle(s, { scroll = true } = {}) {
   }
 }
 addEventListener('resize', () => moveNeedle(state.tuned || visibleSources().find((s) => s.x != null)));
+
+/* ───────── Look: how the receiver is drawn, remembered per device. The tuning dial is the first choice;
+   later skins join it in the same panel. ───────── */
+const narrow = matchMedia('(max-width: 720px)');
+function applyDialStyle() {
+  const pick = store.get('pcm.dial') || 'auto';
+  document.documentElement.dataset.dial = pick === 'auto' ? (narrow.matches ? 'presets' : 'rule') : pick;
+  if (state.byId.size) buildDial();
+}
+applyDialStyle();
+narrow.addEventListener('change', applyDialStyle);
+$('btn-look').addEventListener('click', () => {
+  for (const r of document.querySelectorAll('[name="dial-style"]')) r.checked = r.value === (store.get('pcm.dial') || 'auto');
+  $('look').showModal();
+});
+$('look').addEventListener('change', (e) => {
+  if (e.target.name !== 'dial-style') return;
+  store.set('pcm.dial', e.target.value);
+  applyDialStyle();
+});
+$('look-close').addEventListener('click', () => $('look').close());
+$('look').addEventListener('click', (e) => { if (e.target === $('look')) $('look').close(); }); // tap on the backdrop
 
 /* ───────── Audio ───────── */
 const radio = $('radio');

@@ -222,6 +222,35 @@ button { font: inherit; color: inherit; cursor: pointer; }
   z-index: 2;
 }
 
+/* ───────────── Dial styles (the Look panel; app.js sets <html data-dial>) ───────────── */
+/* Preset keys: every station in view, grouped by band, instead of a strip to scroll sideways. */
+[data-dial="presets"] .dial { min-width: 0 !important; height: auto; padding: 6px 8px 8px; } /* !important: buildDial sizes the slide rule inline */
+[data-dial="presets"] :is(.dial-bands, .dial-scale, .needle) { display: none; }
+[data-dial="presets"] .dial-stations { position: relative; inset: auto; display: flex; flex-wrap: wrap; gap: 5px 10px; }
+[data-dial="presets"] .dial-group { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px; flex: 1 1 auto; }
+[data-dial="presets"] .dial-group-label {
+  display: block; flex: 0 0 100%; padding-bottom: 2px; border-bottom: 1.5px solid currentColor;
+  font-size: 9px; font-weight: 700; letter-spacing: .24em; line-height: 1.2; text-transform: uppercase; color: var(--walnut-900);
+}
+[data-dial="presets"] .dial-group[data-band="fire"] .dial-group-label { color: var(--red-ink); }
+[data-dial="presets"] .station { position: static; transform: none; gap: 0; padding: 2px 5px 3px; line-height: 1.25; background: oklch(1 0 0 / .3); box-shadow: inset 0 0 0 1px oklch(0.3 0.06 60 / .22); }
+[data-dial="presets"] .station::before { display: none; }
+[data-dial="presets"] .station.at { box-shadow: inset 0 0 0 1.5px var(--needle); } /* the scan stepping past */
+[data-dial="presets"] .station[aria-pressed="true"] { background: oklch(1 0 0 / .65); box-shadow: inset 0 0 0 2px var(--needle); }
+/* Tuning drum: the needle stays put and the dial scrolls under it, snapping station to station. */
+.dial-frame { position: relative; }
+.drum-needle { display: none; }
+[data-dial="drum"] .needle { display: none; }
+[data-dial="drum"] .drum-needle {
+  display: block; position: absolute; top: 11px; bottom: 11px; left: 50%; z-index: 3;
+  width: 3px; margin-left: -1.5px; pointer-events: none;
+  background: linear-gradient(180deg, transparent, var(--needle) 8%, var(--needle) 92%, transparent);
+  box-shadow: 0 0 6px oklch(0.6 0.2 30 / .6), 1px 0 0 oklch(0.3 0.1 30 / .4);
+}
+[data-dial="drum"] .dial-scroll { scroll-snap-type: x mandatory; }
+[data-dial="drum"] .dial { overflow: clip; } /* hidden would make the dial its own scroller and swallow the snap points */
+[data-dial="drum"] .station { scroll-snap-align: center; }
+
 /* ───────────── Controls row ───────────── */
 .controls {
   display: flex;
@@ -503,7 +532,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .bell svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 0 oklch(1 0 0 / .8)); }
 .bell .lamp { width: 7px; height: 7px; }
-.manual-key { right: auto; left: 8px; text-decoration: none; font: 700 10px var(--font-type); letter-spacing: .06em; text-transform: uppercase; }
+.grille-keys { position: absolute; top: 8px; left: 8px; display: flex; gap: 6px; }
+.grille-keys .bell { position: static; }
+.look-key circle { fill: currentColor; stroke: none; }
+.manual-key, .look-key { text-decoration: none; font: 700 10px var(--font-type); letter-spacing: .06em; text-transform: uppercase; }
 .update-key { right: auto; left: 8px; top: auto; bottom: 8px; font: 700 10px var(--font-type); letter-spacing: .06em; text-transform: uppercase; color: var(--red-ink); }
 .bell[aria-pressed="true"] .lamp { background: var(--lamp-amber); box-shadow: 0 0 6px var(--lamp-amber); }
 .notify-msg { margin: 12px 0; font-size: 13.5px; line-height: 1.5; }
@@ -795,23 +827,22 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .badge { padding: 6px 16px 5px; transform: rotate(-1.5deg); }
   .badge-script { font-size: 26px; }
   .badge-sub { display: none; } /* the region name costs a line the phone needs */
-  .manual-key span { display: none; } /* just the book icon beside the badge */
-  /* Preset keys: every station in view, grouped by band, instead of a strip to scroll sideways. */
-  .dial { min-width: 0 !important; height: auto; padding: 6px 8px 8px; } /* !important: buildDial sizes the slide rule inline */
-  .dial-bands, .dial-scale, .needle { display: none; }
-  .dial-stations { position: relative; inset: auto; display: flex; flex-wrap: wrap; gap: 5px 10px; }
-  .dial-group { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px; flex: 1 1 auto; }
-  .dial-group-label {
-    display: block; flex: 0 0 100%; padding-bottom: 2px; border-bottom: 1.5px solid currentColor;
-    font-size: 9px; font-weight: 700; letter-spacing: .24em; line-height: 1.2; text-transform: uppercase; color: var(--walnut-900);
-  }
-  .dial-group[data-band="fire"] .dial-group-label { color: var(--red-ink); }
-  .station { position: static; transform: none; gap: 0; padding: 2px 5px 3px; line-height: 1.25; background: oklch(1 0 0 / .3); box-shadow: inset 0 0 0 1px oklch(0.3 0.06 60 / .22); }
-  .station::before { display: none; }
-  .station-freq { font-size: 11px; }
-  .station-name { font-size: 9px; letter-spacing: .06em; }
-  .station.at { box-shadow: inset 0 0 0 1.5px var(--needle); } /* the scan stepping past */
-  .station[aria-pressed="true"] { background: oklch(1 0 0 / .65); box-shadow: inset 0 0 0 2px var(--needle); }
+  .grille-keys .bell span { display: none; } /* just the icons beside the badge */
+  /* Slide rule and drum on a phone: shorter, no tick scale. */
+  .dial { height: 82px; }
+  .dial-bands { top: 5px; }
+  .dial-scale { display: none; }
+  .dial-stations { inset: 26px 0 0; }
+  .station { padding: 2px 6px 4px; }
+  /* Tighter slide rule: names only, packed closer (buildDial), so more stations fit in view. */
+  [data-dial="rule"] .dial { height: 58px; }
+  [data-dial="rule"] .station { padding-top: 7px; }
+  [data-dial="rule"] .station-freq { display: none; }
+  [data-dial="rule"] .station-name { font-size: 9.5px; letter-spacing: .08em; }
+  [data-dial="rule"] .station.pri .station-name::before { content: 'PRI '; color: var(--blue-ink); }
+  [data-dial="rule"] .station.locked .station-name::before { content: 'L/O '; color: var(--needle); }
+  [data-dial="presets"] .station-freq { font-size: 11px; }
+  [data-dial="presets"] .station-name { font-size: 9px; letter-spacing: .06em; }
   .cc { font-size: 13px; padding-left: 40px; }
   .controls { flex-direction: column; align-items: stretch; gap: 10px; }
   /* Band keys: one swipeable row. */
