@@ -439,6 +439,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   display: flex; flex-direction: column; justify-content: flex-end; /* newest line at the bottom; old ones scroll off the top */
 }
 .cc-line { margin: 0; overflow-wrap: anywhere; }
+.cc-who { color: inherit; text-decoration: none; }
 .cc-probe { position: absolute; visibility: hidden; white-space: pre; } /* measures text so line breaks can be predicted */
 .cc-old { color: oklch(0.72 0 0); }
 .cc-old .cc-src { opacity: .7; }

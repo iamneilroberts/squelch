@@ -273,7 +273,13 @@ function ccTag(id) {
   const b = s && CC_BANDS[s.band];
   return b ? `<span class="cc-src" data-band="${s.band}"><svg viewBox="0 0 24 24" aria-hidden="true">${b[1]}</svg>${b[0]}</span>` : '';
 }
-const ccWho = (id) => (state.byId.has(id) ? `${ccTag(id)} ${shortOf(id)}: ` : '&gt;&gt; ');
+// Paragraph prefix: source tag + station; tapping it opens that transmission's story.
+function ccWho(id, thread) {
+  if (!state.byId.has(id)) return '&gt;&gt; ';
+  const who = `${ccTag(id)} ${shortOf(id)}:`;
+  return `${thread ? `<a href="#" class="cc-who" data-thread="${thread}">${who}</a>` : who} `;
+}
+const callByAudio = (name) => state.calls.find((c) => c.audio === name);
 const ccSet = (html) => { $('cc-text').innerHTML = html; };
 const ccOff = () => !state.viewer?.transcripts;
 const ccWords = (text) => String(text || '').split(/\s+/).filter(Boolean);
@@ -311,7 +317,7 @@ function ccRender(segs) {
   let left = CC_ROWS;
   for (const seg of [...segs].reverse()) {
     if (left < 1 || !seg.words.length) continue;
-    probe.innerHTML = ccWho(seg.id);
+    probe.innerHTML = ccWho(seg.id, seg.thread);
     const indent = Math.ceil(probe.getBoundingClientRect().width / cw);
     let from = 0;
     const words = () => (from ? ['…', ...seg.words.slice(from)] : seg.words);
@@ -319,7 +325,7 @@ function ccRender(segs) {
     left -= ccRows(words(), cols, indent);
     const now = seg.now ?? seg.words.length;
     const text = (a, b) => esc(seg.words.slice(Math.max(a, from), b).join(' '));
-    out.unshift(`<p class="cc-line${seg.old ? ' cc-old' : ''}">${ccWho(seg.id)}${from ? '… ' : ''}${text(0, now)}${now < seg.words.length ? `${now > from ? ' ' : ''}<span class="cc-now">${text(now, seg.words.length)}</span>` : ''}</p>`);
+    out.unshift(`<p class="cc-line${seg.old ? ' cc-old' : ''}">${ccWho(seg.id, seg.thread)}${from ? '… ' : ''}${text(0, now)}${now < seg.words.length ? `${now > from ? ' ' : ''}<span class="cc-now">${text(now, seg.words.length)}</span>` : ''}</p>`);
   }
   probe.remove();
   ccSet(out.join(''));
@@ -328,7 +334,8 @@ addEventListener('resize', () => { if (ccShown.length) ccRender(ccShown); });
 
 function ccLoad(src) {
   if (ccCur?.words.length) ccPast = [...ccPast, ccCur].slice(-2);
-  ccCur = { id: /^\/audio\/(.+)-\d+\.mp3$/.exec(decodeURIComponent(src))?.[1] ?? null, words: [] };
+  const name = decodeURIComponent(src).replace(/^\/audio\//, '');
+  ccCur = { id: /^(.+)-\d+\.mp3$/.exec(name)?.[1] ?? null, thread: callByAudio(name)?.thread_id, words: [] };
   radio.querySelectorAll('track').forEach((t) => t.remove());
   if (ccOff()) return ccIdle();
   if (!src.startsWith('/audio/')) return ccRender(ccPast.map((x) => ({ ...x, old: true })));
@@ -357,7 +364,7 @@ function ccLive() {
   if (ccOff()) return ccIdle();
   const recent = state.calls.filter((c) => c.source_id === s.id && c.transcript).slice(0, 3).reverse();
   if (!recent.length) return ccSet(`<p class="cc-line cc-note">Captions for ${esc(s.short)} appear about a minute behind the audio.</p>`);
-  ccRender(recent.map((c, i) => ({ id: s.id, words: ccWords(c.transcript), old: i < recent.length - 1 })));
+  ccRender(recent.map((c, i) => ({ id: s.id, thread: c.thread_id, words: ccWords(c.transcript), old: i < recent.length - 1 })));
 }
 
 radio.addEventListener('playing', () => {
@@ -376,7 +383,9 @@ radio.addEventListener('pause', () => setLit(false));
 radio.addEventListener('ended', () => {
   setLit(false);
   if (radio.dataset.kind === 'scan') return scanAfterTransmission();
-  if (radio.dataset.kind === 'clip') $('now-playing').innerHTML = `Finished — <strong>${esc(radio.dataset.label)}</strong>`;
+  if (radio.dataset.kind !== 'clip') return;
+  const c = callByAudio(decodeURIComponent(radio.getAttribute('src') || '').replace(/^\/audio\//, ''));
+  $('now-playing').innerHTML = `Finished — ${c ? titleOf(c) : `<strong>${esc(radio.dataset.label)}</strong>`}`;
 });
 
 /* ───────── Scan: play each new transmission from the chosen channels, back to back ─────────
@@ -509,7 +518,7 @@ function scanIdle() {
   setLit(false);
   const n = scanChannels().length;
   $('now-playing').innerHTML = scan.hold
-    ? `<strong>HOLD</strong> · ${shortOf(scan.hold)} — new traffic here plays as it arrives · <strong>Resume</strong> to scan again`
+    ? `<strong>HOLD</strong> · ${scan.last.has(scan.hold) ? titleOf(scan.last.get(scan.hold)) : shortOf(scan.hold)} · new traffic plays as it arrives · <strong>Resume</strong> to scan`
     : n
       ? `<strong>SCANNING</strong> ${n} ch · ${scan.lastCall ? `last ${titleOf(scan.lastCall)}` : 'tap a station: PRI → L/O → normal'}`
       : '<strong>SCAN</strong> — every channel here is locked out. Tap a station to bring it back.';
@@ -980,9 +989,9 @@ function connect() {
   });
   es.addEventListener('call', (e) => {
     const c = JSON.parse(e.data);
-    scanEnqueue(c);
-    state.calls.unshift(c);
+    state.calls.unshift(c); // before scanEnqueue: playback looks the call up by its clip
     state.calls.length = Math.min(state.calls.length, 200);
+    scanEnqueue(c);
     if (c.source_id === state.tuned?.id) ccLive();
     if (storyId && c.thread_id === storyId) renderStory();
     const lamp = $(`lamp-${c.source_id}`);
