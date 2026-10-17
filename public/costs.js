@@ -107,13 +107,17 @@ function renderVad(v) {
 // of what was said. Tapping a line opens its card.
 let traces = [];
 const what = (t) => t.subject || t.headline || t.transcript || null;
+// Triage's verdict on the clip: a red flag, outlined for notable, filled for breaking.
+const FLAG_PATH = 'M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528';
+const flag = (category) => (category === 'notable' || category === 'breaking'
+  ? `<svg class="flag ${category}" viewBox="0 0 24 24" role="img" aria-label="${category}"><title>${category}</title><path d="${FLAG_PATH}"/></svg>` : '');
 
 function renderTraces(list) {
   traces = list;
   if (!list.length) { $('traces').innerHTML = '<li class="empty">No traces yet. They appear as soon as a clip is transcribed.</li>'; return; }
   $('traces').innerHTML = list.map((t) => {
     const desc = t.kind === 'digest' ? `<b>Daily log</b> ${esc(t.label)}`
-      : `<b class="snip-feed">${esc(t.label)}</b> ${what(t) ? esc(what(t)) : '<i>no speech kept</i>'}`;
+      : `${flag(t.category)}<b class="snip-feed">${esc(t.label)}</b> ${what(t) ? esc(what(t)) : '<i>no speech kept</i>'}`;
     const notable = t.category && t.category !== 'routine';
     return `<li><button type="button" class="trace${notable ? ' notable' : ''}" data-id="${t.id}">
       <span>${hhmm(t.at)}</span><span class="feed">${esc(t.kind === 'digest' ? 'digest' : t.label)}</span><span class="snip">${desc}</span><span class="ms">${ms(t.ms)}</span><span class="usd">${usd(t.cost)}</span>
@@ -136,7 +140,7 @@ function openTrace(t) {
     ['When', `${new Date(t.at).toLocaleString('en-US', { timeZone: TZ, dateStyle: 'medium', timeStyle: 'short' })}${t.duration ? ` · ${Math.round(t.duration)} s of audio` : ''}`],
     ['Cost', `${usd(t.cost)} · ${ms(t.ms)} end to end`],
     t.headline && ['Incident', esc(t.headline)],
-    t.category && ['Triage', esc(t.category)],
+    t.category && ['Triage', `${flag(t.category)} ${esc(t.category)}`],
     t.jev_news != null && ['Jev gate', `speech ${t.jev_speech?.toFixed(2)} · newsworthy ${t.jev_news.toFixed(2)}`],
   ].filter(Boolean);
   // A clip with no saved call was discarded on the way; say where, so the missing player makes sense.

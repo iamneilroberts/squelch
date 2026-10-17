@@ -94,6 +94,8 @@ table.accounts { width: 100%; border-collapse: collapse; font-size: 13px; }
 .trace .snip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-soft); }
 .trace .snip b { color: var(--ink); font-weight: 700; }
 .trace.notable .snip { color: var(--red-ink); }
+.flag { width: 13px; height: 13px; margin-right: 5px; vertical-align: -2px; fill: none; stroke: var(--red-ink); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.flag.breaking { fill: var(--red-ink); }
 .snip-feed { display: none; } /* the feed has its own column, except on a phone */
 .trace .ms, .trace .usd { text-align: right; }
 .traces li { border-bottom: 1px solid var(--ledger-rule); }
