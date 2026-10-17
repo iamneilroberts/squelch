@@ -95,6 +95,7 @@ Squelch is built to run at home. To let a few people see it, put it behind a Clo
 - `npm run bench -- all` — model bench (triage, transcription, digest) against `bench/fixtures/`
 - `src/meter.mjs` — every AI/API call is a span; the Ledger reads them
 - Settings worth knowing: `RECORD_DAYS` (audio retention, default 7), `JEV_GATE` (`active` / `shadow` / `off`), `ADAPTIVE_SQUELCH=0`, `INGEST=0` (map only)
+- Speech-to-text input trials: `STT_INPUT` (`mp3` / `wav`: transcribe the stored MP3 or the lossless clip, default `mp3`), `STITCH=1` (a segment that ends mid-transmission waits for the next one and they become one clip; off by default), `STT_AB_RATE` (0–1, default 0: the share of clips also transcribed from the other input, kept in `stt_ab` and judged with `node --env-file-if-exists=.env scripts/stt-ab-judge.mjs`)
 
 ## License
 

@@ -325,6 +325,9 @@ npm start</pre>
           <tr><td><code>ADAPTIVE_SQUELCH</code></td><td>on</td><td><code>0</code> keeps hum and carrier (costs more transcription)</td></tr>
           <tr><td><code>RECORD_DAYS</code></td><td>7</td><td>how long clips are kept</td></tr>
           <tr><td><code>SEGMENT_SECONDS</code></td><td>45</td><td>length of recorded pieces</td></tr>
+          <tr><td><code>STITCH</code></td><td>off</td><td><code>1</code>: a piece that ends mid-transmission waits for the next one, and the two become one clip</td></tr>
+          <tr><td><code>STT_INPUT</code></td><td>mp3</td><td><code>wav</code> sends speech-to-text the lossless clip instead of the stored MP3</td></tr>
+          <tr><td><code>STT_AB_RATE</code></td><td>0</td><td>share of clips (0–1) also transcribed from the other input, for comparison (<code>scripts/stt-ab-judge.mjs</code>); its cost shows in the Ledger as Speech-to-text A/B</td></tr>
           <tr><td><code>TRANSCRIBE_MODEL</code>, <code>TRIAGE_MODEL</code>, <code>THREAD_MODEL</code>, <code>DIGEST_MODEL</code></td><td>see <a href="#models">Models</a></td><td>swap a model</td></tr>
           <tr><td><code>AISSTREAM_API_KEY</code></td><td>—</td><td>ship positions on the map (free key at aisstream.io)</td></tr>
           <tr><td><code>PORT</code></td><td>8077</td><td>web port</td></tr>
