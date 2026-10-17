@@ -34,7 +34,7 @@ function suggestion(s) {
         <div class="keys" role="group" aria-label="Style">${Object.entries(STYLE).map(([k, n]) => `<button type="button" class="key" data-style="${k}" aria-pressed="${k === 'sunday'}">${n}${k === 'vector' ? ' cartoon' : ''}</button>`).join('')}</div>
         ${ACCESS === 'owner' ? `<div class="keys" role="group" aria-label="Plan with" title="Who writes the script and the cartoon's plan">${Object.entries(LLM.providers).map(([k, n]) => `<button type="button" class="key" data-llm="${k}" aria-pressed="${k === LLM.llm}">${esc(n)}</button>`).join('')}</div>` : ''}
         <label class="notes"><span>Your notes for the artist <i class="na">(optional)</i></span>
-          <textarea maxlength="400" rows="2" placeholder="Make the dogs wear tiny hats; keep it gentle" data-notes></textarea>
+          <textarea maxlength="400" rows="2" placeholder="A mood, a colour or a small detail to add (optional)" data-notes></textarea>
           <span class="notes-foot"><span class="na">Colour and detail ideas only; it can’t change the facts or the rules.</span><span class="na" data-count>0 / 400</span></span></label>
         <div class="keys"><button type="button" class="key" data-make>Make it</button></div>
       </div>
