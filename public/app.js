@@ -1115,7 +1115,7 @@ function storyRow(t) {
   const line = ccOff() || !t.last?.transcript ? esc(t.last?.note) : `“${esc(t.last.transcript)}”`;
   return `<li class="entry story-row${t.alert >= 0.6 ? ' breaking' : ''}" data-thread="${t.id}">
     <div class="entry-meta"><span>${hhmm(t.last?.at || t.updated_at)}</span><span>${t.count} transmission${t.count === 1 ? '' : 's'}</span>
-      ${isLive(t.updated_at) ? '<span class="live">● live</span>' : ''}${t.alert >= 0.9 ? '<span class="flag">** Breaking **</span>' : ''}</div>
+      ${isLive(t.updated_at) ? '<span class="live">● live</span>' : ''}${t.alert >= 0.9 ? '<span class="flag">** Breaking **</span>' : ''}${followKey(t.id)}</div>
     <div class="entry-head">${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}</div>
     ${line ? `<p class="story-line">${line}</p>` : ''}
   </li>`;
@@ -1127,6 +1127,46 @@ function storyCall(c) {
   if (t && !ccOff()) Object.assign(t, { subject: c.subject || t.subject, updated_at: c.at, count: t.count + 1, last: { id: c.id, at: c.at, transcript: c.transcript } });
   else getJson(`/api/threads/${c.thread_id}`).then((full) => { state.stories.set(full.id, storyOf(full)); if (state.tab === 'stories') renderLog(); }).catch(() => {});
   if (state.tab === 'stories') renderLog();
+}
+
+/* ───────── Follow: one story's newest transmissions kept in view under the radio ───────── */
+const follow = { id: Number(store.get('pcm.follow')) || null, t: null, fresh: new Map() }; // fresh: call id → when it arrived live
+const followKey = (id) => `<button type="button" class="follow-key" data-follow="${id}" aria-pressed="${follow.id === id}">${follow.id === id ? 'Following' : 'Follow'}</button>`;
+function setFollow(id) {
+  follow.id = follow.id === id ? null : id; // following another story replaces this one
+  follow.fresh.clear();
+  store.set('pcm.follow', follow.id || '');
+  loadFollow();
+  if (state.tab === 'stories') renderLog();
+  if (storyId) $('story-follow').innerHTML = followKey(storyId);
+}
+async function loadFollow() {
+  const id = follow.id;
+  const t = id && await getJson(`/api/threads/${id}`).catch((e) => (e.status === 404 ? null : follow.t));
+  if (id !== follow.id) return;
+  if (id && !t) { follow.id = null; store.set('pcm.follow', ''); } // pruned
+  follow.t = t || null;
+  renderFollow();
+}
+function renderFollow() {
+  const t = follow.t;
+  $('follow').hidden = !t;
+  if (!t) return;
+  const last = t.events.at(-1)?.at || t.updated_at;
+  const shown = (ccOff() ? t.events.filter((e) => e.note) : t.events).slice(-2).reverse();
+  $('follow').innerHTML = `<div class="follow-head"><span class="follow-label">Following ·</span>
+      <span>${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}</span>
+      ${isLive(last) ? '<span class="live">● live</span>' : Date.now() - new Date(last) > 2 * 3600e3 ? `<span class="quiet">quiet since ${hhmm(last)}</span>` : ''}</div>
+    <ol class="follow-log">${shown.map((e) => {
+      const fresh = Date.now() - (follow.fresh.get(e.id) || 0) < 20e3;
+      return `<li${fresh ? ' class="fresh"' : ''}><time>${hhmm(e.at)}</time><p>${fresh ? '<span class="new">New</span> ' : ''}${ccOff() || !e.transcript ? esc(e.note) : `“${esc(e.transcript)}”`}</p></li>`;
+    }).join('')}</ol>
+    <div class="follow-keys"><button type="button" class="follow-key" data-thread="${t.id}">Open</button><button type="button" class="follow-key" data-follow="${t.id}">Unfollow</button></div>`;
+}
+function followCall(c) {
+  follow.fresh.set(c.id, Date.now());
+  loadFollow();
+  setTimeout(renderFollow, 20.5e3); // drops the NEW mark
 }
 
 function notice() {
@@ -1285,6 +1325,7 @@ function connect() {
     if (c.source_id === state.tuned?.id) ccLive();
     if (storyId && c.thread_id === storyId) renderStory();
     if (c.thread_id) storyCall(c);
+    if (c.thread_id && c.thread_id === follow.id) followCall(c);
     const lamp = $(`lamp-${c.source_id}`);
     if (lamp) { lamp.classList.remove('blink'); void lamp.offsetWidth; lamp.classList.add('blink'); }
     if (inRegion(c.source_id)) flickEye();
@@ -1349,6 +1390,7 @@ async function renderStory() {
   $('story-wider').hidden = !state.viewer?.transcripts; // built from transcripts (src/ai/wider.mjs)
   $('story-feedback').hidden = notify.opened?.story !== t.id;
   $('story-title').innerHTML = `${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}`;
+  $('story-follow').innerHTML = followKey(t.id);
   $('story-facts').innerHTML = t.facts.map((f) => `<dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd>`).join('');
   const notes = t.events.filter((e) => e.note);
   const quiet = t.events.length - notes.length;
@@ -1357,6 +1399,8 @@ async function renderStory() {
     + (quiet ? `<li class="story-more">+ ${quiet} more transmission${quiet > 1 ? 's' : ''} with nothing new</li>` : '');
 }
 document.addEventListener('click', (e) => {
+  const f = e.target.closest('[data-follow]');
+  if (f) return setFollow(Number(f.dataset.follow));
   const link = e.target.closest('[data-thread]');
   if (!link) return;
   e.preventDefault();
@@ -1624,6 +1668,8 @@ async function boot() {
   requestAnimationFrame(() => { map.invalidateSize(); map.fitBounds(regionBounds(), { padding: [20, 20] }); });
   addEventListener('hashchange', () => setRegion(location.hash.slice(1) || 'all'));
   connect();
+  loadFollow();
+  setInterval(renderFollow, 60e3); // "● live", "quiet since"
   startScan(); // open scanning; awaitTap() covers the browser's no-sound-before-a-tap rule
   notify.ready = notifyInit();
   fromNotification(opened);

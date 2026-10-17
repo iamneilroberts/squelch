@@ -499,6 +499,24 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .cc-src[data-band="ham"] { --c: oklch(0.76 0.13 310); }
 
 /* Title line → channel story */
+/* Follow strip: a slip of printout under the radio with the followed story's newest transmissions */
+.follow {
+  display: grid; gap: 6px; padding: 9px 14px 10px; border-radius: 2px;
+  background: repeating-linear-gradient(180deg, var(--greenbar) 0 52px, var(--paper) 52px 104px);
+  color: var(--ink); font-family: var(--font-type); box-shadow: 0 8px 16px -8px oklch(0.1 0.03 45 / .8);
+}
+.follow-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 13.5px; font-weight: 700; }
+.follow-label { font: 600 12px var(--font-caps); letter-spacing: .18em; text-transform: uppercase; color: var(--red-ink); }
+.follow .live { color: var(--needle); }
+.follow .quiet { font-weight: 400; font-style: italic; color: var(--ink-soft); }
+.follow-log { list-style: none; display: grid; gap: 4px; margin: 0; padding: 0; font-size: 13px; line-height: 1.4; }
+.follow-log li { display: grid; grid-template-columns: 44px 1fr; gap: 8px; }
+.follow-log li.fresh { margin: 0 -6px; padding: 0 6px; background: oklch(0.93 0.08 90 / .8); }
+.follow-log time { font-weight: 700; color: var(--red-ink); }
+.follow-log p { margin: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.new { padding: 0 4px; border-radius: 2px; background: var(--red-ink); color: var(--paper); font: 700 10px/1.4 var(--font-type); letter-spacing: .08em; text-transform: uppercase; font-style: normal; }
+.follow-keys { display: flex; justify-content: flex-end; gap: 8px; }
+
 .now-playing a.story-link, .story-link { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
 /* Channel story: a typed card over the desk */
 .story {
@@ -510,8 +528,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .story::backdrop { background: oklch(0.2 0.03 50 / .55); }
 .story-head { display: flex; align-items: flex-start; gap: 10px; padding-bottom: 8px; border-bottom: 2px solid var(--red-ink); }
 .story-head h2 { flex: 1; margin: 0; font: 700 16px/1.4 var(--font-type); }
-:is(.story-head, .story-row) .cc-src { background: oklch(0.16 0.01 60); }
+:is(.story-head, .story-row, .follow) .cc-src { background: oklch(0.16 0.01 60); }
 .story-close { flex: none; width: 36px; }
+.story-head .follow-key { flex: none; margin: 0; }
 .story-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 12px 0; font-size: 13.5px; }
 .story-facts dt { padding-top: 2px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
 .story-facts dd { margin: 0; }
@@ -744,6 +763,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @keyframes type-on { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 
 .story-row .live { color: var(--needle); font-weight: 700; }
+.story-row .follow-key { margin: 0 0 0 auto; }
+/* Follow / Following / Open / Unfollow: printed keys like Story › and play */
+.follow-key { display: inline-flex; align-items: center; padding: 3px 9px; border: 1px solid var(--ink); border-radius: 2px; background: none; color: var(--ink); font: 700 11px var(--font-type); letter-spacing: .05em; text-transform: uppercase; }
+.follow-key:hover, .follow-key[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 .story-line { margin: 4px 0 0; font-size: 13.5px; line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 
 .traffic { padding: 9px 0; border-bottom: 1px dotted oklch(0.75 0.03 90); font-size: 13px; line-height: 1.4; }
@@ -861,6 +884,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .transport { gap: 8px; }
   .tkey { width: 44px; padding: 10px 0 8px; } /* 44 px touch targets */
   .tkey.scan-key { width: auto; min-width: 44px; padding: 10px 8px 8px; letter-spacing: .08em; }
+  .follow-key { min-height: 44px; padding: 0 12px; }
   .chart { min-height: 52vh; }
   .printer { min-height: 70vh; }
   .strip { padding: 8px 12px; }
