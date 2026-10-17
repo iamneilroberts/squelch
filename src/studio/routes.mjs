@@ -5,6 +5,22 @@ import { suggestions } from './humor.mjs';
 import { CapError, spentToday, dailyCap } from './spend.mjs';
 import { estimateJob, queueJob, activeJobs, JobError } from './jobs.mjs';
 import { defaultProvider, PROVIDERS } from './llm.mjs';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { existsSync, renameSync } from 'node:fs';
+import { join } from 'node:path';
+
+// A still from two seconds into the MP4, made the first time it's asked for and kept beside it.
+async function poster(a) {
+  const mp4 = a.files.find((f) => f.kind === 'mp4');
+  if (!mp4) return null;
+  const dir = animDir(a.id);
+  if (!existsSync(join(dir, 'poster.jpg'))) {
+    await promisify(execFile)('ffmpeg', ['-y', '-v', 'error', '-ss', '2', '-i', join(dir, mp4.name), '-frames:v', '1', '-vf', 'scale=540:-2', '-q:v', '4', '-f', 'mjpeg', join(dir, 'poster.jpg.part')]);
+    renameSync(join(dir, 'poster.jpg.part'), join(dir, 'poster.jpg'));
+  }
+  return 'poster.jpg';
+}
 
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'animation';
 
@@ -39,7 +55,7 @@ export async function studioRoute(req, res, url, { json, serveFile, readJson, ac
       return json(res, { error: e.message }, e instanceof JobError ? e.code : 502);
     }
   }
-  const m = p.match(/^animations\/(\d+)(?:\/(rate|files\/([\w.-]+)))?$/);
+  const m = p.match(/^animations\/(\d+)(?:\/(rate|poster\.jpg|files\/([\w.-]+)))?$/);
   if (!m) return json(res, { error: 'unknown' }, 404);
   if (!m[2] && req.method === 'DELETE' && !owner) return deny('delete animations');
   const a = getAnimation(Number(m[1]));
@@ -50,6 +66,10 @@ export async function studioRoute(req, res, url, { json, serveFile, readJson, ac
     if (m[3].endsWith('.html')) res.setHeader('Content-Security-Policy', CSP);
     if (url.searchParams.has('download')) res.setHeader('Content-Disposition', `attachment; filename="squelch-${a.id}-${slug(a.title)}${m[3].slice(m[3].lastIndexOf('.'))}"`);
     return serveFile(res, animDir(a.id), m[3], req.headers.range);
+  }
+  if (m[2] === 'poster.jpg') {
+    const name = await poster(a).catch(() => null);
+    return name ? serveFile(res, animDir(a.id), name) : json(res, { error: 'no poster' }, 404);
   }
   if (m[2] === 'rate' && req.method === 'POST') {
     const { rating } = await readJson(req);

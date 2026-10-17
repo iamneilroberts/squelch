@@ -124,8 +124,9 @@ const playable = (a) =>({ mp4: a.files.find((f) => f.kind === 'mp4'), web: a.fil
 function player(a) {
   const { mp4, web } = playable(a);
   // An installed iPhone app's video player loads without the site's login, so there the page fetches the file and plays it from memory.
-  if (mp4 && standalone) return `<button type="button" class="anim-poster" data-blob="${fileUrl(a, mp4)}"><span class="key">Play <span class="na">${mb(mp4.bytes)}</span></span></button>`;
-  if (mp4) return `<video class="anim-video" controls playsinline preload="metadata" src="${fileUrl(a, mp4)}"></video>`;
+  const still = `/api/studio/animations/${a.id}/poster.jpg`;
+  if (mp4 && standalone) return `<button type="button" class="anim-poster" data-blob="${fileUrl(a, mp4)}"><img src="${still}" alt="" loading="lazy"><span class="key">Play <span class="na">${mb(mp4.bytes)}</span></span></button>`;
+  if (mp4) return `<video class="anim-video" controls playsinline preload="metadata" poster="${still}" src="${fileUrl(a, mp4)}"></video>`;
   // Web pages carry their audio and art inline (often a megabyte or more), so they load on demand.
   if (web) return `<button type="button" class="anim-poster" data-web="${fileUrl(a, web)}"><span class="key">Play</span></button>`;
   return `<div class="anim-poster"><span class="na">${a.status === 'failed' ? 'Failed' : 'Nothing to play yet'}</span></div>`;
