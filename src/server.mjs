@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { Readable } from 'node:stream';
 import { randomBytes } from 'node:crypto';
+import { gzipSync } from 'node:zlib';
 import { readFileSync, writeFileSync, createReadStream, existsSync, statSync } from 'node:fs';
 import { join, extname, normalize, dirname } from 'node:path';
 import { recentIncidents, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues, getThread } from './db.mjs';
@@ -17,7 +18,9 @@ import { scanStream, updateScan, scanPlays } from './scan.mjs';
 import { widerCatchup } from './ai/wider.mjs';
 
 const PORT = Number(process.env.PORT || 8077);
-const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.ico': 'image/x-icon' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
+const ZIPPED = new Set(['.html', '.js', '.css', '.svg', '.json', '.webmanifest']);
+const zips = (res) => /\bgzip\b/.test(res.req?.headers['accept-encoding'] || '');
 
 // "all" is the union of every region.
 const ALL = {
@@ -58,8 +61,20 @@ const appVersion = () => String(Math.round(Math.max(...['index.html', 'app.js', 
   .map((f) => statSync(join('public', f)).mtimeMs))));
 
 const json = (res, body, code = 200) => {
-  res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-  res.end(JSON.stringify(body));
+  const text = JSON.stringify(body);
+  if (!zips(res)) { res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(text); }
+  res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' });
+  res.end(gzipSync(text));
+};
+
+// Gzipped static bodies, kept until the file's mtime changes.
+const zipped = new Map(); // path → { mtime, body }
+const gzipFile = (path, mtime, make) => {
+  const hit = zipped.get(path);
+  if (hit?.mtime === mtime) return hit.body;
+  const body = gzipSync(make());
+  zipped.set(path, { mtime, body });
+  return body;
 };
 
 // Stamp local CSS/JS references with the file's mtime (app.css → app.css?v=1792…), so a changed
@@ -100,11 +115,15 @@ function serveFile(res, root, rel, range) {
   }
   // Pages are never stored: iOS otherwise shows a kept copy of an open page, still pointing at old scripts.
   if (extname(path) === '.html') head['Cache-Control'] = 'no-store';
+  const zip = ZIPPED.has(extname(path)) && zips(res);
+  if (zip) { head['Content-Encoding'] = 'gzip'; head.Vary = 'Accept-Encoding'; }
   res.writeHead(200, head);
   if (extname(path) === '.html') {
     const html = versionAssets(readFileSync(path, 'utf8'), dirname(path));
-    return res.end(path.endsWith('index.html') ? brand(html) : html);
+    const body = path.endsWith('index.html') ? brand(html) : html;
+    return res.end(zip ? gzipSync(body) : body);
   }
+  if (zip) return res.end(gzipFile(path, statSync(path).mtimeMs, () => readFileSync(path)));
   createReadStream(path).pipe(res);
 }
 
