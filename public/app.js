@@ -684,20 +684,75 @@ const layers = {
   ships: L.layerGroup().addTo(map),
   alerts: L.layerGroup().addTo(map),
   tide: L.layerGroup().addTo(map),
+  emergencyAir: L.layerGroup().addTo(map), // emergency squawks: shown even with Aircraft off
 };
 const TOGGLES = [
   ['incidents', 'Incidents'], ['aircraft', 'Aircraft'], ['trains', 'Trains'], ['ships', 'Ships'], ['alerts', 'Wx alerts'],
 ];
-$('toggles').innerHTML = TOGGLES.map(([k, label]) =>
-  `<button class="toggle" data-layer="${k}" aria-pressed="true"><span class="bat"></span>${label}<span class="count" id="n-${k}"></span></button>`).join('');
+// Layers that are off, remembered per browser. Aircraft start off: 40 planes bury the incidents.
+const layersOff = loadSet('pcm.layersOff');
+if (store.get('pcm.layersOff') == null) layersOff.add('aircraft');
+for (const k of layersOff) layers[k]?.remove();
+$('toggles').innerHTML = '<button class="toggle layers-key" aria-expanded="false">Layers</button>' + TOGGLES.map(([k, label]) =>
+  `<button class="toggle" data-layer="${k}" aria-pressed="${!layersOff.has(k)}"><span class="bat"></span>${label}<span class="count" id="n-${k}"></span></button>`).join('');
 $('toggles').addEventListener('click', (e) => {
-  const t = e.target.closest('.toggle');
+  if (e.target.closest('.layers-key')) {
+    const open = $('toggles').classList.toggle('open');
+    return e.target.closest('.layers-key').setAttribute('aria-expanded', String(open));
+  }
+  const t = e.target.closest('[data-layer]');
   if (!t) return;
   const on = t.getAttribute('aria-pressed') !== 'true';
   t.setAttribute('aria-pressed', on);
   on ? layers[t.dataset.layer].addTo(map) : layers[t.dataset.layer].remove();
+  on ? layersOff.delete(t.dataset.layer) : layersOff.add(t.dataset.layer);
+  store.set('pcm.layersOff', JSON.stringify([...layersOff]));
 });
 const setCount = (k, n) => { const el = $(`n-${k}`); if (el) el.textContent = n; };
+
+/* ───────── The map folds away to give the printout room; while open it follows what's playing ───────── */
+const folded = () => $('chart').classList.contains('folded');
+function setFolded(on) {
+  $('chart').classList.toggle('folded', on);
+  document.querySelector('.desk').classList.toggle('map-folded', on);
+  $('btn-fold').setAttribute('aria-expanded', String(!on));
+  $('btn-fold').textContent = on ? 'Show map ▾' : 'Fold ▴';
+  store.set('pcm.mapFolded', on ? '1' : '');
+  if (!on) requestAnimationFrame(() => { map.invalidateSize(); showOnAir(); });
+}
+$('btn-fold').addEventListener('click', () => setFolded(!folded()));
+
+// "On air": a pulsing ring where the transmission being played is — its incident's marker, or,
+// with no incident, its feed's home position (approx.).
+let onAirCall = null;
+let onAirAt = null; // last place shown, so the map only flies when the location changes
+const onAirLayer = L.layerGroup().addTo(map);
+function showOnAir() {
+  onAirLayer.clearLayers();
+  const c = onAirCall;
+  renderIncidentMarkers();
+  map.getContainer().classList.toggle('on-air-mode', Boolean(c));
+  if (!c || folded()) return;
+  const inc = state.incidents.get(c.incident_id);
+  const s = state.byId.get(c.source_id);
+  const at = inc?.lat != null ? [inc.lat, inc.lng] : s?.lat != null ? [s.lat, s.lng] : null;
+  if (!at) return;
+  const approx = !inc || inc.precision === 'source';
+  L.marker(at, { icon: L.divIcon({ className: 'on-air-icon', html: '<div class="on-air"></div>', iconSize: [44, 44], iconAnchor: [22, 22] }), interactive: false, zIndexOffset: 2000 })
+    .bindTooltip(`${esc(s?.short || c.source_id)}: ${esc(subjectOf(c))}${approx ? ' · approx.' : ''}`, { permanent: true, direction: 'top', offset: [0, -22], className: 'on-air-tip' })
+    .addTo(onAirLayer);
+  const moved = String(at) !== String(onAirAt);
+  onAirAt = at;
+  if (moved) map.flyTo(at, Math.max(map.getZoom(), 11), { duration: 0.8 });
+  else if (!map.getBounds().pad(-0.1).contains(at)) map.panTo(at);
+}
+radio.addEventListener('playing', () => {
+  const kind = radio.dataset.kind;
+  onAirCall = kind === 'clip' || kind === 'scan' ? callByAudio(decodeURIComponent(radio.getAttribute('src') || '').replace(/^\/audio\//, '')) ?? null : null;
+  showOnAir();
+});
+radio.addEventListener('emptied', () => { onAirCall = null; showOnAir(); });
+setFolded(store.get('pcm.mapFolded') === '1');
 
 const markers = new Map();
 function incidentPopup(inc) {
@@ -706,25 +761,43 @@ function incidentPopup(inc) {
     <div class="pop-meta">${hhmm(inc.opened_at)} · ${esc(s?.short)} · ${esc(inc.location_text || 'location not stated')}${inc.precision === 'source' ? ' (approx.)' : ''}</div>
     <p style="margin:6px 0 0">${esc(inc.summary)}</p>`;
 }
+// Decluttered: incidents show while recent (2 h; breaking 12 h), plus whatever is selected or on
+// air. Incidents with no address all sit at their feed's home, so they share one stamp per feed.
+const RECENT_MS = 2 * 3600e3;
+const BREAKING_MS = 12 * 3600e3;
+const onMap = (inc) => inc.id === state.selected || inc.id === onAirCall?.incident_id
+  || Date.now() - Date.parse(inc.updated_at) < (inc.category === 'breaking' ? BREAKING_MS : RECENT_MS);
+
 function renderIncidentMarkers() {
   layers.incidents.clearLayers();
   markers.clear();
-  let n = 0;
-  for (const inc of state.incidents.values()) {
-    if (inc.lat == null || !inView(inc.source_id)) continue;
-    n++;
-    const cls = ['stamp', inc.category === 'breaking' && 'breaking', inc.precision === 'source' && 'approx', state.fresh.has(inc.id) && 'fresh'].filter(Boolean).join(' ');
-    const m = L.marker([inc.lat, inc.lng], {
-      icon: L.divIcon({ className: '', html: `<div class="${cls}">${GLYPH[inc.type] || '•'}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }),
-      title: inc.headline,
-      zIndexOffset: inc.category === 'breaking' ? 1000 : 0,
-    }).bindPopup(incidentPopup(inc));
+  const list = [...state.incidents.values()].filter((inc) => inc.lat != null && inView(inc.source_id) && onMap(inc));
+  const stamp = (cls, html, at, onAir) => L.marker(at, {
+    icon: L.divIcon({ className: onAir ? 'is-on-air' : '', html: `<div class="${cls}">${html}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }),
+    zIndexOffset: cls.includes('breaking') ? 1000 : 0,
+  }).addTo(layers.incidents);
+  const approx = new Map(); // feed → its address-less incidents
+  for (const inc of list) {
+    if (inc.precision === 'source') { approx.set(inc.source_id, [...(approx.get(inc.source_id) || []), inc]); continue; }
+    const cls = ['stamp', inc.category === 'breaking' && 'breaking', state.fresh.has(inc.id) && 'fresh'].filter(Boolean).join(' ');
+    const m = stamp(cls, GLYPH[inc.type] || '•', [inc.lat, inc.lng], inc.id === onAirCall?.incident_id).bindPopup(incidentPopup(inc));
+    m.options.title = inc.headline;
     m.on('click', () => select(inc.id, false));
-    m.addTo(layers.incidents);
     markers.set(inc.id, m);
   }
-  setCount('incidents', n);
+  for (const [sourceId, incs] of approx) {
+    const s = state.byId.get(sourceId);
+    const one = incs.length === 1 ? incs[0] : null;
+    const cls = ['stamp approx', incs.some((i) => i.category === 'breaking') && 'breaking'].filter(Boolean).join(' ');
+    const m = stamp(cls, one ? GLYPH[one.type] || '•' : incs.length, [incs[0].lat, incs[0].lng], incs.some((i) => i.id === onAirCall?.incident_id))
+      .bindPopup(one ? incidentPopup(one) : `<div class="pop-head">${esc(s?.short)} · ${incs.length} incidents, no address</div>
+        ${incs.slice(0, 8).map((i) => `<div class="pop-meta">${hhmm(i.updated_at)} · ${esc(i.headline)}</div>`).join('')}${incs.length > 8 ? `<div class="pop-meta">+ ${incs.length - 8} more in the printout</div>` : ''}`);
+    for (const inc of incs) markers.set(inc.id, m);
+    if (one) m.on('click', () => select(one.id, false));
+  }
+  setCount('incidents', list.length);
 }
+setInterval(renderIncidentMarkers, 5 * 60e3); // let incidents age off the map
 
 const PLANE = '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2c.6 0 1 .5 1 1.2V9l8 4.5v2l-8-2.3V19l2.2 1.6V22L12 21.2 8.8 22v-1.4L11 19v-5.8L3 15.5v-2L11 9V3.2C11 2.5 11.4 2 12 2z"/></svg>';
 const SHIP = '<svg viewBox="0 0 20 20" width="16" height="16"><path fill="currentColor" d="M10 1l5 15-5-3-5 3z"/></svg>';
@@ -741,12 +814,13 @@ async function refreshAircraft() {
   try {
     const list = await overlay('aircraft');
     layers.aircraft.clearLayers();
+    layers.emergencyAir.clearLayers();
     for (const a of list) {
       L.marker([a.lat, a.lng], {
         icon: L.divIcon({ className: '', html: `<div class="plane ${a.emergency ? 'emergency' : ''}" style="transform:rotate(${a.track}deg)">${PLANE}</div>`, iconSize: [20, 20], iconAnchor: [10, 10] }),
         keyboard: false,
       }).bindTooltip(`<span class="plane-tag">${esc(a.flight)} ${esc(a.type)} · ${a.alt === 'ground' ? 'GND' : a.alt ? `${Math.round(a.alt / 100)}00 ft` : ''}${a.emergency ? ` · ${esc(a.emergency).toUpperCase()}` : ''}</span>`, { direction: 'right', offset: [10, 0] })
-        .addTo(layers.aircraft);
+        .addTo(a.emergency ? layers.emergencyAir : layers.aircraft);
     }
     setCount('aircraft', list.length);
   } catch { setCount('aircraft', '—'); }
@@ -961,6 +1035,7 @@ function renderDigest() {
 function select(id, fly = true) {
   state.selected = state.selected === id && fly ? null : id;
   renderLog();
+  renderIncidentMarkers();
   const el = $('log').querySelector(`[data-id="${id}"]`);
   if (el && !fly) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   const m = markers.get(id);
