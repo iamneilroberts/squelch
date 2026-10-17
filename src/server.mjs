@@ -291,7 +291,7 @@ createServer(async (req, res) => {
     const sc = p.match(/^\/api\/scan\/([\w-]{1,64})$/);
     if (sc) {
       const r = req.method === 'POST' ? updateScan(sc[1], await readJson(req)) : scanPlays(sc[1]);
-      return r ? json(res, r) : json(res, { error: 'no such scan' }, 404);
+      return r ? out(r) : json(res, { error: 'no such scan' }, 404); // its plays carry transcripts
     }
     const th = p.match(/^\/api\/threads\/(\d+)$/);
     if (th) { const t = getThread(Number(th[1])); return t ? json(res, t) : (res.writeHead(404), res.end()); }
