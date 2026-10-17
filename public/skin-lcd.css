@@ -197,12 +197,14 @@
 [data-skin="lcd"] .keys .key { min-height: 48px; padding-top: 12px; }
 
 /* Location: a row of keys instead of the chicken-head knob */
-[data-skin="lcd"] .selector { display: flex; align-items: center; gap: 10px; }
+[data-skin="lcd"] .selector { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+[data-skin="lcd"] .selector .knob-label { flex-basis: 100%; }
 [data-skin="lcd"] .selector .knob-label, [data-skin="lcd"] .knob-wrap .knob-label { order: -1; font: 600 13px/1 var(--cond); letter-spacing: 2px; color: var(--ink-soft); }
 [data-skin="lcd"] .selector-face, [data-skin="lcd"] .selector-face.wide { display: flex; flex: 1; width: auto; height: auto; gap: 6px; }
 [data-skin="lcd"] .chicken { display: none; }
 [data-skin="lcd"] .sel-pos {
   position: relative; left: auto; bottom: auto; transform: none; flex: 1 1 0; min-width: 0; min-height: 44px; padding: 12px 2px 0; border-radius: 10px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font: 600 12px/1.1 var(--cond); letter-spacing: .5px; color: var(--ink); background: var(--rubber); box-shadow: var(--rubber-shadow);
 }
 [data-skin="lcd"] .sel-pos::before { margin: 0 0 0 -7px; opacity: 1; box-shadow: none; }

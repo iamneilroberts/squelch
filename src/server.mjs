@@ -104,7 +104,7 @@ const gzipFile = (path, mtime, make) => {
 // Stamp local CSS/JS references with the file's mtime (app.css → app.css?v=1792…), so a changed
 // file gets a URL no browser or Cloudflare edge has cached. HTML itself isn't edge-cached.
 function versionAssets(html, dir) {
-  return html.replace(/(href|src)="([\w-]+\.(?:css|js))"/g, (m, attr, file) => {
+  return html.replace(/(href|src)="([\w-]+(?:\/[\w-]+)*\.(?:css|js))"/g, (m, attr, file) => {
     const p = join(dir, file);
     return existsSync(p) ? `${attr}="${file}?v=${Math.round(statSync(p).mtimeMs)}"` : m;
   });
