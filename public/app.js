@@ -887,16 +887,16 @@ function renderIncidentMarkers() {
   layers.incidents.clearLayers();
   markers.clear();
   const list = [...state.incidents.values()].filter((inc) => inc.lat != null && inView(inc.source_id) && onMap(inc));
-  const stamp = (cls, html, at, onAir) => L.marker(at, {
+  const stamp = (cls, html, at, onAir, title) => L.marker(at, {
     icon: L.divIcon({ className: onAir ? 'is-on-air' : '', html: `<div class="${cls}">${html}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }),
     zIndexOffset: cls.includes('breaking') ? 1000 : 0,
+    title,
   }).addTo(layers.incidents);
   const approx = new Map(); // feed → its address-less incidents
   for (const inc of list) {
     if (inc.precision === 'source') { approx.set(inc.source_id, [...(approx.get(inc.source_id) || []), inc]); continue; }
     const cls = ['stamp', inc.category === 'breaking' && 'breaking', state.fresh.has(inc.id) && 'fresh'].filter(Boolean).join(' ');
-    const m = stamp(cls, GLYPH[inc.type] || '•', [inc.lat, inc.lng], inc.id === onAirCall?.incident_id).bindPopup(incidentPopup(inc));
-    m.options.title = inc.headline;
+    const m = stamp(cls, GLYPH[inc.type] || '•', [inc.lat, inc.lng], inc.id === onAirCall?.incident_id, inc.headline).bindPopup(incidentPopup(inc));
     m.on('click', () => select(inc.id, false));
     markers.set(inc.id, m);
   }
