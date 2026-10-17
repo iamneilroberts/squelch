@@ -879,6 +879,13 @@ radio.addEventListener('emptied', () => { onAirCall = null; showOnAir(); });
 setFolded(store.get('pcm.mapFolded') === '1');
 
 const markers = new Map();
+const threadOf = (inc) => inc.updates?.findLast((u) => u.thread_id)?.thread_id;
+// A stamp with a story opens its story card; one without shows the incident.
+function onStamp(m, inc) {
+  const thread = threadOf(inc);
+  if (!thread) m.bindPopup(incidentPopup(inc));
+  m.on('click', () => { select(inc.id, false); if (thread) openStory(thread); });
+}
 function incidentPopup(inc) {
   const s = state.byId.get(inc.source_id);
   return `<div class="pop-head">${esc(inc.headline)}</div>
@@ -905,19 +912,20 @@ function renderIncidentMarkers() {
   for (const inc of list) {
     if (inc.precision === 'source') { approx.set(inc.source_id, [...(approx.get(inc.source_id) || []), inc]); continue; }
     const cls = ['stamp', inc.category === 'breaking' && 'breaking', state.fresh.has(inc.id) && 'fresh'].filter(Boolean).join(' ');
-    const m = stamp(cls, GLYPH[inc.type] || '•', [inc.lat, inc.lng], inc.id === onAirCall?.incident_id, inc.headline).bindPopup(incidentPopup(inc));
-    m.on('click', () => select(inc.id, false));
+    const m = stamp(cls, GLYPH[inc.type] || '•', [inc.lat, inc.lng], inc.id === onAirCall?.incident_id, inc.headline);
+    onStamp(m, inc);
     markers.set(inc.id, m);
   }
   for (const [sourceId, incs] of approx) {
     const s = state.byId.get(sourceId);
     const one = incs.length === 1 ? incs[0] : null;
     const cls = ['stamp approx', incs.some((i) => i.category === 'breaking') && 'breaking'].filter(Boolean).join(' ');
-    const m = stamp(cls, one ? GLYPH[one.type] || '•' : incs.length, [incs[0].lat, incs[0].lng], incs.some((i) => i.id === onAirCall?.incident_id))
-      .bindPopup(one ? incidentPopup(one) : `<div class="pop-head">${esc(s?.short)} · ${incs.length} incidents, no address</div>
-        ${incs.slice(0, 8).map((i) => `<div class="pop-meta">${hhmm(i.updated_at)} · ${esc(i.headline)}</div>`).join('')}${incs.length > 8 ? `<div class="pop-meta">+ ${incs.length - 8} more in the printout</div>` : ''}`);
+    const m = stamp(cls, one ? GLYPH[one.type] || '•' : incs.length, [incs[0].lat, incs[0].lng], incs.some((i) => i.id === onAirCall?.incident_id));
+    const line = (i) => `${hhmm(i.updated_at)} · ${threadOf(i) ? `<a href="#" data-thread="${threadOf(i)}">${esc(i.headline)}&nbsp;›</a>` : esc(i.headline)}`;
+    if (one) onStamp(m, one);
+    else m.bindPopup(`<div class="pop-head">${esc(s?.short)} · ${incs.length} incidents, no address</div>
+        ${incs.slice(0, 8).map((i) => `<div class="pop-meta">${line(i)}</div>`).join('')}${incs.length > 8 ? `<div class="pop-meta">+ ${incs.length - 8} more in the printout</div>` : ''}`);
     for (const inc of incs) markers.set(inc.id, m);
-    if (one) m.on('click', () => select(one.id, false));
   }
   setCount('incidents', list.length);
 }
