@@ -16,9 +16,10 @@ import { costSummary, recentTraces, spendInsight, gateAgreement, vadReport, sque
 import { station, regions, sources, configFile } from './config.mjs';
 import { scanStream, updateScan, scanPlays } from './scan.mjs';
 import { widerCatchup } from './ai/wider.mjs';
+import { studioRoute } from './studio/routes.mjs';
 
 const PORT = Number(process.env.PORT || 8077);
-const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
 const ZIPPED = new Set(['.html', '.js', '.css', '.svg', '.json', '.webmanifest']);
 const zips = (res) => /\bgzip\b/.test(res.req?.headers['accept-encoding'] || '');
 
@@ -57,7 +58,7 @@ const canEdit = (req) => !isRemote(req) || settings.owners.includes(String(req.h
 configureNotify({ allowGuests: () => settings.guestNotifications });
 // The page's own files, newest change first. An open page (often a Home Screen app, which has no
 // reload button) compares it with the version it loaded and offers to reload.
-const appVersion = () => String(Math.round(Math.max(...['index.html', 'app.js', 'app.css', 'sw.js', 'manual.html', 'manual.js', 'costs.js', 'costs.css']
+const appVersion = () => String(Math.round(Math.max(...['index.html', 'app.js', 'app.css', 'sw.js', 'manual.html', 'manual.js', 'costs.js', 'costs.css', 'studio.js', 'studio.css']
   .map((f) => statSync(join('public', f)).mtimeMs))));
 
 const json = (res, body, code = 200) => {
@@ -314,6 +315,8 @@ createServer(async (req, res) => {
       res.setHeader('Set-Cookie', 'bcfy=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0');
       return json(res, { ok: true });
     }
+    // Squelch Studio (src/studio/): spends money and shows drafts, so it's owner-only.
+    if (p.startsWith('/api/studio/')) return canEdit(req) ? studioRoute(req, res, url, { json, serveFile, readJson }) : json(res, { error: 'Only the owner can use the Studio' }, 403);
     if (p.startsWith('/listen/')) return relayStream(req, res, p.slice('/listen/'.length));
     // Scan as one stream that keeps playing with a phone locked (src/scan.mjs).
     if (p === '/scan/stream') return scanStream(req, res, url.searchParams, (play) => broadcast('scan', play, url.searchParams.get('page')));

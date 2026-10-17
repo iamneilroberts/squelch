@@ -8,8 +8,10 @@
 <link rel="stylesheet" href="vendor/fonts.css">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="costs.css">
+<link rel="stylesheet" href="studio.css">
 <!-- The server stamps this with the file's version; manual.js imports the Ledger from it, so a cached old copy is never paired with new styles. -->
 <link rel="modulepreload" href="costs.js">
+<link rel="modulepreload" href="studio.js">
 </head>
 <body>
 <div class="ledger-wrap">
@@ -19,6 +21,7 @@
     <div class="keys" role="tablist" aria-label="Section">
       <button class="key" role="tab" id="tab-how" aria-controls="how">How it works</button>
       <button class="key" role="tab" id="tab-ledger" aria-controls="ledger">Ledger</button>
+      <button class="key" role="tab" id="tab-studio" aria-controls="studio" hidden>Studio</button>
     </div>
     <div class="keys" role="group" aria-label="Period" id="period" hidden>
       <button class="key" data-h="1">1 h</button>
@@ -398,6 +401,14 @@ npm start</pre>
         <div class="keys"><button type="button" class="key" id="t-flagged" aria-pressed="false">Flagged only</button></div>
       </div>
       <ol class="traces" id="traces"></ol>
+    </section>
+  </main>
+
+  <main class="book" id="studio" role="tabpanel" aria-labelledby="tab-studio" hidden>
+    <section class="page wide" aria-labelledby="h-library">
+      <h2 id="h-library">Library</h2>
+      <p class="hint">Every animation the Studio made or was given, newest first. Files are kept until you delete them.</p>
+      <ol class="anims" id="library"></ol>
     </section>
   </main>
 </div>

@@ -1,0 +1,33 @@
+/* Squelch Studio: the owner's animation desk, on the Ledger's paper. Tokens come from app.css and costs.css. */
+.anims { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px; }
+.anim {
+  display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 18px 22px; align-items: start;
+  padding-bottom: 22px; border-bottom: 1px solid var(--ledger-rule);
+}
+.anim:last-child { border-bottom: 0; padding-bottom: 0; }
+.anim-play { display: grid; gap: 6px; }
+.anim-video, .anim-frame, .anim-poster {
+  display: block; width: 100%; aspect-ratio: 9 / 16; max-height: 560px; border: 0; border-radius: 4px;
+  background: oklch(0.2 0.03 260); box-shadow: 0 10px 18px -10px oklch(0.1 0.03 45 / .8);
+}
+.anim-poster { display: grid; place-items: center; cursor: pointer; padding: 0; background: radial-gradient(circle, oklch(0.3 0.06 265) 2px, transparent 2.5px) 0 0 / 14px 14px, oklch(0.22 0.05 265); }
+.anim-poster .na { color: var(--bakelite); }
+.linkish { justify-self: start; padding: 0; border: 0; background: none; font: inherit; font-size: 12px; color: var(--blue-ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.anim-meta h3 { margin: 0; font-family: var(--font-caps); font-size: 22px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); line-height: 1.15; }
+.anim-sub { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+.anim-meta .story-facts { margin: 10px 0 12px; }
+.anim-models { list-style: none; margin: 0; padding: 0; }
+.anim-models li { line-height: 1.5; }
+.anim-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.anim-actions .key { min-width: 0; padding: 9px 12px 7px; font-size: 11px; text-decoration: none; }
+.anim-actions .key .na { font-style: normal; letter-spacing: 0; text-transform: none; }
+.key.danger { color: var(--red-ink); }
+.st-failed { color: var(--red-ink); } .st-running, .st-queued { color: var(--blue-ink); }
+.stars { display: inline-flex; gap: 2px; }
+.stars button { padding: 0 2px; border: 0; background: none; font-size: 20px; line-height: 1; color: var(--brass-dark); cursor: pointer; }
+.stars button[aria-pressed="true"] { color: var(--red-ink); }
+
+@media (max-width: 640px) {
+  .anim { grid-template-columns: minmax(0, 1fr); }
+  .anim-video, .anim-frame, .anim-poster { max-height: 70vh; }
+}

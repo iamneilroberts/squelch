@@ -1,24 +1,30 @@
-// Station Manual: "How it works" and the Ledger. The ledger's code (costs.js) loads on first open.
+// Station Manual: "How it works", the Ledger, and (for the owner) the Studio. The Ledger's code (costs.js)
+// and the Studio's (studio.js) load on first open.
 const $ = (id) => document.getElementById(id);
-let ledgerLoaded = false;
+const loaded = new Set();
+let owner = false;
 
 function show() {
-  const ledger = location.hash === '#ledger';
-  $('how').hidden = ledger;
-  $('ledger').hidden = !ledger;
-  $('period').hidden = !ledger;
-  $('tab-how').setAttribute('aria-selected', String(!ledger));
-  $('tab-ledger').setAttribute('aria-selected', String(ledger));
-  document.title = ledger ? 'Station Ledger' : 'Station Manual';
-  if (ledger && !ledgerLoaded) { ledgerLoaded = true; import(document.querySelector('link[rel="modulepreload"]').href); }
-  const target = !ledger && location.hash && document.querySelector(location.hash);
+  const tab = location.hash === '#ledger' ? 'ledger' : location.hash === '#studio' && owner ? 'studio' : 'how';
+  for (const t of ['how', 'ledger', 'studio']) {
+    $(t).hidden = t !== tab;
+    $(`tab-${t}`).setAttribute('aria-selected', String(t === tab));
+  }
+  $('period').hidden = tab !== 'ledger';
+  document.title = { how: 'Station Manual', ledger: 'Station Ledger', studio: 'Squelch Studio' }[tab];
+  const code = { ledger: 'costs.js', studio: 'studio.js' }[tab];
+  if (code && !loaded.has(code)) { loaded.add(code); import(document.querySelector(`link[rel="modulepreload"][href^="${code}"]`).href); }
+  const target = tab === 'how' && location.hash && document.querySelector(location.hash);
   if (target) target.scrollIntoView();
 }
 
 $('tab-how').addEventListener('click', () => { history.replaceState(null, '', location.pathname); show(); scrollTo(0, 0); });
 $('tab-ledger').addEventListener('click', () => { location.hash = 'ledger'; });
+$('tab-studio').addEventListener('click', () => { location.hash = 'studio'; });
 addEventListener('hashchange', show);
 show();
+// The Studio is the owner's (LAN, or signed in through Cloudflare Access); everyone else never sees its tab.
+fetch('/api/config').then((r) => r.json()).then((c) => { owner = Boolean(c.viewer?.canShare); $('tab-studio').hidden = !owner; if (owner && location.hash === '#studio') show(); }).catch(() => {});
 
 // A phone can bring this page back from memory after an update; check, and reload if anything changed.
 let version = null;
