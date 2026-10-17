@@ -126,6 +126,8 @@ async function push(s, payload, urgency = 'normal') {
 
 // One notification to one browser by id (src/report.mjs), under the same rule: guests only while guest notifications are on.
 export const subId = (endpoint) => subRow(endpoint)?.id ?? null;
+// Who a browser's endpoint belongs to, for tying a Studio job to the browser that queued it.
+export const subInfo = (endpoint) => { const s = typeof endpoint === 'string' && subRow(endpoint); return s ? { id: s.id, owner: Boolean(s.owner), label: s.label } : null; };
 export const ownerSubIds = () => db.prepare('SELECT id FROM push_subs WHERE owner = 1').all().map((r) => r.id);
 export function pushTo(id, payload) {
   const s = pushReady && db.prepare('SELECT * FROM push_subs WHERE id = ?').get(id);

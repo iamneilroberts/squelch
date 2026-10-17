@@ -31,6 +31,7 @@ self.addEventListener('notificationclick', (e) => {
     // iPhone brings a running Home Screen app forward without loading the new URL, so the open page is
     // told which story to show instead (app.js listens for this).
     if (open && url.startsWith(self.location.origin)) { // another site (a GitHub issue) opens in its own window
+      if (new URL(url).pathname !== '/') return open.navigate(url).then((c) => (c || open).focus(), () => self.clients.openWindow(url)); // the manual (a Studio animation), not a story
       open.postMessage({ open: url });
       return open.focus().catch(() => {});
     }

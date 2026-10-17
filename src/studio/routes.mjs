@@ -5,6 +5,7 @@ import { suggestions } from './humor.mjs';
 import { CapError, spentToday, dailyCap } from './spend.mjs';
 import { estimateJob, queueJob, activeJobs, checkNotes, JobError } from './jobs.mjs';
 import { defaultProvider, PROVIDERS } from './llm.mjs';
+import { subInfo } from '../notify.mjs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { existsSync, renameSync } from 'node:fs';
@@ -27,6 +28,13 @@ const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(
 // Generated pages are model-written: they run sandboxed, with nothing from outside allowed in.
 const CSP = "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:";
 
+// The push subscription a guest's job should notify: the one for the browser endpoint they sent, if it is a guest's own and,
+// when the guest is known by an email, was registered under that email. Never an owner's subscription, never a guess.
+export function guestSub(owner, ip, endpoint) {
+  const s = !owner && subInfo(endpoint);
+  return s && !s.owner && (!ip.includes('@') || String(s.label).toLowerCase() === ip) ? s.id : null;
+}
+
 export async function studioRoute(req, res, url, { json, serveFile, readJson, access, hidden, ip }) {
   const p = url.pathname.slice('/api/studio/'.length);
   const owner = access === 'owner';
@@ -47,11 +55,11 @@ export async function studioRoute(req, res, url, { json, serveFile, readJson, ac
   if ((p === 'jobs' || p === 'estimate') && !owner && access !== 'make') return deny('make animations here');
   if (p === 'jobs' && req.method === 'GET') return json(res, { jobs: activeJobs(), today: spentToday(), cap: dailyCap() });
   if ((p === 'estimate' || p === 'jobs') && req.method === 'POST') {
-    const { thread_id, style, llm, notes } = await readJson(req);
+    const { thread_id, style, llm, notes, endpoint } = await readJson(req);
     try {
       const by = owner ? 'owner' : `guest ${ip}`;
       if (p === 'estimate') { checkNotes(notes); return json(res, await estimateJob(thread_id, style, owner ? llm : 'openrouter', by)); } // the notes don't change the price, but a refusal shows before queueing
-      return json(res, view(await queueJob(thread_id, style, llm, by, { notes })), 202);
+      return json(res, view(await queueJob(thread_id, style, llm, by, { notes, notifySub: guestSub(owner, ip, endpoint) })), 202);
     } catch (e) {
       return json(res, { error: e.message }, e instanceof JobError ? e.code : 502);
     }

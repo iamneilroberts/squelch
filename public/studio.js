@@ -92,12 +92,25 @@ $('suggests').addEventListener('click', async (e) => {
     } catch (err) { quote.innerHTML = `<p class="err">${esc(err.message)}</p>`; }
   }
   if (e.target.closest('[data-queue]')) {
-    try { await post('jobs', body); quote.hidden = true; loadJobs(); } catch (err) { quote.innerHTML = `<p class="err">${esc(err.message)}</p>`; }
+    try { mine.add((await post('jobs', { ...body, endpoint: await pushEndpoint() })).id); quote.hidden = true; loadJobs(); } catch (err) { quote.innerHTML = `<p class="err">${esc(err.message)}</p>`; }
   }
 });
 
 /* ───────── Jobs ───────── */
-let polling = 0, hadJobs = false;
+// This browser's push endpoint, if it has notifications on: sent with a job so the server can tell this browser when it finishes.
+const pushEndpoint = async () => { try { return (await (await navigator.serviceWorker.getRegistration('/'))?.pushManager.getSubscription())?.endpoint; } catch { return undefined; } };
+const mine = new Set(); // ids of the jobs queued from this tab
+let polling = 0, seenJobs = new Map();
+let toastTimer = 0;
+function toast(a) {
+  const t = $('studio-toast');
+  t.textContent = a.status === 'done' ? `Your animation is ready: ${a.title}` : `Couldn’t make ${a.title}`;
+  t.dataset.id = a.id;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 12e3);
+}
+$('studio-toast').addEventListener('click', (e) => { e.currentTarget.hidden = true; showCard(e.currentTarget.dataset.id); });
 async function loadJobs() {
   clearTimeout(polling);
   if (!canMake()) return;
@@ -108,8 +121,13 @@ async function loadJobs() {
     <span class="job-step">${j.status === 'queued' ? 'Waiting its turn' : esc(j.progress?.step || 'Starting')}${j.progress?.frac != null ? ` · ${Math.round(j.progress.frac * 100)}%` : ''}</span>
     <span class="job-bar"><span style="width:${j.progress?.frac != null ? Math.round(j.progress.frac * 100) : 0}%"></span></span>
   </li>`).join('');
-  if (hadJobs && jobs.length < hadJobs) loadLibrary();
-  hadJobs = jobs.length;
+  const gone = [...seenJobs.keys()].filter((id) => !jobs.some((j) => j.id === id));
+  seenJobs = new Map(jobs.map((j) => [j.id, j]));
+  if (gone.length) {
+    const list = await loadLibrary();
+    // Mine only: the owner's own jobs, or what a guest queued from this tab. (Another guest's job is none of theirs.)
+    for (const a of list) if (gone.includes(a.id) && (a.status === 'done' || a.status === 'failed') && (ACCESS === 'owner' ? a.requested_by === 'owner' : mine.has(a.id))) toast(a);
+  }
   if (jobs.length) polling = setTimeout(loadJobs, 2000);
 }
 
@@ -173,7 +191,19 @@ function card(a) {
 async function loadLibrary() {
   const list = await api('animations');
   $('library').innerHTML = list.length ? list.map(card).join('') : `<li class="empty">Nothing yet.${canMake() ? ' Make one from a suggestion above.' : ''}</li>`;
+  return list;
 }
+
+// A notification (or the toast) opens /manual.html#studio-<id>: scroll to that card and flash it.
+function showCard(id) {
+  const li = $('library').querySelector(`.anim[data-id="${CSS.escape(String(id))}"]`);
+  if (!li) return false;
+  li.scrollIntoView({ block: 'start' });
+  li.classList.remove('flash'); void li.offsetWidth; li.classList.add('flash');
+  return true;
+}
+const linked = () => /^#studio-(\d+)$/.exec(location.hash)?.[1];
+addEventListener('hashchange', () => { const id = linked(); if (id && !showCard(id)) loadLibrary().then(() => showCard(id)); });
 
 $('library').addEventListener('click', async (e) => {
   const li = e.target.closest('.anim');
@@ -252,4 +282,4 @@ fetch('/api/config').then((r) => r.json()).then((c) => {
   ACCESS = c.viewer?.studio || 'owner';
   if (ACCESS === 'owner') guestControl(c.viewer.guestStudio || 'off'); else $('suggest-refresh').parentElement.style.display = 'none';
   if (!c.viewer?.transcripts) $('h-suggest').closest('section').hidden = true; // suggestions are built from transcripts
-}).catch(() => {}).finally(() => { if (!$('h-suggest').closest('section').hidden) loadSuggestions(false); loadLibrary(); loadJobs(); });
+}).catch(() => {}).finally(() => { if (!$('h-suggest').closest('section').hidden) loadSuggestions(false); loadLibrary().then(() => { const id = linked(); if (id) showCard(id); }); loadJobs(); });

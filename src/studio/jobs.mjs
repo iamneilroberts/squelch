@@ -17,6 +17,7 @@ import { chromePath } from './browser.mjs';
 import { studioJson, pickProvider, defaultProvider, subscriptionModel, PROVIDERS } from './llm.mjs';
 import { directorPrompt } from './director.mjs';
 import { cleanNotes } from './notes.mjs';
+import { pushTo, ownerSubIds } from '../notify.mjs';
 
 // The cartoon is two-pass (director + library) unless STUDIO_CARTOON_MODE=oneshot; the row's prompt_version records which.
 const cartoonMode = () => (process.env.STUDIO_CARTOON_MODE === 'oneshot' ? 'oneshot' : 'twopass');
@@ -79,7 +80,7 @@ export function checkNotes(raw) {
 
 // `by` is 'owner' or 'guest <email or address>'. A guest's job always plans with OpenRouter (never the owner's Claude subscription)
 // and is limited to GUEST_JOBS_PER_DAY a day per guest and to the guests' share of the daily cap.
-export async function queueJob(threadId, style, llm, by = 'owner', { notes = '' } = {}) {
+export async function queueJob(threadId, style, llm, by = 'owner', { notes = '', notifySub = null } = {}) {
   const guest = by !== 'owner';
   const instructions = checkNotes(notes);
   const est = await estimateJob(threadId, style, guest ? 'openrouter' : llm, by);
@@ -87,7 +88,7 @@ export async function queueJob(threadId, style, llm, by = 'owner', { notes = '' 
   if (!est.dailyOk) throw new JobError(`That would pass today’s Studio cap: $${est.today.toFixed(3)} spent, about $${est.usd.toFixed(3)} more, cap $${est.cap.toFixed(2)} (STUDIO_DAILY_USD)`, 429);
   if (guest && guestJobsToday(by, dayBounds(localDate())[0]) >= GUEST_JOBS_PER_DAY) throw new JobError(`Guests can make ${GUEST_JOBS_PER_DAY} animations a day each, and you’ve made them for today. Try again tomorrow.`, 429);
   const t = getThread(Number(threadId));
-  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind](), llm: est.llm, requested_by: by, est_usd: est.usd, instructions });
+  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind](), llm: est.llm, requested_by: by, est_usd: est.usd, instructions, notify_sub: guest ? notifySub : null });
   setImmediate(pump);
   return getAnimation(id);
 }
@@ -95,8 +96,25 @@ export async function queueJob(threadId, style, llm, by = 'owner', { notes = '' 
 export const activeJobs = () => db.prepare(`SELECT id, title, style, status, created_at FROM animations WHERE status IN ('queued', 'running') ORDER BY id`).all()
   .map((r) => ({ ...r, progress: progress.get(r.id) || null }));
 
+// Tells whoever queued a job that it finished, by Web Push. The owner's jobs go to the owner's browsers; a guest's go only to
+// the browser they queued it from (stored with the job), and nobody if there was none. notify.mjs still applies the guest-notifications switch.
+export async function notifyFinished(id) {
+  const a = getAnimation(id);
+  if (!a || (a.status !== 'done' && a.status !== 'failed')) return { to: [], sent: 0 };
+  const guest = a.requested_by?.startsWith('guest');
+  const to = guest ? (a.notify_sub ? [a.notify_sub] : []) : ownerSubIds();
+  const title = a.title.length > 60 ? `${a.title.slice(0, 59)}…` : a.title;
+  // A guest isn't shown the engine's error text, so they get a plain reason.
+  const why = guest ? 'it didn\'t work out' : String(a.error || 'it failed').replace(/\s+/g, ' ').slice(0, 80);
+  const payload = a.status === 'done'
+    ? { title: `Your animation is ready: ${title}`, body: 'Tap to watch it.', tag: `studio-${id}`, url: `/manual.html#studio-${id}` }
+    : { title: `Couldn't make ${title}: ${why}`, body: guest ? 'You can try again.' : 'Tap to see why.', tag: `studio-${id}`, url: `/manual.html#studio-${id}` };
+  const sent = (await Promise.all(to.map((s) => pushTo(s, payload)))).filter(Boolean).length;
+  return { to, payload, sent };
+}
+
 let busy = false;
-async function pump() {
+export async function pump() {
   if (busy) return;
   const next = db.prepare(`SELECT id FROM animations WHERE status = 'queued' ORDER BY id LIMIT 1`).get();
   if (!next) return;
@@ -191,4 +209,5 @@ async function run(id) {
     rmSync(join(dir, 'work'), { recursive: true, force: true });
     updateAnimation(id, { status: 'failed', error: String(e.message).slice(0, 500), finished_at: new Date().toISOString(), files: scanFiles(id) });
   }
+  await notifyFinished(id).catch((e) => console.warn(`[studio] job ${id}: notification failed:`, e.message));
 }

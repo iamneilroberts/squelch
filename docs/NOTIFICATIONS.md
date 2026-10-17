@@ -70,6 +70,10 @@ Only owners can turn notifications on: anyone on your LAN, plus `OWNER_EMAILS` t
 
 Notifications carry the story's subject, its "why" and a couple of key facts: the same information as the story card. They never include raw transcripts.
 
+## Studio: your animation is finished
+
+Separate from the incident levels above: when a Studio animation finishes (or fails), the person who queued it gets "Your animation is ready: <title>" or "Couldn't make <title>: <reason>", whatever their sensitivity. Tapping it opens the manual's Studio tab at that animation (`/manual.html#studio-<id>`). The owner's jobs go to all of the owner's subscribed browsers. A guest's job goes only to the browser they queued it from (the page sends its push endpoint with the job, and the server accepts it only if it is a guest subscription, registered under the guest's own email when they have one), and only while **Let guests turn on notifications** is ticked. A guest with no subscription gets nothing, and nobody else is ever told. A guest's failure notice says only that it didn't work out.
+
 ## Troubleshooting
 
 - **No bell on the grille:** guests only see it while guest notifications are on. Owners always see it; it explains if keys are missing.

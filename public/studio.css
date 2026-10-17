@@ -73,4 +73,9 @@
 #guest-control .hint { margin: 8px 0 0; }
 .notes { display: block; flex: 1 1 100%; font-size: 12px; }
 .notes textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px; font: 14px/1.4 var(--font-type); resize: vertical; }
-.notes-foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 2px; font-size: 11px; }
+.notes-foot { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-top: 2px; font-size: 11px; }
+.notes-foot [data-count] { flex: none; white-space: nowrap; }
+.studio-toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 20; max-width: min(92vw, 420px); padding: 10px 16px; border: 1.5px solid var(--ink); border-radius: 4px; background: var(--paper, #f4ecd8); color: var(--ink); font: 13px/1.4 var(--font-type); box-shadow: 0 8px 18px -8px oklch(0.1 0.03 45 / .7); cursor: pointer; text-align: left; }
+.studio-toast[hidden] { display: none; }
+.anim.flash { animation: studio-flash 2.4s ease-out; }
+@keyframes studio-flash { from { background: oklch(0.9 0.12 90 / .7); } to { background: transparent; } }
