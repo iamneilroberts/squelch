@@ -62,7 +62,30 @@ export function setTraceVad(spread, skipped) {
 export function linkTraceToCall(callId) {
   const t = store.getStore();
   if (t) db.prepare('UPDATE traces SET call_id = ? WHERE id = ?').run(callId, t.id);
+  if (t) db.prepare('UPDATE stt_ab SET call_id = ? WHERE trace_id = ?').run(callId, t.id);
 }
+
+// STT A/B (STT_AB_RATE): the same clip transcribed from the stored MP3 and from the lossless WAV. Only the primary
+// input's transcript is used; scripts/stt-ab-judge.mjs judges the pairs (verdict: wav | mp3 | tie) against the kept WAV.
+db.exec(`CREATE TABLE IF NOT EXISTS stt_ab (
+  id INTEGER PRIMARY KEY,
+  at TEXT NOT NULL,
+  source_id TEXT,
+  trace_id INTEGER,
+  call_id INTEGER,
+  primary_input TEXT NOT NULL,
+  mp3_text TEXT, wav_text TEXT,
+  mp3_cost REAL, wav_cost REAL,
+  wav_file TEXT,             -- in data/ab/, while it's among the newest kept
+  verdict TEXT,
+  judge TEXT                 -- JSON: which input was shown as A, the judge's model and reason
+);
+CREATE INDEX IF NOT EXISTS stt_ab_trace ON stt_ab(trace_id);`);
+export function recordAb({ at, source_id, primary_input, mp3, wav }) {
+  return Number(db.prepare(`INSERT INTO stt_ab (at, source_id, trace_id, primary_input, mp3_text, wav_text, mp3_cost, wav_cost) VALUES (?,?,?,?,?,?,?,?)`)
+    .run(at, source_id, store.getStore()?.id ?? null, primary_input, mp3.text, wav.text, mp3.costUsd ?? null, wav.costUsd ?? null).lastInsertRowid);
+}
+export const setAbWav = (id, file) => db.prepare('UPDATE stt_ab SET wav_file = ? WHERE id = ?').run(file, id);
 
 // Times `fn` and records it. `describe(result)` returns { provider, model, in_tok, out_tok, cost } from the response.
 export async function span({ kind, purpose, provider = null, model = null }, fn, describe = () => ({})) {
@@ -161,7 +184,7 @@ export function spendInsight(hours, skipBelow) {
       SUM(x.stt IS NOT NULL) AS transcribed,
       SUM(x.stt IS NOT NULL AND t.call_id IS NULL AND NOT x.gated) AS empty,
       SUM(CASE WHEN t.call_id IS NULL AND NOT x.gated THEN x.stt END) AS emptyCost
-    FROM traces t LEFT JOIN (SELECT trace_id, SUM(CASE WHEN kind = 'stt' AND ok THEN COALESCE(cost, 0) END) AS stt, MAX(purpose = 'gate') AS gated
+    FROM traces t LEFT JOIN (SELECT trace_id, SUM(CASE WHEN kind = 'stt' AND purpose = 'transcribe' AND ok THEN COALESCE(cost, 0) END) AS stt, MAX(purpose = 'gate') AS gated
       FROM spans INDEXED BY spans_at WHERE at >= ? AND trace_id IS NOT NULL GROUP BY trace_id) x ON x.trace_id = t.id
     WHERE t.kind = 'clip' AND t.at >= ? GROUP BY t.source_id`).all(since, since)) {
     Object.assign(ch(r.source_id), { ...r, emptyCost: r.emptyCost || 0 });
@@ -217,7 +240,7 @@ export function noteSquelchDrop(sourceId, seconds) {
 export function squelchReport(hours) {
   const since = new Date(Date.now() - hours * 3600e3).toISOString();
   const byFeed = db.prepare('SELECT source_id, COUNT(*) AS n FROM squelch_drops WHERE at >= ? GROUP BY source_id ORDER BY n DESC').all(since);
-  const transcribed = db.prepare(`SELECT COUNT(*) AS n, SUM(cost) AS c FROM spans WHERE kind = 'stt' AND at >= ?`).get(since);
+  const transcribed = db.prepare(`SELECT COUNT(*) AS n, SUM(cost) AS c FROM spans WHERE kind = 'stt' AND purpose = 'transcribe' AND at >= ?`).get(since);
   const avg = transcribed.n ? (transcribed.c || 0) / transcribed.n : 0;
   const dropped = byFeed.reduce((a, r) => a + r.n, 0);
   return { dropped, byFeed, transcribed: transcribed.n, avgStt: avg, saved: dropped * avg, share: dropped / ((dropped + transcribed.n) || 1) };
@@ -235,7 +258,7 @@ export function noteStitch(sourceId, outcome) {
 export function vadReport(hours) {
   const since = new Date(Date.now() - hours * 3600e3).toISOString();
   const rows = db.prepare(`SELECT t.vad, t.vad_skip, t.call_id, c.category,
-      (SELECT SUM(cost) FROM spans s WHERE s.trace_id = t.id AND s.kind = 'stt') AS stt
+      (SELECT SUM(cost) FROM spans s WHERE s.trace_id = t.id AND s.kind = 'stt' AND s.purpose = 'transcribe') AS stt
     FROM traces t LEFT JOIN calls c ON c.id = t.call_id
     WHERE t.kind = 'clip' AND t.at >= ? AND t.vad IS NOT NULL`).all(since);
   const transcribed = rows.filter((r) => !r.vad_skip);

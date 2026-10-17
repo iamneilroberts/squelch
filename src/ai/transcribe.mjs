@@ -39,15 +39,15 @@ const META = /^(?=.{0,220}$).*\b(no (intelligible|discernible|audible|clear|reco
 
 export const transcriberReady = () => Boolean(process.env.TRANSCRIBE_BASE_URL || process.env.OPENROUTER_API_KEY);
 
-// Returns { text, costUsd }.
-export async function transcribe(file, model = process.env.TRANSCRIBE_MODEL || DEFAULT_TRANSCRIBE_MODEL, vocab = DEFAULT_VOCAB) {
-  const r = process.env.TRANSCRIBE_BASE_URL ? await viaWhisper(file, vocab) : await viaOpenRouter(file, model, vocab);
+// Returns { text, costUsd }. `purpose` names the metered span ('transcribe-ab' for the A/B second opinion).
+export async function transcribe(file, model = process.env.TRANSCRIBE_MODEL || DEFAULT_TRANSCRIBE_MODEL, vocab = DEFAULT_VOCAB, purpose = 'transcribe') {
+  const r = process.env.TRANSCRIBE_BASE_URL ? await viaWhisper(file, vocab, purpose) : await viaOpenRouter(file, model, vocab, purpose);
   const text = r.text.replace(/\s+/g, ' ').trim();
   return { ...r, text: HALLUCINATIONS.test(text) || PLACEHOLDER.test(text) || META.test(text) || echoesPrompt(text, vocab) ? '' : text };
 }
 
 // Reasoning models sometimes think until max_tokens and reply with nothing; that clip is retried once, not dropped.
-async function viaOpenRouter(file, model, vocab) {
+async function viaOpenRouter(file, model, vocab, purpose) {
   const format = extname(file).slice(1) || 'mp3';
   const data = (await readFile(file)).toString('base64');
   for (let attempt = 0; ; attempt++) {
@@ -59,14 +59,14 @@ async function viaOpenRouter(file, model, vocab) {
         { type: 'text', text: prompt(vocab) },
         { type: 'input_audio', input_audio: { data, format } },
       ] }],
-    }, { purpose: 'transcribe' });
+    }, { purpose });
     const choice = j.choices?.[0];
     if (choice?.finish_reason !== 'length') return { text: choice?.message?.content ?? '', costUsd: j.usage?.cost ?? null };
     if (attempt) throw new Error('transcript cut off (max_tokens) twice');
   }
 }
 
-async function viaWhisper(file, vocab) {
+async function viaWhisper(file, vocab, purpose) {
   const form = new FormData();
   form.append('file', new Blob([await readFile(file)], { type: extname(file) === '.wav' ? 'audio/wav' : 'audio/mpeg' }), basename(file));
   form.append('model', process.env.TRANSCRIBE_MODEL || 'whisper-large-v3-turbo');
@@ -74,7 +74,7 @@ async function viaWhisper(file, vocab) {
   form.append('prompt', [UNITS, vocab].filter(Boolean).join(', '));
   const key = process.env.TRANSCRIBE_API_KEY;
   const model = process.env.TRANSCRIBE_MODEL || 'whisper-large-v3-turbo';
-  return span({ kind: 'stt', purpose: 'transcribe', provider: new URL(process.env.TRANSCRIBE_BASE_URL).host, model }, async () => {
+  return span({ kind: 'stt', purpose, provider: new URL(process.env.TRANSCRIBE_BASE_URL).host, model }, async () => {
     const res = await fetch(`${process.env.TRANSCRIBE_BASE_URL}/audio/transcriptions`, {
       method: 'POST', headers: key ? { Authorization: `Bearer ${key}` } : {}, body: form,
     });

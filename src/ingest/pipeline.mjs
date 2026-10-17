@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events';
 import { rmSync, renameSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { insertCall, tagCall, createIncident, updateIncident, openIncidentsFor, expireAudio, pruneHistory, setGate, currentThread, openThreads, saveThread, joinThread, incidentForThread, threadForIncident, moveToThread } from '../db.mjs';
-import { withTrace, linkTraceToCall, pruneSpans, span, setTraceVad } from '../meter.mjs';
+import { withTrace, linkTraceToCall, pruneSpans, span, setTraceVad, recordAb, setAbWav } from '../meter.mjs';
 import { loudnessSpread } from './vad.mjs';
 import { gate } from '../ai/jev.mjs';
 import { startStream } from './stream.mjs';
@@ -40,6 +40,9 @@ export const VAD = {
 };
 
 const STT_INPUT = process.env.STT_INPUT || 'mp3'; // mp3 | wav
+const STT_AB_RATE = Number(process.env.STT_AB_RATE || 0); // share of clips also transcribed from the other input
+const AB_DIR = join('data', 'ab');
+const AB_KEEP = 300;
 
 export function startIngest(sources, regions) {
   regionById = new Map(regions.map((r) => [r.id, r]));
@@ -69,6 +72,21 @@ export function startIngest(sources, regions) {
   }, 3600e3);
 }
 
+// Records an A/B pair. When the transcripts differ, the WAV is kept in data/ab/ for the judge (newest AB_KEEP).
+function keepAb(source, clip, { mp3, wav }) {
+  try {
+    const id = recordAb({ at: clip.at, source_id: source.id, primary_input: STT_INPUT, mp3, wav });
+    if (mp3.text === wav.text) return;
+    mkdirSync(AB_DIR, { recursive: true });
+    renameSync(clip.wav, join(AB_DIR, `${id}.wav`));
+    setAbWav(id, `${id}.wav`);
+    for (const f of readdirSync(AB_DIR).filter((x) => /^\d+\.wav$/.test(x)).sort((a, b) => parseInt(a) - parseInt(b)).slice(0, -AB_KEEP)) {
+      rmSync(join(AB_DIR, f), { force: true });
+      setAbWav(parseInt(f), null);
+    }
+  } catch (e) { console.warn('[stt-ab]', e.message); }
+}
+
 async function handleClip(source, clip) {
   const region = regionById.get(source.region);
 
@@ -81,8 +99,15 @@ async function handleClip(source, clip) {
     if (skip) { rmSync(clip.file, { force: true }); return; }
   }
 
-  // STT_INPUT=wav transcribes the lossless clip instead of the stored MP3.
-  const { text: transcript } = await transcribe(STT_INPUT === 'wav' ? clip.wav : clip.file, undefined, region?.vocab);
+  // STT_INPUT=wav transcribes the lossless clip instead of the stored MP3. A/B: a share of clips is also transcribed
+  // from the other input, metered as transcribe-ab; only the primary transcript is used.
+  const [input, other] = STT_INPUT === 'wav' ? [clip.wav, clip.file] : [clip.file, clip.wav];
+  const [primary, second] = await Promise.all([
+    transcribe(input, undefined, region?.vocab),
+    STT_AB_RATE > 0 && Math.random() < STT_AB_RATE ? transcribe(other, undefined, region?.vocab, 'transcribe-ab').catch(() => null) : null,
+  ]);
+  if (second) keepAb(source, clip, STT_INPUT === 'wav' ? { wav: primary, mp3: second } : { mp3: primary, wav: second });
+  const transcript = primary.text;
   if (!transcript) {
     // Shadow mode keeps real "no speech" clips (capped) so the detector can be calibrated on actual feed noise.
     const dir = join('data', 'vad-samples');

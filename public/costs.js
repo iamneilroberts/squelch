@@ -8,7 +8,7 @@ const usd = (x) => (x == null ? '<span class="na">price n/a</span>' : x === 0 ? 
 const ms = (x) => (x == null ? '—' : x < 1000 ? `${x} ms` : `${(x / 1000).toFixed(1)} s`);
 const num = (x) => (x == null ? '—' : x.toLocaleString('en-US'));
 const pct = (x) => `${Math.round(x * 100)}%`;
-const PURPOSE = { transcribe: 'Speech-to-text', triage: 'Incident triage', gate: 'Jev gate', digest: 'Daily digest', geocode: 'Geocoder', vad: 'Speech detector (local)', thread: 'Channel story', push: 'Push notification', 'listener-surge': 'Listener-surge look' };
+const PURPOSE = { transcribe: 'Speech-to-text', 'transcribe-ab': 'Speech-to-text A/B', triage: 'Incident triage', gate: 'Jev gate', digest: 'Daily digest', geocode: 'Geocoder', vad: 'Speech detector (local)', thread: 'Channel story', push: 'Push notification', 'listener-surge': 'Listener-surge look' };
 const label = (p) => PURPOSE[p] || (p.startsWith('overlay:') ? `Map layer · ${p.slice(8)}` : p);
 const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
