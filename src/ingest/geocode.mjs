@@ -18,7 +18,10 @@ export function geocode(query, bbox) {
     // Nominatim can't do intersections; fall back to the first street of "A & B, City, AL".
     const [head, ...tail] = q.split(',');
     const firstStreet = head.includes('&') ? [head.split('&')[0].trim(), ...tail].join(',') : null;
-    const result = await lookup(q, viewbox) ?? (firstStreet ? await lookup(firstStreet, viewbox) : null);
+    // Speech-to-text splits some street names ("Meadow View Drive" for Meadowview Drive): try them joined.
+    const joined = q.replace(/\b([a-z]{3,}) ([a-z]{3,}) (drive|road|street|avenue|lane|court|circle|boulevard|way|place|trail|parkway)\b/, '$1$2 $3');
+    const result = await lookup(q, viewbox) ?? (firstStreet ? await lookup(firstStreet, viewbox) : null)
+      ?? (joined !== q ? await lookup(joined, viewbox) : null);
     geocache.set(key, result);
     return result;
   });

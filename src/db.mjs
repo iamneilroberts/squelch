@@ -75,8 +75,8 @@ export function updateIncident(id, u) {
   const cur = getIncident(id);
   if (!cur) return null;
   const units = [...new Set([...cur.units, ...(u.units || [])])];
-  // A geocoded address beats the source's fallback position; never downgrade.
-  const better = u.lat != null && u.precision !== 'source' && (cur.precision === 'source' || cur.lat == null);
+  // A geocoded address beats the source's fallback position; never downgrade. A corrected location replaces it.
+  const better = u.lat != null && u.precision !== 'source' && (u.relocate || cur.precision === 'source' || cur.lat == null);
   db.prepare(`UPDATE incidents SET updated_at = ?, summary = ?, units = ?,
       category = CASE WHEN ? = 'breaking' THEN 'breaking' ELSE category END,
       location_text = ?, lat = ?, lng = ?, precision = ? WHERE id = ?`)
@@ -107,7 +107,7 @@ export function recentIncidents(hours = 12) {
 
 export function openIncidentsFor(sourceId, minutes = 45) {
   const since = new Date(Date.now() - minutes * 60e3).toISOString();
-  return db.prepare(`SELECT id, headline, location_text, units FROM incidents
+  return db.prepare(`SELECT id, type, headline, location_text, units FROM incidents
     WHERE source_id = ? AND updated_at >= ? ORDER BY updated_at DESC LIMIT 15`).all(sourceId, since);
 }
 
@@ -175,6 +175,20 @@ export function currentThread(sourceId, minutes = 30) {
   if (!t) return null;
   const calls = db.prepare('SELECT note, transcript FROM calls WHERE thread_id = ? ORDER BY id').all(t.id);
   return { id: t.id, subject: t.subject, facts: JSON.parse(t.facts), notes: calls.map((c) => c.note).filter(Boolean).slice(-12), transcripts: calls.slice(-2).map((c) => c.transcript) };
+}
+
+// The incident a story's calls last went to, if it was updated in the last `minutes`.
+export function incidentForThread(threadId, minutes = 60) {
+  const since = new Date(Date.now() - minutes * 60e3).toISOString();
+  return db.prepare(`SELECT i.id, i.type FROM calls c JOIN incidents i ON i.id = c.incident_id
+    WHERE c.thread_id = ? AND i.updated_at >= ? ORDER BY c.at DESC LIMIT 1`).get(threadId, since) ?? null;
+}
+
+// Add a call to a story as it stands (no new note, subject or facts). Returns the thread id.
+export function joinThread(callId, threadId, at) {
+  db.prepare('UPDATE threads SET updated_at = ? WHERE id = ?').run(at, threadId);
+  db.prepare('UPDATE calls SET thread_id = ?, subject = (SELECT subject FROM threads WHERE id = ?) WHERE id = ?').run(threadId, threadId, callId);
+  return threadId;
 }
 
 // Continue thread `threadId`, or start a new one when it's null. Returns the thread id.
