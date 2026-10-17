@@ -219,6 +219,15 @@ export function callsBetween(fromIso, toIso) {
     WHERE at >= ? AND at < ? AND transcript IS NOT NULL AND transcript != '' ORDER BY at`).all(fromIso, toIso);
 }
 
+// Wider catch-up candidates (src/ai/wider.mjs): playable transmissions on any channel outside one story,
+// with what threading and triage made of them.
+export function widerCandidates(fromIso, toIso, threadId) {
+  return db.prepare(`SELECT c.id, c.source_id, c.at, c.audio, c.transcript, c.note, c.thread_id, c.incident_id, t.subject, i.headline, i.location_text, i.units
+    FROM calls c LEFT JOIN threads t ON t.id = c.thread_id LEFT JOIN incidents i ON i.id = c.incident_id
+    WHERE c.at >= ? AND c.at < ? AND c.audio IS NOT NULL AND c.transcript IS NOT NULL AND c.transcript != ''
+      AND (c.thread_id IS NULL OR c.thread_id != ?) ORDER BY c.at`).all(fromIso, toIso, threadId);
+}
+
 export function keepCalls(ids) {
   const stmt = db.prepare(`UPDATE calls SET keep = 1 WHERE id = ?`);
   for (const id of ids) stmt.run(id);

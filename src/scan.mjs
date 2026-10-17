@@ -155,7 +155,7 @@ export async function scanStream(req, res, params, announce) {
 
 // POST /api/scan/<sid> — the page's channels, priority and hold changed, PREV asked for a replay, or
 // Catch up asked for a story so far (`catchup`: its thread id; its transmissions that added something,
-// or with `all` (or when none did) every one; 0 ends a catch-up).
+// or with `all` (or when none did) every one; or a list of call ids from a wider catch-up; 0 ends one).
 export function updateScan(sid, body) {
   const s = sessions.get(sid);
   if (!s) return null;
@@ -163,10 +163,10 @@ export function updateScan(sid, body) {
   if (s.current && !s.current.tag && !eligible(s, s.current.call)) s.current = null; // locked out or held elsewhere mid-transmission
   if (body.replay) enqueueList(s, [scanCall(Number(body.replay))], () => 'REPLAY');
   if (body.catchup !== undefined) {
-    const t = getThread(Number(body.catchup));
-    const clips = (t?.events ?? []).filter((e) => e.audio);
+    const list = Array.isArray(body.catchup) ? body.catchup.slice(0, CATCHUP_MAX).map((id) => scanCall(Number(id))) : null;
+    const clips = (list ? [] : getThread(Number(body.catchup))?.events ?? []).filter((e) => e.audio);
     const noted = body.all ? [] : clips.filter((e) => e.note);
-    const calls = (noted.length ? noted : clips).slice(-CATCHUP_MAX).map((e) => scanCall(e.id)); // none added anything: play them all
+    const calls = list ?? (noted.length ? noted : clips).slice(-CATCHUP_MAX).map((e) => scanCall(e.id)); // none added anything: play them all
     s.queue = s.queue.filter((q) => !q.tag?.startsWith('CATCH UP'));
     if (s.current?.tag?.startsWith('CATCH UP')) s.current = null;
     enqueueList(s, calls, (i, n) => `CATCH UP ${i + 1}/${n}`);

@@ -1223,19 +1223,22 @@ function connect() {
 /* ───────── Channel story: tap a title line for the conversation's key facts and chronology ───────── */
 let storyId = null;
 let storyClips = []; // every transmission in the story with audio, oldest first
+let widerClips = []; // the wider catch-up's transmissions, in the order they went out
 async function openStory(id, { play = false } = {}) {
+  if (Number(id) !== storyId) $('story-wider-out').hidden = true;
   storyId = Number(id);
   await renderStory();
   if (storyId && !$('story').open) $('story').showModal();
   if (play) playStory();
 }
-function playStory() {
+// The whole story, or (ids) a wider catch-up's transmissions.
+function playStory(ids) {
   if (scan.on && storyId && radio.dataset.kind === 'scan' && !radio.paused) { // inside the scan stream, so it keeps playing with the phone locked
     scan.catchup = storyId;
     syncScanKeys();
-    return scanSync({ catchup: storyId, all: true });
+    return scanSync({ catchup: ids ?? storyId, all: true });
   }
-  const [first, ...rest] = storyClips;
+  const [first, ...rest] = ids ? widerClips : storyClips;
   if (first) playRecording(first.src, first.label, 'clip', rest);
 }
 function playNext() {
@@ -1249,6 +1252,7 @@ async function renderStory() {
   storyClips = t.events.filter((e) => e.audio).map((e, i, all) => ({ src: `/audio/${encodeURIComponent(e.audio)}`, label: `${i + 1} of ${all.length} · ${hhmm(e.at)} ${short}` }));
   $('story-play').hidden = !storyClips.length;
   $('story-play').innerHTML = `${ICON_PLAY} Play all · ${storyClips.length} transmission${storyClips.length > 1 ? 's' : ''}`;
+  $('story-wider').hidden = !state.viewer?.transcripts; // built from transcripts (src/ai/wider.mjs)
   $('story-feedback').hidden = notify.opened?.story !== t.id;
   $('story-title').innerHTML = `${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}`;
   $('story-facts').innerHTML = t.facts.map((f) => `<dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd>`).join('');
@@ -1265,7 +1269,27 @@ document.addEventListener('click', (e) => {
   openStory(link.dataset.thread);
 });
 $('story-close').addEventListener('click', () => $('story').close());
-$('story-play').addEventListener('click', playStory);
+$('story-play').addEventListener('click', () => playStory());
+
+// Wider catch-up (src/ai/wider.mjs): this story's traffic on other channels too, picked by the model, with
+// a summary and why each transmission is included; then it plays like Play all.
+async function widerCatchup() {
+  const id = storyId, b = $('story-wider'), out = $('story-wider-out');
+  b.disabled = true;
+  b.textContent = 'Looking across channels…';
+  const r = await postJson(`/api/threads/${id}/wider`, {}).catch(() => null);
+  b.disabled = false;
+  b.textContent = 'Wider catch-up';
+  if (storyId !== id) return;
+  out.hidden = false;
+  if (!r?.clips) return void (out.innerHTML = '<p class="story-summary">Couldn’t look across channels just now. Try again in a minute.</p>');
+  if (!r.related) return void (out.innerHTML = '<p class="story-summary">Nothing on other channels ties in to this story yet.</p>');
+  widerClips = r.clips.map((c, i, all) => ({ src: `/audio/${encodeURIComponent(c.audio)}`, label: `${i + 1} of ${all.length} · ${hhmm(c.at)} ${state.byId.get(c.source_id)?.short || ''}` }));
+  out.innerHTML = `<p class="story-summary">${esc(r.summary)}</p><ol class="story-log">${r.clips.map((c, i) => `<li><time>${hhmm(c.at)}</time>`
+    + `<span><strong>${shortOf(c.source_id)}</strong> ${esc(c.why)}</span><button class="play" data-src="${widerClips[i].src}" data-label="${esc(widerClips[i].label)}" aria-label="Play">${ICON_PLAY}</button></li>`).join('')}</ol>`;
+  playStory(r.clips.map((c) => c.id));
+}
+$('story-wider').addEventListener('click', widerCatchup);
 $('story').addEventListener('click', (e) => {
   if (e.target === $('story')) return $('story').close(); // tap on the backdrop
   const play = e.target.closest('.play');

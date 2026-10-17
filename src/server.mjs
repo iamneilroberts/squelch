@@ -14,6 +14,7 @@ import { llmReady } from './ai/llm.mjs';
 import { costSummary, recentTraces, gateAgreement, vadReport, squelchReport } from './meter.mjs';
 import { station, regions, sources, configFile } from './config.mjs';
 import { scanStream, updateScan, scanPlays } from './scan.mjs';
+import { widerCatchup } from './ai/wider.mjs';
 
 const PORT = Number(process.env.PORT || 8077);
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.ico': 'image/x-icon' };
@@ -294,6 +295,14 @@ createServer(async (req, res) => {
     }
     const th = p.match(/^\/api\/threads\/(\d+)$/);
     if (th) { const t = getThread(Number(th[1])); return t ? json(res, t) : (res.writeHead(404), res.end()); }
+    // Wider catch-up (src/ai/wider.mjs): built from transcripts, so not for visitors they're hidden from.
+    const wi = p.match(/^\/api\/threads\/(\d+)\/wider$/);
+    if (wi && req.method === 'POST') {
+      if (hidden) return json(res, { error: 'Transcripts are hidden for this visitor' }, 403);
+      if (!llmReady()) return json(res, { error: 'No model key set' }, 503);
+      const r = await widerCatchup(Number(wi[1]));
+      return r ? json(res, r) : json(res, { error: 'no such story' }, 404);
+    }
     const cc = p.match(/^\/api\/captions\/([\w.-]+)\.vtt$/);
     if (cc) {
       const call = hidden ? null : callByAudio(cc[1]);
