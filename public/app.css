@@ -110,15 +110,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
   color: var(--needle);
   text-shadow: 0 1px 0 oklch(1 0 0 / .6), 0 -1px 0 oklch(0.3 0.1 30 / .4);
 }
-.badge-caps {
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: .5em;
-  margin-right: -.5em;
-  text-transform: uppercase;
-  color: var(--walnut-900);
-  text-decoration: none;
-}
 .badge-sub {
   font-family: var(--font-type);
   font-size: 10px;
@@ -372,7 +363,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* Engraved symbols: ink-filled with a light lip below, like lettering stamped into bakelite. */
 .ico { width: 1em; height: 1em; fill: currentColor; vertical-align: -.12em; flex: none; }
 .ico.arrow { width: .8em; height: .8em; vertical-align: 0; }
-.badge-caps .ico.arrow { margin-left: -.3em; }
 .key .ico { width: 12px; height: 12px; filter: drop-shadow(0 1px 0 oklch(1 0 0 / .8)); }
 .scan-key .ico { width: 10px; height: 10px; }
 .tkey:disabled { opacity: .45; cursor: default; transform: translateY(1px); box-shadow: 0 1px 0 var(--bakelite-3); }
@@ -802,7 +792,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .grille { min-height: 0; padding: 8px; }
   .badge { padding: 6px 16px 5px; transform: rotate(-1.5deg); }
   .badge-script { font-size: 26px; }
-  .badge-caps { font-size: 12px; }
   .badge-sub { display: none; } /* the region name costs a line the phone needs */
   .manual-key span { display: none; } /* just the book icon beside the badge */
   .dial-scroll { -webkit-overflow-scrolling: touch; }
