@@ -73,4 +73,4 @@ Regions appear on the knob in the order listed; put them west to east and it rea
 1. `npm start` and pick each region on the knob: the badge, dial and lamps should change.
 2. Green lamp = receiving. Red = the stream refused (check credentials or the feed ID). Grey = listen-only link.
 3. Tap a station to listen live. Press **Scan** to hear new transmissions from the visible stations.
-4. Open the **Ledger** (`/costs.html`) after an hour: the Speech detector panel shows how much hum the squelch dropped per feed, and spend per clip.
+4. Open the **Ledger** (`/manual.html#ledger`, or *Station manual ↗* at the bottom of the receiver) after an hour: the Speech detector panel shows how much hum the squelch dropped per feed, and spend per clip.

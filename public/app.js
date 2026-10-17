@@ -816,6 +816,24 @@ function refreshOverlays() {
 const typeLabel = (t) => ({ medical: 'Medical', crash: 'Crash', fire: 'Fire', rescue: 'Rescue', hazmat: 'Hazmat', police: 'Police', aviation: 'Aviation', marine: 'Marine', rail: 'Rail', weather: 'Weather' }[t] || 'Other');
 const playButton = (audio, label, text = 'play') => (audio ? `<button class="play" data-src="/audio/${encodeURIComponent(audio)}" data-label="${esc(label)}">${ICON_PLAY} ${text}</button>` : '');
 
+// The printout shows a page at a time; on a phone the whole day would be an endless scroll.
+let logPage = 0;
+let logView = '';
+function paginate(items, keepVisible) {
+  const size = matchMedia('(max-width: 720px)').matches ? 8 : 30;
+  const view = `${state.tab}|${state.band}|${state.region}`;
+  if (view !== logView) { logView = view; logPage = 0; } // new list: back to the newest
+  const at = keepVisible ? items.indexOf(keepVisible) : -1;
+  if (at >= 0) logPage = Math.floor(at / size);
+  const pages = Math.max(1, Math.ceil(items.length / size));
+  logPage = Math.min(logPage, pages - 1);
+  const pager = pages < 2 ? '' : `<li class="pager">
+    <button type="button" class="key" data-page="-1"${logPage === 0 ? ' disabled' : ''}>‹ Newer</button>
+    <span>Page ${logPage + 1} of ${pages}</span>
+    <button type="button" class="key" data-page="1"${logPage === pages - 1 ? ' disabled' : ''}>Older ›</button></li>`;
+  return { items: items.slice(logPage * size, (logPage + 1) * size), pager };
+}
+
 function renderLog() {
   const log = $('log');
   const list = [...state.incidents.values()].filter((i) => inView(i.source_id)).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
@@ -824,7 +842,7 @@ function renderLog() {
   if (state.tab === 'digest') return renderDigest();
 
   if (state.tab === 'traffic') {
-    const calls = state.calls.filter((c) => inView(c.source_id));
+    const { items: calls, pager } = paginate(state.calls.filter((c) => inView(c.source_id)));
     log.innerHTML = calls.length ? calls.map((c) => {
       const short = state.byId.get(c.source_id)?.short;
       return `
@@ -833,11 +851,13 @@ function renderLog() {
           ${playButton(c.audio, `${hhmm(c.at)} ${short}`)}</div>
         ${esc(c.transcript)}
       </li>`;
-    }).join('') : notice();
+    }).join('') + pager : notice();
     return;
   }
 
-  log.innerHTML = list.length ? list.map((inc) => {
+  const page = paginate(list, list.find((i) => i.id === state.selected && i.id !== state.shownSelected));
+  state.shownSelected = state.selected; // jump to a newly selected incident's page once, then page freely
+  log.innerHTML = list.length ? page.items.map((inc) => {
     const s = state.byId.get(inc.source_id);
     const updates = inc.updates || [];
     return `
@@ -857,7 +877,7 @@ function renderLog() {
         <div class="entry-meta" style="margin-top:6px"><span>Updated ${ago(inc.updated_at)}</span><span>Confidence ${Math.round((inc.confidence || 0) * 100)}%</span></div>
       </div>
     </li>`;
-  }).join('') : notice();
+  }).join('') + page.pager : notice();
   state.fresh.clear();
 }
 
@@ -953,6 +973,12 @@ $('log').addEventListener('click', (e) => {
   const play = e.target.closest('.play');
   if (play) { e.stopPropagation(); return playRecording(play.dataset.src, play.dataset.label); }
   if (e.target.closest('#build-today')) return buildToday();
+  const turn = e.target.closest('[data-page]');
+  if (turn) {
+    logPage += Number(turn.dataset.page);
+    renderLog();
+    return $('log').closest('.printer').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
   const day = e.target.closest('[data-date]');
   if (day) return loadDigest(day.dataset.date);
   const entry = e.target.closest('.entry');

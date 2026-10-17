@@ -706,6 +706,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .digest-actions button[aria-current="true"] { background: var(--ink); color: var(--paper); }
 .digest-actions .busy { color: var(--red-ink); }
 
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 0 4px; font-size: 13px; }
+.pager .key { min-width: 0; padding: 9px 12px 7px; font-size: 11px; }
+.pager .key:disabled { opacity: .4; cursor: default; }
 .notice { padding: 26px 0; font-size: 14px; line-height: 1.55; }
 .notice h2 { margin: 0 0 10px; font-family: var(--font-caps); font-size: 22px; letter-spacing: .08em; text-transform: uppercase; color: var(--red-ink); }
 .notice code { background: oklch(0.92 0.03 90); padding: 0 4px; }

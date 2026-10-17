@@ -15,7 +15,7 @@ A scanner-radio receiver for your part of the world. Squelch listens to public s
 - **Notifications**: Web Push when a story turns significant, tuned per browser (sensitivity and favourite channels); see **[docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md)**
 - **Daily log**: after midnight, each area's day is read back and the best storylines are printed, with a highlight reel of the real audio
 - **Live map layers**: aircraft (ADS-B), Amtrak trains, NWS weather alerts, tide gauges, ships (AIS)
-- **Station Ledger** (`/costs.html`): every AI and API call with timing, tokens and cost
+- **Station Manual** (`/manual.html`, linked at the bottom of the receiver): how every part works in detail, plus the **Ledger**: every AI and API call with timing, tokens and cost
 
 ## Requirements
 
@@ -64,6 +64,17 @@ feed ─► ffmpeg 45 s segments ─► squelch ─► speech-to-text ─► Jev
 | Channel story | `src/ai/thread.mjs` | `openai/gpt-6-luna`: continues or starts each channel's story, keeps its facts and writes a chronology line per transmission |
 | Geocoding | `src/ingest/geocode.mjs` | OpenStreetMap Nominatim, bounded to the feed's region |
 | Daily digest + reel | `src/digest.mjs` | `openai/gpt-6-luna-pro` |
+
+### How Scan works
+
+Scan plays **recordings, not live streams**: each new clip from the channels the Location knob and band keys show, back to back, about a minute behind live. The page opens scanning; the first sound waits for a tap, because browsers won't play audio before you touch the page.
+
+- **Order:** priority channels first, then oldest first. Scan starts with up to 3 clips from the last 2 minutes and keeps at most the newest 20 queued, so it never falls far behind.
+- **After each transmission** it waits 2.5 s on that channel. A reply there, or any priority traffic, plays at once, and you have time to press **Hold**. **Hold/Resume** stays on one channel; **◁ Prev** steps back through the channels it stopped on and replays each.
+- **While scanning, tap a station** to cycle it normal → **PRI** (jumps the queue and interrupts ordinary traffic) → **L/O** (locked out). Saved in the browser.
+- **Noisy channels never stall it.** Scan can only play clips that passed every stage above. A channel carrying only hiss, hum or an open mic never produces one: the adaptive squelch drops it before transcription, the filters drop invented text, and the speech gate drops filler. Real but dull chatter still plays; lock it out.
+
+The receiver's **Station Manual** (`/manual.html`) covers this and every other stage in detail.
 
 Models are chosen by the bench (`npm run bench`, results in `bench/RESULTS.md`) and can be overridden with `TRANSCRIBE_MODEL`, `TRIAGE_MODEL`, `DIGEST_MODEL`. Claude models go direct through the Anthropic SDK when `ANTHROPIC_API_KEY` is set.
 

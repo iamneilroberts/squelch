@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Station Manual</title>
+<meta name="description" content="How the receiver works, and every AI and API call behind it: timing, tokens and cost.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Yellowtail&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="costs.css">
+</head>
+<body>
+<div class="ledger-wrap">
+  <header class="ledger-head">
+    <a class="back" href="/">← Receiver</a>
+    <h1><span class="badge-script">Station</span> Manual</h1>
+    <div class="keys" role="tablist" aria-label="Section">
+      <button class="key" role="tab" id="tab-how" aria-controls="how">How it works</button>
+      <button class="key" role="tab" id="tab-ledger" aria-controls="ledger">Ledger</button>
+    </div>
+    <div class="keys" role="group" aria-label="Period" id="period" hidden>
+      <button class="key" data-h="1">1 h</button>
+      <button class="key" data-h="24" aria-pressed="true">24 h</button>
+      <button class="key" data-h="168">7 d</button>
+      <button class="key" data-h="720">30 d</button>
+    </div>
+  </header>
+
+  <main class="book manual" id="how" role="tabpanel" aria-labelledby="tab-how">
+    <nav class="page wide toc" aria-label="Contents">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#pipeline">From radio to map</a></li>
+        <li><a href="#squelch">Capture and squelch</a></li>
+        <li><a href="#transcribe">Transcription and the speech gate</a></li>
+        <li><a href="#triage">Incidents</a></li>
+        <li><a href="#stories">Channel stories</a></li>
+        <li><a href="#captions">Closed captions</a></li>
+        <li><a href="#scan">Scan</a></li>
+        <li><a href="#notify">Notifications</a></li>
+        <li><a href="#listen">Listening live</a></li>
+        <li><a href="#digest">Daily log</a></li>
+        <li><a href="#privacy">Sharing and privacy</a></li>
+        <li><a href="#models">Models and cost</a></li>
+      </ol>
+    </nav>
+
+    <section class="page wide" id="pipeline">
+      <h2>From radio to map</h2>
+      <p>Every recorded feed runs through the same line. Each step either drops the clip, which costs nothing further, or passes it on:</p>
+<p class="flow"><span>feed</span>&nbsp;<b>→</b> <span>45 s segments</span>&nbsp;<b>→</b> <span>silence gate</span>&nbsp;<b>→</b> <span>adaptive squelch</span>&nbsp;<b>→</b> <span>speech-to-text</span>&nbsp;<b>→</b> <span>filters</span>&nbsp;<b>→</b> <span>speech gate</span>&nbsp;<b>→</b> <span>channel story + triage</span>&nbsp;<b>→</b> <span>geocode</span>&nbsp;<b>→</b> <span>map · log · captions · alerts</span></p>
+      <p>Listen-only entries on the dial (LiveATC, NOAA Weather Radio) aren't recorded; tuning one opens its own page.</p>
+    </section>
+
+    <section class="page wide" id="squelch">
+      <h2>Capture and squelch</h2>
+      <ul>
+        <li><strong>Segments.</strong> ffmpeg cuts each Broadcastify stream into 45-second pieces (<code>SEGMENT_SECONDS</code>).</li>
+        <li><strong>Silence gate.</strong> ffmpeg's <code>silenceremove</code> drops everything quieter than −42 dB (per feed: <code>squelchDb</code>) and gaps longer than 0.7 s. A piece left with under 1.5 s of sound is dropped.</li>
+        <li><strong>Adaptive squelch.</strong> Hum, hiss and an open carrier are loud enough to pass the silence gate, so a second check listens for speech. The clip is split into 32 ms frames and 16 bands from 300 to 3,400 Hz. Each band's background is measured from the clip itself (its 30th percentile). A frame counts as speech when at least 4 bands are 6 dB or more above their background.
+          <ul>
+            <li>Under 1.0 s of speech: dropped before it reaches the transcriber.</li>
+            <li>Under 85% speech: the non-speech parts are cut out.</li>
+          </ul>
+          This is what keeps a channel like Greene County Fire, which hisses all day, from ever producing a clip.</li>
+        <li><strong>Retention.</strong> Clips are kept for 7 days (<code>RECORD_DAYS</code>), longer if a daily log uses them.</li>
+      </ul>
+    </section>
+
+    <section class="page wide" id="transcribe">
+      <h2>Transcription and the speech gate</h2>
+      <ul>
+        <li><strong>Speech-to-text.</strong> Each clip goes to <code>xiaomi/mimo-v2.6-flash</code> through OpenRouter, with the area's place and street names as vocabulary.</li>
+        <li><strong>Filters.</strong> Transcribers sometimes invent words from noise. Empty answers, placeholders, the model's own commentary ("no intelligible speech") and echoes of the prompt are thrown out.</li>
+        <li><strong>Speech gate.</strong> TypeSafe's Jev asks two quick questions of every transcript: is this real speech, and is it newsworthy?
+          <ul>
+            <li>Speech under 0.3: the clip is dropped as filler.</li>
+            <li>Newsworthy under 0.2: the clip is kept but skips incident triage. 5% of skipped clips are triaged anyway, to catch misses.</li>
+          </ul>
+        </li>
+      </ul>
+    </section>
+
+    <section class="page wide" id="triage">
+      <h2>Incidents</h2>
+      <p>Triage (<code>openai/gpt-6-luna</code>, strict JSON) turns a transcript into zero or more incidents. Each has a headline, a summary, a type, a category (breaking, notable or routine), the units involved and the location as spoken. Before deciding, it's shown the feed's incidents from the last 45 minutes, so follow-ups update an existing incident instead of starting a new one. Locations are geocoded with OpenStreetMap, limited to the feed's area; when there's no usable address, the marker sits at the feed's home and says "approx.".</p>
+    </section>
+
+    <section class="page wide" id="stories">
+      <h2>Channel stories</h2>
+      <p>Every saved transmission, triaged or not, also updates its <em>channel's story</em>: what that channel's current conversation is about. One AI call per transmission (<code>openai/gpt-6-luna</code>) gets the story so far and the new transcript, and returns:</p>
+      <ul>
+        <li><strong>same</strong>: whether this continues the story. It defaults to yes for replies, acknowledgements and garbled fragments. It says no only when a clearly different matter starts, or the current one has clearly ended.</li>
+        <li><strong>subject</strong>: a headline of up to 8 words that stays put while the matter is worked, e.g. "Structure fire, Elm St". Routine chatter is one ongoing story, e.g. "Tower traffic, runway 14 in use".</li>
+        <li><strong>facts</strong>: up to 6 labelled facts, rewritten as things change. For example units, command, size-up and status for a fire; vehicle, direction and last location for a pursuit.</li>
+        <li><strong>note</strong>: one line for the chronology, or nothing when the transmission adds nothing.</li>
+        <li><strong>alert</strong> (0–1) and <strong>why</strong>, used for notifications.</li>
+      </ul>
+      <p>A story stays open while its channel has traffic within 30 minutes. The title line under the transport keys shows it; tap it for the facts and the chronology, with each entry playable.</p>
+    </section>
+
+    <section class="page wide" id="captions">
+      <h2>Closed captions</h2>
+      <p>Transcripts arrive without word timings. So when a clip is first played, the server finds where in it the voice is (the same speech detection as the squelch) and spreads the transcript over those stretches, each line in proportion to its length. The result is a WebVTT file (<code>/api/captions/&lt;clip&gt;.vtt</code>), cached with the call, that the page attaches to the audio. That keeps the caption strip in step with play, pause and seek.</p>
+      <p>The strip rolls up three lines. Each transmission is one paragraph starting with its band tag and station, e.g. <span class="tag-sample">ATC</span> MOB INTL. The text is monospace, so line breaks can be predicted: older text is trimmed from the front ("…") so every visible paragraph keeps its tag. When tuned live, the strip shows that channel's transcripts as they arrive, about a minute behind.</p>
+    </section>
+
+    <section class="page wide" id="scan">
+      <h2>Scan</h2>
+      <p>Scan plays recordings, not live streams: each new clip from the channels you've chosen, back to back, about a minute behind live. The page opens scanning. Browsers won't play sound before you touch the page, so the first transmission waits for a tap.</p>
+      <ul>
+        <li><strong>Channels.</strong> Scan follows whatever the Location knob and band keys show, minus locked-out stations. When it starts, it queues up to 3 clips from the last 2 minutes so there's something to hear straight away.</li>
+        <li><strong>Queue.</strong> New clips arrive over a server-sent event stream. Priority channels go first, then oldest first. The queue keeps the newest 20, so Scan never falls far behind.</li>
+        <li><strong>After each transmission</strong> Scan waits 2.5 s on that channel. A reply there, or any priority traffic, plays at once, and you have time to press <strong>Hold</strong>.</li>
+        <li><strong>Hold / Resume</strong> stays on one channel and plays its traffic as it arrives.</li>
+        <li><strong>Prev</strong> steps back through the channels Scan stopped on, one per press, and replays each one's last transmission.</li>
+        <li><strong>Priority and lockout.</strong> While scanning, tapping a station cycles it normal → PRI → L/O. Priority traffic jumps the queue and interrupts an ordinary transmission on another channel. Your choices are saved in this browser.</li>
+        <li><strong>Idle.</strong> With nothing queued, the needle sweeps across the scanned stations, like a scanner searching.</li>
+      </ul>
+      <p><strong>Why Scan never sticks on a noisy channel:</strong> it only plays clips that passed every stage above. A channel carrying only hiss, hum or an open mic never produces one: the adaptive squelch drops it before transcription, the filters drop invented text, and the speech gate drops filler. So there's nothing to stop on. A channel with real but dull chatter does still play; lock it out (L/O) or leave its band out.</p>
+    </section>
+
+    <section class="page wide" id="notify">
+      <h2>Notifications</h2>
+      <p>Standard Web Push, set up per browser with the bell on the grille. Each browser has its own sensitivity and favourite channels. Setup is in <a href="https://github.com/iamneilroberts/squelch/blob/main/docs/NOTIFICATIONS.md" target="_blank" rel="noopener">docs/NOTIFICATIONS.md</a>.</p>
+      <ul>
+        <li><strong>When.</strong> The story's alert score × 1.4 for a favourite × what this browser has learned (×0.25–×2) has to reach the sensitivity: 0.8 Quiet, 0.6 Normal, 0.4 Chatty. A major event (0.9+) on a favourite always gets through.</li>
+        <li><strong>How often.</strong> One notification per story. Another only if the story's score rises by 0.25 or more, and it replaces the earlier one. At most 6 an hour, except major events.</li>
+        <li><strong>Learning.</strong> Each notification counts as evidence about its channel and story type:
+          <ul>
+            <li>More / Fewer: ±2.</li>
+            <li>Opened and stayed 60 s or more: +1 (15 s or more: +0.5).</li>
+            <li>Not opened within 30 minutes: −0.5.</li>
+          </ul>
+          Evidence fades by half every 14 days. Ignoring alone can't push a weight below ×0.76; only Fewer reaches ×0.25.</li>
+        <li><strong>Listener surges.</strong> Every 3 minutes the receiver reads each Broadcastify feed's listener count, minus its own recorder, and compares it with that feed's usual audience: the median for this hour and weekday over 4 weeks, falling back to shorter histories at first. At least 3× usual and +5 listeners (6 or more in all) triggers one closer-look AI call on the channel's story, which can raise its score. With nothing transcribed lately, a 5× surge of 10 or more becomes its own story.</li>
+      </ul>
+    </section>
+
+    <section class="page wide" id="listen">
+      <h2>Listening live</h2>
+      <p>Tuning a station plays its live Broadcastify stream through the receiver (<code>/listen/&lt;feed&gt;</code>), which adds the Broadcastify login, so no sign-in box appears. Broadcastify only serves these streams to Premium accounts. On the LAN, and for owners, that's the receiver's own account. A guest signs in with their own Premium login, held in memory only, because passing the owner's subscription to others would be re-streaming.</p>
+    </section>
+
+    <section class="page wide" id="digest">
+      <h2>Daily log</h2>
+      <p>After midnight, each area's previous day is read back by <code>openai/gpt-6-luna-pro</code>. It picks the storylines worth retelling, prints them in the Daily log, and stitches their real audio into a highlight reel. "Today so far" builds one on request.</p>
+    </section>
+
+    <section class="page wide" id="privacy">
+      <h2>Sharing and privacy</h2>
+      <p>The receiver runs at home. Visitors come through a Cloudflare Tunnel behind Cloudflare Access, so only invited email addresses get in. Raw transcripts can carry names, addresses and plates, so tunnel visitors don't get them unless the owner switches "Remote transcripts" on; incidents, stories and notifications never include them. Notification tracking (opened, time in view, More/Fewer) stays on this server, per browser.</p>
+    </section>
+
+    <section class="page wide" id="models">
+      <h2>Models and cost</h2>
+      <div class="table-scroll"><table class="accounts">
+        <thead><tr><th>Job</th><th>Model</th><th>Runs</th></tr></thead>
+        <tbody>
+          <tr><td>Speech-to-text</td><td><code>xiaomi/mimo-v2.6-flash</code></td><td>every clip that passes the squelch</td></tr>
+          <tr><td>Speech gate</td><td><code>~typesafe/jev-latest</code></td><td>every transcript</td></tr>
+          <tr><td>Channel story + alert</td><td><code>openai/gpt-6-luna</code></td><td>every saved transmission</td></tr>
+          <tr><td>Incident triage</td><td><code>openai/gpt-6-luna</code></td><td>transcripts the gate calls newsworthy</td></tr>
+          <tr><td>Listener-surge look</td><td><code>openai/gpt-6-luna</code></td><td>at most once per feed per 45 min</td></tr>
+          <tr><td>Daily log</td><td><code>openai/gpt-6-luna-pro</code></td><td>once per area per day</td></tr>
+        </tbody>
+      </table></div>
+      <p>Models were picked with the bench (<code>npm run bench</code>) and can be overridden in <code>.env</code>. The <a href="#ledger">Ledger</a> tab shows actual spend, call by call.</p>
+    </section>
+  </main>
+
+  <main class="book" id="ledger" role="tabpanel" aria-labelledby="tab-ledger" hidden>
+    <section class="page" aria-labelledby="h-balance">
+      <h2 id="h-balance">Balance</h2>
+      <dl class="leaders" id="balance"></dl>
+    </section>
+
+    <section class="page" aria-labelledby="h-gate">
+      <h2 id="h-gate">Jev gate · shadow mode</h2>
+      <div id="gate"></div>
+    </section>
+
+    <section class="page wide" aria-labelledby="h-vad">
+      <h2 id="h-vad">Speech detector</h2>
+      <div id="vad"></div>
+    </section>
+
+    <section class="page wide" aria-labelledby="h-accounts">
+      <h2 id="h-accounts">Accounts</h2>
+      <div class="table-scroll"><table class="accounts" id="accounts"></table></div>
+    </section>
+
+    <section class="page wide" aria-labelledby="h-traces">
+      <h2 id="h-traces">Behind the scenes</h2>
+      <p class="hint">One line per radio clip or digest. Open a line to see each call on its own timeline.</p>
+      <ol class="traces" id="traces"></ol>
+    </section>
+  </main>
+</div>
+<script src="manual.js" type="module"></script>
+</body>
+</html>

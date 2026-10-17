@@ -123,3 +123,23 @@ table.accounts { width: 100%; border-collapse: collapse; font-size: 13px; }
   .trace summary { grid-template-columns: 40px minmax(0, 1fr) 64px; }
   .trace .feed { display: none; }
 }
+
+/* Station Manual: the "How it works" pages share the ledger book's paper. */
+.ledger-head [role="tab"][aria-selected="true"] {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 var(--bakelite-3), 0 1px 2px oklch(0 0 0 / .5), inset 0 2px 4px oklch(0.5 0.04 70 / .35);
+  color: var(--needle);
+}
+.manual { font-family: var(--font-type); font-size: 14px; line-height: 1.6; }
+.manual p, .manual li { max-width: 78ch; }
+.manual ul { padding-left: 20px; }
+.manual li + li { margin-top: 6px; }
+.manual ul ul { margin-top: 4px; }
+.manual code { background: oklch(0.92 0.03 90); padding: 0 4px; font-size: .95em; }
+.manual a { color: var(--blue-ink); }
+.manual .toc ol { columns: 2 220px; margin: 0; padding-left: 3.4ch; }
+.manual section { scroll-margin-top: 12px; }
+.flow { line-height: 2; }
+.flow span { white-space: nowrap; padding: 1px 6px; border: 1px solid var(--ink-soft); border-radius: 3px; background: oklch(0.97 0.02 90); }
+.flow b { color: var(--red-ink); font-weight: 400; }
+.tag-sample { padding: 0 5px; border: 1.5px solid oklch(0.55 0.11 220); border-radius: 3px; font-size: 11px; font-weight: 700; color: oklch(0.45 0.11 220); }
