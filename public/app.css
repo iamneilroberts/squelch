@@ -502,7 +502,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .bell svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 0 oklch(1 0 0 / .8)); }
 .bell .lamp { width: 7px; height: 7px; }
-.update-key { right: auto; left: 8px; font: 700 10px var(--font-type); letter-spacing: .06em; text-transform: uppercase; color: var(--red-ink); }
+.manual-key { right: auto; left: 8px; text-decoration: none; font: 700 10px var(--font-type); letter-spacing: .06em; text-transform: uppercase; }
+.update-key { right: auto; left: 8px; top: auto; bottom: 8px; font: 700 10px var(--font-type); letter-spacing: .06em; text-transform: uppercase; color: var(--red-ink); }
 .bell[aria-pressed="true"] .lamp { background: var(--lamp-amber); box-shadow: 0 0 6px var(--lamp-amber); }
 .notify-msg { margin: 12px 0; font-size: 13.5px; line-height: 1.5; }
 .notify-msg a { color: var(--blue-ink); }
@@ -792,6 +793,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .badge-script { font-size: 26px; }
   .badge-caps { font-size: 12px; }
   .badge-sub { display: none; } /* the region name costs a line the phone needs */
+  .manual-key span { display: none; } /* just the book icon beside the badge */
   .dial-scroll { -webkit-overflow-scrolling: touch; }
   .dial { height: 82px; }
   .dial-bands { top: 5px; }
