@@ -169,6 +169,21 @@ export function saveThread(callId, sourceId, at, threadId, { subject, facts, not
   return id;
 }
 
+// A listener surge records the audience as a fact and may raise the story's alert (never lower it).
+export function boostThread(id, { alert, why, fact }) {
+  const t = db.prepare('SELECT alert, why, facts FROM threads WHERE id = ?').get(id);
+  const facts = [...JSON.parse(t.facts).filter((f) => f.label !== fact.label), fact].slice(-6);
+  const higher = alert > t.alert;
+  db.prepare('UPDATE threads SET alert = ?, why = ?, facts = ? WHERE id = ?').run(higher ? Math.min(1, alert) : t.alert, higher ? why : t.why, JSON.stringify(facts), id);
+}
+
+// A story with no transmissions behind it (a listener surge nobody on the channel has explained yet).
+export function newThread(sourceId, { subject, facts, type, alert, why }) {
+  const at = new Date().toISOString();
+  return Number(db.prepare('INSERT INTO threads (source_id, subject, facts, started_at, updated_at, type, alert, why) VALUES (?,?,?,?,?,?,?,?)')
+    .run(sourceId, subject, JSON.stringify(facts), at, at, type, alert, why).lastInsertRowid);
+}
+
 export function getThread(id) {
   const t = db.prepare('SELECT * FROM threads WHERE id = ?').get(id);
   if (!t) return null;

@@ -30,6 +30,12 @@ const SCHEMA = {
   },
 };
 
+const ALERT_SCALE = `alert — 0 to 1, for the whole story as it stands now (not just this transmission), judged as a local news editor would:
+- 0–0.2 routine traffic, unit status, minor medical or lift assists, normal ATC
+- 0.3–0.5 an ordinary incident worth a glance: a crash without serious injury, an alarm, a small outside fire
+- 0.6–0.8 a significant incident: working structure fire, crash with injuries or entrapment, pursuit, missing child, water rescue, hazmat leak, road closed
+- 0.9–1 a major event: multiple alarms or mutual aid, mass casualties, aircraft or vessel in distress (mayday, pan-pan), officer needs help, large evacuation`;
+
 const SYSTEM = `You keep the running story of one scanner-radio channel's current conversation.
 
 same — does the new transmission continue the current story?
@@ -50,11 +56,7 @@ note — one short line (max 14 words) for the chronology: what this transmissio
 
 type — what kind of story it is ("routine" for chatter with nothing to track).
 
-alert — 0 to 1, for the whole story as it stands now (not just this transmission), judged as a local news editor would:
-- 0–0.2 routine traffic, unit status, minor medical or lift assists, normal ATC
-- 0.3–0.5 an ordinary incident worth a glance: a crash without serious injury, an alarm, a small outside fire
-- 0.6–0.8 a significant incident: working structure fire, crash with injuries or entrapment, pursuit, missing child, water rescue, hazmat leak, road closed
-- 0.9–1 a major event: multiple alarms or mutual aid, mass casualties, aircraft or vessel in distress (mayday, pan-pan), officer needs help, large evacuation
+${ALERT_SCALE}
 Raise it as a story escalates; never lower it below an earlier peak just because the latest transmission is routine.
 
 why — max 10 words on what makes it notable ("Second alarm requested, crews pulled out"), empty for routine.
@@ -71,5 +73,29 @@ export async function nextThread({ source, current, transcript }, model = proces
       : 'Current story: (none)\n')
     + `\nNew transmission:\n${transcript}`;
   const r = await chatJson({ model, system: SYSTEM, user, schema: SCHEMA, name: 'thread', purpose: 'thread', maxTokens: 800 });
+  return r.data;
+}
+
+// A listener surge (src/listeners.mjs): far more people than usual just tuned in to this channel.
+// Re-score its current story with that in mind.
+const LOOK_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['alert', 'why'],
+  properties: { alert: { type: 'number' }, why: { type: 'string', description: 'Max 10 words, or empty' } },
+};
+const LOOK_SYSTEM = `You re-check a scanner-radio channel's current story because far more people than usual just tuned in to it; a jump like that often means word is spreading about something happening.
+
+${ALERT_SCALE}
+The surge is supporting evidence, not proof: raise the score only as far as the traffic supports it. If the story is routine and nothing in it explains the surge, keep the score low.
+
+why — max 10 words on what makes it notable, empty if nothing does. Never include personal names, phone numbers or plates.`;
+
+export async function closerLook({ source, listeners, usual, story }, model = process.env.THREAD_MODEL || DEFAULT_THREAD_MODEL) {
+  const user = `Channel: ${source.name} (${source.band})\nListeners now: ${listeners} (usually ${usual})\n\n`
+    + `Current subject: ${story.subject}\nFacts:\n${story.facts.map((f) => `- ${f.label}: ${f.value}`).join('\n') || '(none)'}\n`
+    + `Chronology:\n${story.notes.map((n) => `- ${n}`).join('\n') || '(none)'}\n`
+    + `Latest transmissions:\n${story.transcripts.map((t) => `- ${t}`).join('\n')}`;
+  const r = await chatJson({ model, system: LOOK_SYSTEM, user, schema: LOOK_SCHEMA, name: 'closer_look', purpose: 'listener-surge', maxTokens: 300 });
   return r.data;
 }

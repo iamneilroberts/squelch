@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, createReadStream, existsSync, statSync } f
 import { join, extname, normalize, dirname } from 'node:path';
 import { recentIncidents, recentCalls, listDigests, getDigest, callsBetween, callByAudio, setCues, getThread } from './db.mjs';
 import { buildCues, toVtt } from './ingest/captions.mjs';
+import { startListeners } from './listeners.mjs';
 import { pushReady, publicKey, LEVELS, configureNotify, subscription, subscribe, setPrefs, unsubscribe, sendTest } from './notify.mjs';
 import { startIngest, bus, status, GATE, VAD } from './ingest/pipeline.mjs';
 import { overlays, startShips } from './overlays.mjs';
@@ -301,4 +302,7 @@ createServer(async (req, res) => {
   }
 }).listen(PORT, () => console.log(`${station.script} ${station.caps} on http://localhost:${PORT} (config: ${configFile})`));
 
-if (process.env.INGEST !== '0') startIngest(sources, regions);
+if (process.env.INGEST !== '0') {
+  startIngest(sources, regions);
+  startListeners(sources);
+}

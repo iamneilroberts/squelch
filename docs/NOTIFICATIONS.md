@@ -10,6 +10,15 @@ Squelch can send a push notification when something notable happens on your chan
 - At most 6 an hour per browser, except major events (0.9+).
 - Tapping a notification opens the receiver on that story.
 
+### Listener surges
+
+Every 3 minutes Squelch reads each Broadcastify feed's listener count, minus its own recorder. It learns each feed's usual audience: the median for that hour and weekday over 4 weeks, falling back to that hour of day over a week, then the last day. So surge detection starts after about a day of history.
+
+- A surge is at least 3× usual and +5 listeners, with 6 or more tuned in.
+- It triggers one closer-look AI call on the channel's current story, which can raise its score. The story card then shows a fact like "Listeners: 21 (usually 2)", and the notification says "11× usual listeners".
+- If nothing has been transcribed on that channel lately (or it's a listen-only feed), a surge of 5× usual and 10+ listeners becomes its own "Listener surge" story.
+- At most one closer look per feed every 45 minutes. Set `LISTENER_POLL_S=0` in `.env` to turn surge detection off.
+
 ## Set up (once, about 5 minutes)
 
 1. Generate a key pair and add it to `.env`:
