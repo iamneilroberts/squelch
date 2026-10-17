@@ -417,6 +417,7 @@ function ccLive() {
 radio.addEventListener('playing', () => {
   if (radio.dataset.kind === 'scan') { // the stream plays silence between transmissions
     scan.idle = false; // redraw: replaces "tap anywhere to listen"
+    if (!scan.live) { scan.live = true; scanSync(); } // settings changed while connecting
     return scanShow();
   }
   setLit(true);
@@ -454,6 +455,7 @@ const scan = {
   shown: null,        // the announcement on air now
   retry: null,
   stepper: null,
+  live: false,        // the stream has played: the server has this scan, so it can be told of changes
   step: 0,
   current: null,      // channel of the transmission playing or just played
   idle: true,         // nothing playing and no delay running
@@ -507,6 +509,7 @@ function scanConnect() {
   clearTimeout(scan.retry);
   scan.sid = Math.random().toString(36).slice(2, 10);
   scan.epoch = null;
+  scan.live = false;
   scan.plays = [];
   scan.shown = null;
   playlist = [];
@@ -527,7 +530,7 @@ function scanReconnect() {
 }
 // Channels, priority or hold changed (or PREV wants a replay, or Catch up a story): tell the server's scan.
 function scanSync(extra = {}) {
-  if (scan.on && scan.sid) postJson(`/api/scan/${scan.sid}`, { ...scanSettings(), ...extra }).catch(() => {});
+  if (scan.on && scan.sid && scan.live) postJson(`/api/scan/${scan.sid}`, { ...scanSettings(), ...extra }).catch(() => {});
 }
 // The browser re-requested the scan's stream by itself and the server started it over, so the stream's
 // positions no longer match the page's: connect afresh.
