@@ -825,6 +825,11 @@ $('toggles').addEventListener('click', (e) => {
   on ? layers[t.dataset.layer].addTo(map) : layers[t.dataset.layer].remove();
   on ? layersOff.delete(t.dataset.layer) : layersOff.add(t.dataset.layer);
   store.set('pcm.layersOff', JSON.stringify([...layersOff]));
+  if (t.dataset.layer === 'aircraft' && !on) layers.emergencyAir.clearLayers(); // no longer refreshed
+  if (on) ({ aircraft: refreshAircraft, trains: refreshTrains, ships: refreshShips, alerts: refreshAlerts })[t.dataset.layer]?.();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') { refreshAircraft(); refreshTrains(); refreshShips(); refreshAlerts(); refreshTide(); }
 });
 const setCount = (k, n) => { const el = $(`n-${k}`); if (el) el.textContent = n; };
 
@@ -927,9 +932,12 @@ async function getJson(url, opts) {
   if (!r.ok) throw Object.assign(new Error(body.error || r.status), { status: r.status });
   return body;
 }
+// Overlays are fetched only while their layer is on and the page is in view.
+const polling = (k) => !layersOff.has(k) && document.visibilityState === 'visible';
 const overlay = (name) => getJson(`/api/overlays/${name}?region=${state.region}`);
 
 async function refreshAircraft() {
+  if (!polling('aircraft')) return;
   try {
     const list = await overlay('aircraft');
     layers.aircraft.clearLayers();
@@ -946,6 +954,7 @@ async function refreshAircraft() {
 }
 
 async function refreshTrains() {
+  if (!polling('trains')) return;
   try {
     const list = await overlay('trains');
     layers.trains.clearLayers();
@@ -959,6 +968,7 @@ async function refreshTrains() {
 }
 
 async function refreshShips() {
+  if (!polling('ships')) return;
   try {
     const list = await overlay('ships');
     layers.ships.clearLayers();
@@ -972,6 +982,7 @@ async function refreshShips() {
 }
 
 async function refreshAlerts() {
+  if (!polling('alerts')) return;
   try {
     const list = await overlay('alerts');
     layers.alerts.clearLayers();
@@ -991,6 +1002,7 @@ async function refreshAlerts() {
 }
 
 async function refreshTide() {
+  if (!polling('tide')) return;
   try {
     const t = await overlay('tide');
     layers.tide.clearLayers();

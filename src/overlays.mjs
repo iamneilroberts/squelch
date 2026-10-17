@@ -5,7 +5,7 @@ import { span } from './meter.mjs';
 const UA = { 'User-Agent': 'PortCityMonitor/0.1 (local scanner map)' };
 
 const cache = new Map();
-async function cached(key, ttlMs, fn) {
+async function cached(key, ttlMs, fn, empty = []) {
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < ttlMs) return hit.value;
   try {
@@ -14,15 +14,33 @@ async function cached(key, ttlMs, fn) {
     return value;
   } catch (e) {
     if (hit) return hit.value;
+    if (e.backoff) return empty; // upstream is cooling off and there's nothing older to show
     throw e;
   }
 }
+// An upstream that answers 429/420 or times out is left alone for its Retry-After, else 30 s doubling to 5 min.
+const cooling = new Map(); // host → { until, fails }
+function coolOff(host, retryAfter) {
+  const fails = (cooling.get(host)?.fails ?? 0) + 1;
+  const secs = Number(retryAfter) || (Date.parse(retryAfter) - Date.now()) / 1000;
+  const wait = secs > 0 ? Math.min(secs * 1000, 3600e3) : Math.min(300e3, 30e3 * 2 ** (fails - 1));
+  cooling.set(host, { until: Date.now() + wait, fails });
+}
 // Upstream fetches (cache misses only) are metered as free API calls.
-const getJson = (url, headers = UA) => span({ kind: 'http', purpose: `overlay:${new URL(url).host}`, provider: new URL(url).host }, async () => {
-  const r = await fetch(url, { headers, signal: AbortSignal.timeout(10000) });
-  if (!r.ok) throw new Error(`${r.status} ${url}`);
-  return r.json();
-}, () => ({ cost: 0 }));
+const getJson = (url, headers = UA) => {
+  const { host } = new URL(url);
+  if (cooling.get(host)?.until > Date.now()) return Promise.reject(Object.assign(new Error(`${host} is cooling off`), { backoff: true }));
+  return span({ kind: 'http', purpose: `overlay:${host}`, provider: host }, async () => {
+    const r = await fetch(url, { headers, signal: AbortSignal.timeout(10000) }).catch((e) => {
+      if (e.name === 'TimeoutError') coolOff(host);
+      throw e;
+    });
+    if (r.status === 429 || r.status === 420) coolOff(host, r.headers.get('retry-after'));
+    if (!r.ok) throw new Error(`${r.status} ${url}`);
+    cooling.delete(host);
+    return r.json();
+  }, () => ({ cost: 0 }));
+};
 const inBox = ([s, w, n, e], lat, lng) => lat >= s && lat <= n && lng >= w && lng <= e;
 
 export const overlays = {
@@ -64,7 +82,7 @@ export const overlays = {
     const d = await getJson(`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${encodeURIComponent(r.tide)}&product=water_level&date=latest&datum=MLLW&time_zone=gmt&units=english&format=json`);
     const v = d.data?.[0];
     return v ? { station: d.metadata?.name, ft: Number(v.v), at: v.t.replace(' ', 'T') + ':00Z', lat: Number(d.metadata?.lat), lng: Number(d.metadata?.lon) } : null;
-  })),
+  }, null)),
 
   ships: (r) => Promise.resolve(ships.list().filter((s) => inBox(r.bbox, s.lat, s.lng))),
 };
