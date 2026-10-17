@@ -931,6 +931,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .tkey { width: 44px; padding: 10px 0 8px; } /* 44 px touch targets */
   .tkey.scan-key { width: auto; min-width: 44px; padding: 10px 8px 8px; letter-spacing: .08em; }
   #btn-catchup { min-height: 44px; padding-top: 6px; padding-bottom: 5px; }
+  #btn-skip { min-height: 44px; }
   .follow-key { min-height: 44px; padding: 0 12px; }
   .follow { position: static; grid-area: auto; }
   .faceplate:has(.follow:not([hidden])) .grille { place-items: center; padding: 8px; }

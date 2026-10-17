@@ -170,7 +170,7 @@ export async function scanStream(req, res, params, announce) {
   pump(s);
 }
 
-// POST /api/scan/<sid> — the page's channels, priority and hold changed, PREV asked for a replay, or
+// POST /api/scan/<sid> — the page's channels, priority and hold changed, PREV asked for a replay, Skip dropped the transmission on air, or
 // Catch up asked for a story so far (`catchup`: its thread id; its transmissions that added something,
 // or with `all` (or when none did) every one; or a list of call ids from a wider catch-up; 0 ends one).
 export function updateScan(sid, body) {
@@ -178,6 +178,13 @@ export function updateScan(sid, body) {
   if (!s) return null;
   apply(s, body);
   if (s.current && !s.current.tag && !eligible(s, s.current.call)) s.current = null; // locked out or held elsewhere mid-transmission
+  if (body.skip && s.current) { // Skip: drop it for good (not cut(), which re-queues), the rest of a catch-up stays queued
+    const id = s.current.call.id, play = s.plays.findLast((p) => p.call.id === id);
+    if (play) play.duration = s.written - play.offset; // what's already in the stream's lead still plays
+    s.queue = s.queue.filter((q) => q.call.id !== id);
+    s.current = null;
+    s.lingerUntil = 0;
+  }
   if (body.replay) enqueueList(s, [scanCall(Number(body.replay))], () => 'REPLAY');
   if (body.catchup !== undefined) {
     const list = Array.isArray(body.catchup) ? body.catchup.slice(0, CATCHUP_MAX).map((id) => scanCall(Number(id))) : null;

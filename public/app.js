@@ -642,6 +642,7 @@ function syncScanKeys() {
   $('btn-hold').setAttribute('aria-pressed', Boolean(scan.hold));
   $('btn-hold').textContent = scan.hold ? 'Resume' : 'Hold';
   $('btn-prev').disabled = !scan.on || scan.history.length < 1;
+  $('btn-skip').disabled = !scan.on || !scan.shown;
   const k = $('btn-catchup'), story = catchupStory();
   k.disabled = !scan.on || !story;
   k.setAttribute('aria-pressed', Boolean(scan.catchup));
@@ -672,6 +673,7 @@ function scanConnect() {
   scan.live = false;
   scan.plays = [];
   scan.shown = null;
+  scan.skipped = false;
   playlist = [];
   radio.querySelectorAll('track').forEach((t) => t.remove());
   radio.src = `/scan/stream?${new URLSearchParams({ sid: scan.sid, page: pageId, ...scanSettings() })}`;
@@ -690,7 +692,11 @@ function scanReconnect() {
 }
 // Channels, priority or hold changed (or PREV wants a replay, or Catch up a story): tell the server's scan.
 function scanSync(extra = {}) {
-  if (scan.on && scan.sid && scan.live) postJson(`/api/scan/${scan.sid}`, { ...scanSettings(), ...extra }).catch(() => {});
+  if (scan.on && scan.sid && scan.live) {
+    postJson(`/api/scan/${scan.sid}`, { ...scanSettings(), ...extra }).then((r) => {
+      for (const q of extra.skip && r?.plays || []) { const x = scan.plays.find((y) => y.offset === q.offset); if (x) x.duration = q.duration; } // the skipped play now ends where the server cut it
+    }).catch(() => {});
+  }
 }
 // The browser re-requested the scan's stream by itself and the server started it over, so the stream's
 // positions no longer match the page's: connect afresh.
@@ -714,11 +720,12 @@ function scanShow() {
   }
   if (scan.shown) {
     scan.shown = null;
+    syncScanKeys();
     setLit(false);
     onAirCall = null;
     showOnAir();
   }
-  if (scan.asked) return; // "Catching up · …" stays until the catch-up starts
+  if (scan.asked || scan.skipped) return; // "Catching up · …" stays until the catch-up starts
   if (p && !scan.hold && t < end + DELAY_MS / 1000) {
     scan.idle = false;
     $('now-playing').innerHTML = `Next in ${Math.max(1, Math.ceil(end + DELAY_MS / 1000 - t))} s · ${titleOf(scan.lastCall || p.call)}`; // countdown first: a long title is cut off at two lines
@@ -730,6 +737,7 @@ function scanPlaying(p) {
   const c = state.calls.find((x) => x.id === p.call.id) ?? p.call; // the page's copy has the latest subject
   scan.shown = p;
   scan.asked = null;
+  scan.skipped = false;
   clearInterval(scan.stepper);
   scan.stepper = null;
   scan.idle = false;
@@ -767,6 +775,7 @@ function mediaMeta(c) {
 try {
   navigator.mediaSession?.setActionHandler('play', resume);
   navigator.mediaSession?.setActionHandler('pause', () => radio.pause());
+  navigator.mediaSession?.setActionHandler('nexttrack', () => scanSkip());
 } catch { /* this browser lacks one of them */ }
 
 // Back from the lock screen or another app: the page missed the server's announcements while its
@@ -857,7 +866,16 @@ function scanPrev() {
 
 $('btn-scan').addEventListener('click', () => (scan.on ? powerOff() : startScan()));
 $('btn-hold').addEventListener('click', toggleHold);
+$('btn-skip').addEventListener('click', () => scanSkip());
 $('btn-prev').addEventListener('click', scanPrev);
+
+// Skip: drop the transmission on air and move on to the next (inside a catch-up, the next item of it).
+function scanSkip() {
+  if (!scan.on || !scan.shown) return;
+  scan.skipped = true;
+  $('now-playing').textContent = 'Skipped';
+  scanSync({ skip: true });
+}
 
 // Catch up: the story of the transmission on air (or just played), its transmissions that added something
 // played inside the scan stream, so it works with the phone locked; the story card opens to read along.
