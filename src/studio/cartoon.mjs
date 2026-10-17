@@ -1,6 +1,7 @@
-// Cartoon: a model writes the scene code for a flat vector SVG animation; it goes into a player page that
-// carries the real radio as a data URI and drives everything from one clock, render(t). Checked in Chrome,
-// then stepped frame by frame into an MP4 (which is what plays in messaging apps and file viewers).
+// Cartoon: a flat vector SVG animation in a player page that carries the real radio as a data URI and drives
+// everything from one clock, render(t). Two ways to make the scenes: twopass (the default) has a director model
+// plan a beat sheet that the library and engine render; oneshot (STUDIO_CARTOON_MODE=oneshot) has a model write
+// the scene code itself. Either way it's checked in Chrome, then stepped frame by frame into an MP4.
 import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -9,6 +10,7 @@ import { openRouter } from '../ai/llm.mjs';
 import { RULES } from './script.mjs';
 import { scrub, timeCaptions } from './track.mjs';
 import { withBrowser } from './browser.mjs';
+import { direct, LIB, ENGINE } from './director.mjs';
 
 const ASSETS = new URL('./assets/', import.meta.url).pathname;
 const REFERENCE = readFileSync(join(ASSETS, 'cartoon-ref.js'), 'utf8');
@@ -45,7 +47,10 @@ function staticCheck(code) {
   return null;
 }
 
-function page(code, tl, audio, label) {
+// The two-pass page: the library, the engine, and the director's beat sheet as data.
+export const beatCode = (beat) => `${LIB}\n${ENGINE}\nstudioPlay(${JSON.stringify(beat).replace(/</g, '\\u003c')});`;
+
+export function page(code, tl, audio, label) {
   const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   return readFileSync(join(ASSETS, 'cartoon.html'), 'utf8')
     .replace('__SCENES__', () => code.replace(/<\/script/gi, '<\\/script'))
@@ -106,17 +111,10 @@ async function captureMp4(browser, job, file, audio, total, out) {
   if (code !== 0) throw new Error(`ffmpeg: ${err.trim().slice(-300)}`);
 }
 
-export async function makeCartoon(job, { script, track, subtitle }) {
-  const tl = {
-    title: scrub(script.title), channel: subtitle, end: track.end, total: track.total,
-    clips: track.clips.map((c) => ({ start: c.start, dur: +c.dur.toFixed(2), clock: c.clock })),
-    captions: timeCaptions(track.clips, track.clips.map((_, i) => script.captions.find((c) => c.clip === i)?.lines.map(scrub))),
-    punch: script.punch.slice(0, 3).map(scrub),
-  };
+// One shot: the model writes the scene code; a failed check sends it back once.
+async function oneShot(job, { script, tl, file, label, track }) {
   const brief = JSON.stringify({ title: tl.title, cast: script.cast, beats: script.beats, TL: tl }, null, 1);
   const model = job.models.cartoon;
-  const file = join(job.dir, 'cartoon.html');
-  const label = `Cartoon: ${tl.title}`;
   let code = '', problem = null, played = false;
   for (let attempt = 0; attempt < 2; attempt++) {
     job.progress(attempt ? 'fixing the cartoon (second try)' : 'writing the cartoon');
@@ -140,10 +138,36 @@ export async function makeCartoon(job, { script, track, subtitle }) {
   }
   if (problem) throw new Error(`The cartoon didn't work after two tries: ${problem}`);
 
+  return { played, notes: null };
+}
+
+export async function makeCartoon(job, { script, track, subtitle, mode = 'twopass', provider }) {
+  const tl = {
+    title: scrub(script.title), channel: subtitle, end: track.end, total: track.total,
+    clips: track.clips.map((c) => ({ start: c.start, dur: +c.dur.toFixed(2), clock: c.clock })),
+    captions: timeCaptions(track.clips, track.clips.map((_, i) => script.captions.find((c) => c.clip === i)?.lines.map(scrub))),
+    punch: script.punch.slice(0, 3).map(scrub),
+  };
+  const file = join(job.dir, 'cartoon.html');
+  const label = `Cartoon: ${tl.title}`;
+  let played, notes = null;
+  if (mode === 'oneshot') ({ played } = await oneShot(job, { script, tl, file, label, track }));
+  else {
+    const { beat, problems } = await direct(job, { script, tl, provider, model: job.models.director });
+    if (beat.punch.length === 3) tl.punch = beat.punch;
+    writeFileSync(join(job.dir, 'beats.json'), JSON.stringify(beat, null, 1));
+    writeFileSync(file, page(beatCode(beat), tl, track.file, label));
+    job.progress('checking it plays');
+    const checked = await withBrowser(async (b) => ({ error: await playCheck(b, file, tl.total) }));
+    played = Boolean(checked);
+    if (checked?.error) throw new Error(`The cartoon didn't play: ${checked.error}`);
+    if (problems.length) notes = `Director's plan kept with ${problems.length} small problem${problems.length > 1 ? 's' : ''} fixed up: ${problems.slice(0, 3).join('; ')}`;
+  }
+
   job.progress('rendering the MP4', 0);
   const t0 = Date.now();
   const made = await withBrowser(async (b) => { await captureMp4(b, job, file, track.file, tl.total, join(job.dir, 'cartoon.mp4')); return true; });
   return made
-    ? { render_s: (Date.now() - t0) / 1000, duration_s: tl.total, notes: null }
-    : { render_s: null, duration_s: tl.total, notes: `MP4 unavailable: no headless Chrome here (set CHROME_PATH and install puppeteer-core).${played ? '' : ' Checked for syntax and URLs only, not played.'}` };
+    ? { render_s: (Date.now() - t0) / 1000, duration_s: tl.total, notes }
+    : { render_s: null, duration_s: tl.total, notes: `MP4 unavailable: no headless Chrome here (set CHROME_PATH and install puppeteer-core).${played ? '' : ' Checked for syntax and URLs only, not played.'}${notes ? ` ${notes}` : ''}` };
 }

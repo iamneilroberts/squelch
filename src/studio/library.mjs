@@ -23,6 +23,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS animations (
   notes TEXT,
   rating INTEGER
 )`);
+try { db.exec('ALTER TABLE animations ADD COLUMN llm TEXT'); } catch { /* already there */ } // openrouter | claude: who wrote the script and plan
 
 export const ANIM_DIR = join('data', 'animations');
 export const animDir = (id) => join(ANIM_DIR, String(id));
@@ -33,10 +34,10 @@ export const listAnimations = () => db.prepare('SELECT * FROM animations ORDER B
 export const getAnimation = (id) => parse(db.prepare('SELECT * FROM animations WHERE id = ?').get(id));
 
 export function createAnimation(a) {
-  const id = Number(db.prepare(`INSERT INTO animations (thread_id, source_id, title, style, format, status, created_at, finished_at, duration_s, render_s, cost_usd, models, prompt_version, files, error, notes, rating)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(a.thread_id ?? null, a.source_id ?? null, a.title, a.style, a.format, a.status || 'queued',
+  const id = Number(db.prepare(`INSERT INTO animations (thread_id, source_id, title, style, format, status, created_at, finished_at, duration_s, render_s, cost_usd, models, prompt_version, files, error, notes, rating, llm)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(a.thread_id ?? null, a.source_id ?? null, a.title, a.style, a.format, a.status || 'queued',
     a.created_at || new Date().toISOString(), a.finished_at ?? null, a.duration_s ?? null, a.render_s ?? null, a.cost_usd ?? null, JSON.stringify(a.models || []),
-    a.prompt_version ?? null, JSON.stringify(a.files || []), a.error ?? null, a.notes ?? null, a.rating ?? null).lastInsertRowid);
+    a.prompt_version ?? null, JSON.stringify(a.files || []), a.error ?? null, a.notes ?? null, a.rating ?? null, a.llm ?? null).lastInsertRowid);
   mkdirSync(animDir(id), { recursive: true });
   return id;
 }

@@ -8,6 +8,7 @@ export const MODELS = {
   script: () => process.env.STUDIO_SCRIPT_MODEL || 'anthropic/claude-sonnet-5.5',
   image: () => process.env.STUDIO_IMAGE_MODEL || 'google/gemini-2.5-flash-image',
   cartoon: () => process.env.STUDIO_CARTOON_MODEL || 'anthropic/claude-sonnet-5.5',
+  director: () => process.env.STUDIO_DIRECTOR_MODEL || 'anthropic/claude-sonnet-5.5',
 };
 export const dailyCap = () => Number(process.env.STUDIO_DAILY_USD || 2);
 

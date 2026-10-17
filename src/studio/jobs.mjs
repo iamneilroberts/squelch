@@ -3,8 +3,7 @@
 import { rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { db, getThread } from '../db.mjs';
-import { chatJson } from '../ai/llm.mjs';
-import { withTrace, priceOf } from '../meter.mjs';
+import { withTrace } from '../meter.mjs';
 import { sources } from '../config.mjs';
 import { createAnimation, updateAnimation, getAnimation, animDir, scanFiles } from './library.mjs';
 import { guard, safeScore } from './humor.mjs';
@@ -14,8 +13,12 @@ import { pickClips, buildTrack } from './track.mjs';
 import { makeComic } from './comic.mjs';
 import { makeCartoon } from './cartoon.mjs';
 import { chromePath } from './browser.mjs';
+import { studioJson, pickProvider, defaultProvider, subscriptionModel, PROVIDERS } from './llm.mjs';
+import { directorPrompt } from './director.mjs';
 
-const PROMPT_VERSION = { comic: 'comic-1', cartoon: 'cartoon-1' };
+// The cartoon is two-pass (director + library) unless STUDIO_CARTOON_MODE=oneshot; the row's prompt_version records which.
+const cartoonMode = () => (process.env.STUDIO_CARTOON_MODE === 'oneshot' ? 'oneshot' : 'twopass');
+const PROMPT_VERSION = { comic: () => 'comic-1', cartoon: () => (cartoonMode() === 'oneshot' ? 'cartoon-1' : 'twopass-1') };
 const PANELS = 5;
 const progress = new Map(); // id → { step, frac }
 
@@ -34,28 +37,37 @@ function storyFor(threadId) {
 }
 
 // What a job should cost, call by call, from per-token prices.
-export async function estimateJob(threadId, style) {
+// Text steps on the Claude subscription cost $0 here (and don't count against the cap).
+export async function estimateJob(threadId, style, llm) {
   if (!STYLES[style]) throw new JobError('unknown style', 400);
   const t = storyFor(threadId);
-  const kind = STYLES[style].kind;
+  const kind = STYLES[style].kind, provider = pickProvider(llm), sub = provider === 'claude';
+  const text = async (purpose, model, tokens) => ({ purpose, model: sub ? subscriptionModel(model) : model, usd: sub ? 0 : await estimate(model, tokens) });
   const said = t.events.map((e) => e.transcript || '').join(' ').length;
-  const lines = [{ purpose: 'studio:script', model: MODELS.script(), usd: await estimate(MODELS.script(), { inTok: 1800 + said / 3.5, outTok: 2500 }) }];
+  const lines = [await text('studio:script', MODELS.script(), { inTok: 1800 + said / 3.5, outTok: 2500 })];
   if (kind === 'comic') lines.push({ purpose: 'studio:image', model: MODELS.image(), calls: PANELS, usd: PANELS * await estimate(MODELS.image(), { inTok: 2200, imageTok: 1290 }) });
-  else lines.push({ purpose: 'studio:cartoon', model: MODELS.cartoon(), usd: await estimate(MODELS.cartoon(), { inTok: 9000, outTok: 14000 }) });
+  else if (cartoonMode() === 'oneshot') lines.push({ purpose: 'studio:cartoon', model: MODELS.cartoon(), usd: await estimate(MODELS.cartoon(), { inTok: 9000, outTok: 14000 }) });
+  else {
+    const p = directorPrompt({ title: '', cast: '', beats: [], punch: [] }, { end: 0, total: 0, clips: [], captions: [] });
+    lines.push(await text('studio:director', MODELS.director(), { inTok: (p.system.length + p.user.length + 2500) / 1.6, outTok: 4000 })); // the catalogue and examples are JSON-dense: ~1.6 chars a token
+    lines.push({ purpose: 'studio:render', model: 'library + headless Chrome', usd: 0 });
+  }
   const usd = lines.reduce((a, l) => a + l.usd, 0);
   const today = spentToday();
   return {
-    kind, style, usd, lines, today, cap: dailyCap(), fits: today + usd <= dailyCap(),
+    kind, style, usd, lines, today, cap: dailyCap(), fits: today + usd <= dailyCap(), llm: provider, llmName: PROVIDERS[provider],
     format: kind === 'comic' ? 'mp4+web' : chromePath() ? 'mp4+web' : 'web',
-    note: kind === 'cartoon' ? 'A cartoon that fails its check is rewritten once, which can roughly double its cost.' : 'A panel that comes back without a picture is redrawn once.',
+    note: kind === 'comic' ? 'A panel that comes back without a picture is redrawn once.'
+      : cartoonMode() === 'oneshot' ? 'A cartoon that fails its check is rewritten once, which can roughly double its cost.'
+        : 'A plan with problems goes back to the director once, which can roughly double that step.',
   };
 }
 
-export async function queueJob(threadId, style) {
-  const est = await estimateJob(threadId, style);
+export async function queueJob(threadId, style, llm) {
+  const est = await estimateJob(threadId, style, llm);
   if (!est.fits) throw new JobError(`That would pass today’s Studio cap: $${est.today.toFixed(3)} spent, about $${est.usd.toFixed(3)} more, cap $${est.cap.toFixed(2)} (STUDIO_DAILY_USD)`, 429);
   const t = getThread(Number(threadId));
-  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind] });
+  const id = createAnimation({ thread_id: t.id, source_id: t.source_id, title: t.subject, style, format: est.format, status: 'queued', prompt_version: PROMPT_VERSION[est.kind](), llm: est.llm });
   setImmediate(pump);
   return getAnimation(id);
 }
@@ -82,7 +94,7 @@ async function run(id) {
   let cost = 0;
   const job = {
     id, dir,
-    models: { image: MODELS.image(), cartoon: MODELS.cartoon() },
+    models: { image: MODELS.image(), cartoon: MODELS.cartoon(), director: MODELS.director() },
     progress: (step, frac = null) => progress.set(id, { step, frac }),
     // One paid call: refused first if it could pass the cap; its actual cost (usage.cost) is recorded.
     async call(purpose, model, tokens, fn, costOf) {
@@ -95,6 +107,22 @@ async function run(id) {
         const r = await fn();
         const c = Number(costOf(r)) || 0;
         m.cost += c; cost += c;
+        return r;
+      } finally {
+        updateAnimation(id, { models: [...models.values()].map((x) => ({ ...x, cost: +x.cost.toFixed(6) })), cost_usd: +cost.toFixed(6) });
+      }
+    },
+    // One subscription call: $0 here and no cap check; the CLI's notional cost and its time are kept for comparison.
+    async free(purpose, model, fn, metaOf) {
+      const key = `${model}\n${purpose}`;
+      const m = models.get(key) || { model, purpose, calls: 0, cost: 0, notional_usd: 0, ms: 0 };
+      models.set(key, m);
+      m.calls++;
+      try {
+        const r = await fn();
+        const x = metaOf(r) || {};
+        m.notional_usd = +(m.notional_usd + (Number(x.notional_usd) || 0)).toFixed(6);
+        m.ms += Number(x.ms) || 0;
         return r;
       } finally {
         updateAnimation(id, { models: [...models.values()].map((x) => ({ ...x, cost: +x.cost.toFixed(6) })), cost_usd: +cost.toFixed(6) });
@@ -114,10 +142,8 @@ async function run(id) {
 
       job.progress('writing the script');
       const { system, user } = scriptPrompt(t, clips, row.style);
-      const model = MODELS.script();
-      const { data: script } = await job.call('studio:script', model, { inTok: (system.length + user.length) / 3.5, outTok: 2500 },
-        () => chatJson({ model, system, user, schema: SCRIPT_SCHEMA, name: 'script', maxTokens: 8000, purpose: 'studio:script' }),
-        (r) => r.costUsd ?? priceOf(model.split('/')[1].replaceAll('.', '-'), r.inTok, r.outTok)); // direct Anthropic calls report no cost
+      const provider = row.llm || defaultProvider();
+      const { data: script } = await studioJson(job, { provider, purpose: 'studio:script', model: MODELS.script(), system, user, schema: SCRIPT_SCHEMA, name: 'script', maxTokens: 8000, outTok: 2500 });
       updateAnimation(id, { title: script.title || row.title });
       writeFileSync(join(dir, 'script.json'), JSON.stringify(script, null, 1));
 
@@ -132,7 +158,7 @@ async function run(id) {
       const file = join(dir, 'track.mp3');
       const track = { ...await buildTrack(used, file, kind === 'comic' ? {} : { intro: 1.5, tail: 5 }), file };
 
-      const made = kind === 'comic' ? await makeComic(job, { script, track, style: row.style, subtitle }) : await makeCartoon(job, { script, track, subtitle });
+      const made = kind === 'comic' ? await makeComic(job, { script, track, style: row.style, subtitle }) : await makeCartoon(job, { script, track, subtitle, provider, mode: row.prompt_version === 'cartoon-1' ? 'oneshot' : 'twopass' });
       rmSync(join(dir, 'work'), { recursive: true, force: true });
       const files = scanFiles(id);
       updateAnimation(id, {

@@ -8,7 +8,8 @@ let TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const when = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const STYLE = { sunday: 'Sunday comic', ink: 'Newspaper ink', pixel: 'Pixel art', vector: 'Flat vector' };
 const FORMAT = { 'mp4+web': 'MP4 + web', web: 'Web' };
-const PURPOSE = { 'studio:humor': 'humor score', 'studio:script': 'script', 'studio:image': 'panels', 'studio:cartoon': 'cartoon' };
+const PURPOSE = { 'studio:humor': 'humor score', 'studio:script': 'script', 'studio:image': 'panels', 'studio:cartoon': 'cartoon', 'studio:director': 'director', 'studio:render': 'render' };
+let LLM = { llm: 'openrouter', providers: { openrouter: 'OpenRouter', claude: 'Claude subscription' } }; // who writes the script and plan; the server sends its default
 
 async function api(path, opts) {
   const r = await fetch(`/api/studio/${path}`, opts);
@@ -29,6 +30,7 @@ function suggestion(s) {
       <p class="why">${esc(s.why)}</p>
       <div class="make">
         <div class="keys" role="group" aria-label="Style">${Object.entries(STYLE).map(([k, n]) => `<button type="button" class="key" data-style="${k}" aria-pressed="${k === 'sunday'}">${n}${k === 'vector' ? ' cartoon' : ''}</button>`).join('')}</div>
+        <div class="keys" role="group" aria-label="Plan with" title="Who writes the script and the cartoon's plan">${Object.entries(LLM.providers).map(([k, n]) => `<button type="button" class="key" data-llm="${k}" aria-pressed="${k === LLM.llm}">${esc(n)}</button>`).join('')}</div>
         <div class="keys"><button type="button" class="key" data-make>Make it</button></div>
       </div>
       <div class="quote" hidden></div>
@@ -38,6 +40,7 @@ function suggestion(s) {
 
 function renderSuggestions(j) {
   const r = j.refresh;
+  if (j.providers) LLM = { llm: j.llm, providers: j.providers };
   $('suggest-note').innerHTML = `${j.scored} of ${j.candidates} light stories from the last 48 h scored${j.unscored ? `, ${j.unscored} new or changed (Refresh scores them)` : ''}.
     ${r ? `<b>This refresh: ${r.scored} scored for ${usd(r.cost)}.</b>` : ''} Studio spend today ${usd(j.today)} of ${usd(j.cap)}.`;
   $('suggests').innerHTML = j.top.length ? j.top.map(suggestion).join('') : '<li class="empty">Nothing scored yet. Refresh scores the last 48 hours (a cent or two).</li>';
@@ -65,13 +68,15 @@ $('suggests').addEventListener('click', async (e) => {
   const quote = li.querySelector('.quote');
   const style = e.target.closest('[data-style]');
   if (style) { for (const b of li.querySelectorAll('[data-style]')) b.setAttribute('aria-pressed', String(b === style)); quote.hidden = true; return; }
-  const body = { thread_id: Number(li.dataset.thread), style: li.querySelector('[data-style][aria-pressed="true"]').dataset.style };
+  const llm = e.target.closest('[data-llm]');
+  if (llm) { for (const b of li.querySelectorAll('[data-llm]')) b.setAttribute('aria-pressed', String(b === llm)); quote.hidden = true; return; }
+  const body = { thread_id: Number(li.dataset.thread), style: li.querySelector('[data-style][aria-pressed="true"]').dataset.style, llm: li.querySelector('[data-llm][aria-pressed="true"]')?.dataset.llm };
   if (e.target.closest('[data-make]')) {
     quote.hidden = false;
     quote.innerHTML = '<span class="na">Pricing it…</span>';
     try {
       const q = await post('estimate', body);
-      quote.innerHTML = `<p><b>${q.kind === "comic" ? "Comic" : "Cartoon"}, ${esc(STYLE[q.style].toLowerCase())}</b> · ${esc(FORMAT[q.format])} · about <b>${usd(q.usd)}</b>
+      quote.innerHTML = `<p><b>${q.kind === "comic" ? "Comic" : "Cartoon"}, ${esc(STYLE[q.style].toLowerCase())}</b> · ${esc(FORMAT[q.format])} · planned with ${esc(q.llmName)} · about <b>${usd(q.usd)}</b>
         <span class="na">(${q.lines.map((l) => `${PURPOSE[l.purpose]}${l.calls ? ` ×${l.calls}` : ''} ${usd(l.usd)}`).join(' · ')})</span></p>
         <p class="na">${esc(q.note)} Studio spend today ${usd(q.today)} of ${usd(q.cap)}.</p>
         ${q.fits ? '<div class="keys"><button type="button" class="key" data-queue>Queue it</button></div>' : `<p class="err">That would pass today’s cap (STUDIO_DAILY_USD).</p>`}`;
@@ -115,7 +120,7 @@ const stars = (a) => `<div class="stars" role="group" aria-label="Rating">${[1, 
 
 function card(a) {
   const { mp4, web } = playable(a);
-  const models = a.models.length ? a.models.map((m) => `<li>${esc(m.model)} <span class="na">· ${esc(PURPOSE[m.purpose] || m.purpose)} · ${m.calls} call${m.calls === 1 ? '' : 's'}</span> ${usd(m.cost)}</li>`).join('') : '<li class="na">none recorded</li>';
+  const models = a.models.length ? a.models.map((m) => `<li>${esc(m.model)} <span class="na">· ${esc(PURPOSE[m.purpose] || m.purpose)} · ${m.calls} call${m.calls === 1 ? '' : 's'}</span> ${usd(m.cost)}${m.notional_usd != null ? ` <span class="na">(notional ${usd(m.notional_usd)}${m.ms ? `, ${Math.round(m.ms / 1000)} s` : ''})</span>` : ''}</li>`).join('') : '<li class="na">none recorded</li>';
   return `<li class="anim" data-id="${a.id}">
     <div class="anim-play">${player(a)}${mp4 && web ? `<button type="button" class="linkish" data-web="${fileUrl(a, web)}">Play the web version</button>` : ''}</div>
     <div class="anim-meta">

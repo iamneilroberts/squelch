@@ -3,6 +3,7 @@ import { listAnimations, getAnimation, deleteAnimation, updateAnimation, animDir
 import { suggestions } from './humor.mjs';
 import { CapError, spentToday, dailyCap } from './spend.mjs';
 import { estimateJob, queueJob, activeJobs, JobError } from './jobs.mjs';
+import { defaultProvider, PROVIDERS } from './llm.mjs';
 
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'animation';
 
@@ -14,16 +15,16 @@ export async function studioRoute(req, res, url, { json, serveFile, readJson }) 
   if (p === 'animations') return json(res, listAnimations());
   if (p === 'suggestions' || (p === 'suggestions/refresh' && req.method === 'POST')) {
     try {
-      return json(res, { ...await suggestions({ refresh: p.endsWith('refresh') }), today: spentToday(), cap: dailyCap() });
+      return json(res, { ...await suggestions({ refresh: p.endsWith('refresh') }), today: spentToday(), cap: dailyCap(), llm: defaultProvider(), providers: PROVIDERS });
     } catch (e) {
       return json(res, { error: e.message }, e instanceof CapError ? 429 : 502);
     }
   }
   if (p === 'jobs' && req.method === 'GET') return json(res, { jobs: activeJobs(), today: spentToday(), cap: dailyCap() });
   if ((p === 'estimate' || p === 'jobs') && req.method === 'POST') {
-    const { thread_id, style } = await readJson(req);
+    const { thread_id, style, llm } = await readJson(req);
     try {
-      return json(res, p === 'estimate' ? await estimateJob(thread_id, style) : await queueJob(thread_id, style), p === 'jobs' ? 202 : 200);
+      return json(res, p === 'estimate' ? await estimateJob(thread_id, style, llm) : await queueJob(thread_id, style, llm), p === 'jobs' ? 202 : 200);
     } catch (e) {
       return json(res, { error: e.message }, e instanceof JobError ? e.code : 502);
     }
