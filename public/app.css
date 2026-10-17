@@ -381,7 +381,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-radius: 5px; background: var(--walnut-900); box-shadow: inset 0 1px 2px oklch(0 0 0 / .6);
 }
 .progress span { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 5px; background: linear-gradient(90deg, var(--brass-dark), var(--dial-on)); }
-.elapsed { font-family: var(--font-type); font-size: 12px; color: var(--ink-soft); min-width: 0; }
+.elapsed { font-family: var(--font-type); font-size: 12px; color: var(--ink-soft); min-width: 0; line-height: 1.4; min-height: 1.4em; }
+.progress[hidden] { display: block; visibility: hidden; } /* keeps its row when nothing seekable plays, so the page doesn't jump */
 .elapsed.live { color: var(--needle); font-weight: 700; letter-spacing: .1em; }
 .transport .now-playing { flex: 1 1 260px; }
 .scan-key { width: auto; padding: 8px 12px 6px; font-size: 11px; letter-spacing: .16em; }
@@ -417,8 +418,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-size: 13px;
   color: var(--ink-soft);
   line-height: 1.4;
-  min-height: 2.8em; /* always two lines tall, so a short title doesn't pull the page up */
+  /* Exactly two lines, so a title changing length doesn't move the page; longer ones end in "…". */
+  height: 2.8em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
+/* A message with a link to follow (no signal, Broadcastify login) is never cut off. */
+.now-playing:has(a:not(.story-link), button) { height: auto; min-height: 2.8em; -webkit-line-clamp: none; }
 .now-playing a { color: var(--blue-ink); }
 .now-playing strong { color: var(--ink); }
 

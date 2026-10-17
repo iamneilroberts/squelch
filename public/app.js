@@ -511,7 +511,7 @@ function scanAfterTransmission() {
   const until = Date.now() + DELAY_MS;
   const show = () => {
     const s = Math.max(0, Math.ceil((until - Date.now()) / 1000));
-    $('now-playing').innerHTML = `${titleOf(c)}&nbsp;· resuming in ${s} s — <strong>Hold</strong> to stay`;
+    $('now-playing').innerHTML = `Next in ${s} s · ${titleOf(c)}`; // countdown first: a long title is cut off at two lines
   };
   show();
   scan.delayTick = setInterval(show, 250);
