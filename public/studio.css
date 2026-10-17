@@ -31,3 +31,21 @@
   .anim { grid-template-columns: minmax(0, 1fr); }
   .anim-video, .anim-frame, .anim-poster { max-height: 70vh; }
 }
+
+/* Suggestions: a humor gauge beside each pitch. */
+.suggest-tools { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 18px; }
+.suggest-tools .hint { margin: 0; flex: 1 1 320px; line-height: 1.6; }
+.suggest-tools .key { min-width: 0; padding: 9px 14px 7px; font-size: 11px; }
+.suggests { list-style: none; margin: 12px 0 0; padding: 0; }
+.suggest { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--ledger-rule); }
+.suggest:last-child { border-bottom: 0; }
+.humor { position: relative; height: 64px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--paper); overflow: hidden; }
+.humor span { position: absolute; left: 0; right: 0; bottom: 0; background: var(--brass); }
+.humor b { position: absolute; inset: auto 0 4px; text-align: center; font-family: var(--font-caps); font-size: 18px; color: var(--ink); }
+.pitch { margin: 0; font-family: var(--font-caps); font-size: 19px; font-weight: 700; letter-spacing: .03em; line-height: 1.2; color: var(--ink); }
+.suggest .anim-sub a { color: inherit; }
+.why { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; }
+.kept-out { margin-top: 12px; font-size: 12.5px; }
+.kept-out summary { cursor: pointer; color: var(--ink-soft); }
+.kept-out ul { margin: 6px 0 0; padding-left: 18px; max-height: 320px; overflow: auto; line-height: 1.5; }
+.kept-out a { color: inherit; }

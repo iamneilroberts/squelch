@@ -1,5 +1,7 @@
 // Squelch Studio's API. Owner-only: server.mjs refuses every /api/studio/ request canEdit() doesn't pass.
 import { listAnimations, getAnimation, deleteAnimation, updateAnimation, animDir } from './library.mjs';
+import { suggestions } from './humor.mjs';
+import { CapError, spentToday, dailyCap } from './spend.mjs';
 
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'animation';
 
@@ -9,6 +11,13 @@ const CSP = "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inlin
 export async function studioRoute(req, res, url, { json, serveFile, readJson }) {
   const p = url.pathname.slice('/api/studio/'.length);
   if (p === 'animations') return json(res, listAnimations());
+  if (p === 'suggestions' || (p === 'suggestions/refresh' && req.method === 'POST')) {
+    try {
+      return json(res, { ...await suggestions({ refresh: p.endsWith('refresh') }), today: spentToday(), cap: dailyCap() });
+    } catch (e) {
+      return json(res, { error: e.message }, e instanceof CapError ? 429 : 502);
+    }
+  }
   const m = p.match(/^animations\/(\d+)(?:\/(rate|files\/([\w.-]+)))?$/);
   if (!m) return json(res, { error: 'unknown' }, 404);
   const a = getAnimation(Number(m[1]));

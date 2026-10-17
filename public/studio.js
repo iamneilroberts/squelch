@@ -17,6 +17,41 @@ async function api(path, opts) {
   return j;
 }
 
+/* ───────── Suggestions ───────── */
+const ago = (iso) => { const m = Math.round((Date.now() - new Date(iso)) / 60e3); return m < 60 ? `${m} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : when(iso); };
+
+function suggestion(s) {
+  return `<li class="suggest" data-thread="${s.thread_id}">
+    <div class="humor" title="Humor ${Math.round(s.humor * 100)} of 100"><span style="height:${Math.round(s.humor * 100)}%"></span><b>${Math.round(s.humor * 100)}</b></div>
+    <div class="suggest-body">
+      <p class="pitch">${esc(s.pitch)}</p>
+      <p class="anim-sub"><a href="/?story=${s.thread_id}">${esc(s.subject)}</a> · ${esc(s.source_id)} · ${s.clips} clip${s.clips === 1 ? '' : 's'} · ${ago(s.updated_at)}${s.stale ? ' · <i>changed since scored</i>' : ''}</p>
+      <p class="why">${esc(s.why)}</p>
+    </div>
+  </li>`;
+}
+
+function renderSuggestions(j) {
+  const r = j.refresh;
+  $('suggest-note').innerHTML = `${j.scored} of ${j.candidates} light stories from the last 48 h scored${j.unscored ? `, ${j.unscored} new or changed (Refresh scores them)` : ''}.
+    ${r ? `<b>This refresh: ${r.scored} scored for ${usd(r.cost)}.</b>` : ''} Studio spend today ${usd(j.today)} of ${usd(j.cap)}.`;
+  $('suggests').innerHTML = j.top.length ? j.top.map(suggestion).join('') : '<li class="empty">Nothing scored yet. Refresh scores the last 48 hours (a cent or two).</li>';
+  const out = $('kept-out');
+  out.hidden = !j.excluded.length;
+  out.querySelector('summary').textContent = `Kept out by the content guard (${j.excluded.length})`;
+  out.querySelector('ul').innerHTML = j.excluded.map((e) => `<li><a href="/?story=${e.id}">${esc(e.subject)}</a> <span class="na">· ${esc(e.reason)}</span></li>`).join('');
+}
+
+async function loadSuggestions(refresh) {
+  const key = $('suggest-refresh');
+  key.disabled = true;
+  if (refresh) key.textContent = 'Scoring…';
+  try { renderSuggestions(await api(refresh ? 'suggestions/refresh' : 'suggestions', refresh ? { method: 'POST' } : undefined)); }
+  catch (e) { $('suggest-note').innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  finally { key.disabled = false; key.textContent = 'Refresh'; }
+}
+$('suggest-refresh').addEventListener('click', () => loadSuggestions(true));
+
 /* ───────── Library ───────── */
 const fileUrl = (a, f, dl) => `/api/studio/animations/${a.id}/files/${encodeURIComponent(f.name)}${dl ? '?download' : ''}`;
 const playable = (a) => ({ mp4: a.files.find((f) => f.kind === 'mp4'), web: a.files.find((f) => f.kind === 'web') });
@@ -87,4 +122,4 @@ $('library').addEventListener('click', async (e) => {
   }
 });
 
-fetch('/api/config').then((r) => r.json()).then((c) => { TZ = c.station?.timezone || TZ; }).catch(() => {}).finally(loadLibrary);
+fetch('/api/config').then((r) => r.json()).then((c) => { TZ = c.station?.timezone || TZ; }).catch(() => {}).finally(() => { loadSuggestions(false); loadLibrary(); });

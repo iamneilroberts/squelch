@@ -8,7 +8,7 @@ const usd = (x) => (x == null ? '<span class="na">price n/a</span>' : x === 0 ? 
 const ms = (x) => (x == null ? '—' : x < 1000 ? `${x} ms` : `${(x / 1000).toFixed(1)} s`);
 const num = (x) => (x == null ? '—' : x.toLocaleString('en-US'));
 const pct = (x) => `${Math.round(x * 100)}%`;
-const PURPOSE = { transcribe: 'Speech-to-text', 'transcribe-ab': 'Speech-to-text A/B', triage: 'Incident triage', gate: 'Jev gate', digest: 'Daily digest', geocode: 'Geocoder', vad: 'Speech detector (local)', thread: 'Channel story', push: 'Push notification', 'listener-surge': 'Listener-surge look' };
+const PURPOSE = { transcribe: 'Speech-to-text', 'transcribe-ab': 'Speech-to-text A/B', triage: 'Incident triage', gate: 'Jev gate', digest: 'Daily digest', geocode: 'Geocoder', vad: 'Speech detector (local)', thread: 'Channel story', push: 'Push notification', 'listener-surge': 'Listener-surge look', 'studio:humor': 'Studio · humor scores', 'studio:script': 'Studio · script', 'studio:image': 'Studio · comic panels', 'studio:cartoon': 'Studio · cartoon' };
 const label = (p) => PURPOSE[p] || (p.startsWith('overlay:') ? `Map layer · ${p.slice(8)}` : p);
 const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -211,8 +211,8 @@ function renderTraces(list) {
     const head = view.sort === 'channel' && !view.source && t.source_id !== group;
     group = t.source_id;
     const ch = head && insight?.channels.find((x) => x.source_id === t.source_id);
-    const digest = t.kind === 'digest';
-    const meta = digest ? 'daily log'
+    const digest = t.kind === 'digest' || t.kind === 'studio';
+    const meta = digest ? (t.kind === 'studio' ? 'studio' : 'daily log')
       : t.thread_id ? `${t.story_clips} clip${t.story_clips === 1 ? '' : 's'} · ${dur(t.story_seconds)}`
         : t.call_id ? `${dur(t.duration)} clip` : 'discarded';
     const desc = digest ? esc(t.label)
@@ -221,7 +221,7 @@ function renderTraces(list) {
     const notable = t.category && t.category !== 'routine';
     return `${head ? `<li class="t-group">${esc(t.source_id ? t.label : 'Daily logs')}${ch ? ` · ${usd(ch.cost)} this period` : ''}</li>` : ''}<li><button type="button" class="trace${notable ? ' notable' : ''}" data-id="${t.id}">
       <span class="t-time">${hhmm(t.at)}</span>
-      <span class="t-who">${flag(t.category)}<b>${esc(digest ? 'Digest' : t.label)}</b> <span class="t-meta">${meta}</span></span>
+      <span class="t-who">${flag(t.category)}<b>${esc(digest ? (t.kind === 'studio' ? 'Studio' : 'Digest') : t.label)}</b> <span class="t-meta">${meta}</span></span>
       <span class="t-usd">${usd(t.cost)}</span>
       <span class="t-desc">${desc}</span>
     </button></li>`;
