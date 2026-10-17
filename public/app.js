@@ -986,6 +986,8 @@ function refreshOverlays() {
 /* ───────── Log ───────── */
 const typeLabel = (t) => ({ medical: 'Medical', crash: 'Crash', fire: 'Fire', rescue: 'Rescue', hazmat: 'Hazmat', police: 'Police', aviation: 'Aviation', marine: 'Marine', rail: 'Rail', weather: 'Weather' }[t] || 'Other');
 const playButton = (audio, label, text = 'play') => (audio ? `<button class="play" data-src="/audio/${encodeURIComponent(audio)}" data-label="${esc(label)}">${ICON_PLAY} ${text}</button>` : '');
+// To the channel's story card (its facts, chronology, Play all and Wider catch-up).
+const storyButton = (thread) => (thread ? `<a href="#" class="story-key" data-thread="${thread}" title="This channel's story so far, to read or catch up on">Story&nbsp;›</a>` : '');
 
 // The printout shows a page at a time; on a phone the whole day would be an endless scroll.
 let logPage = 0;
@@ -1019,7 +1021,7 @@ function renderLog() {
       return `
       <li class="traffic ${c.category === 'routine' || !c.category ? 'routine' : ''}">
         <div class="entry-meta"><span>${hhmm(c.at)}</span><span>${esc(short)}</span><span>${Math.round(c.duration || 0)}s</span>
-          ${playButton(c.audio, `${hhmm(c.at)} ${short}`)}</div>
+          ${playButton(c.audio, `${hhmm(c.at)} ${short}`)}${storyButton(c.thread_id)}</div>
         ${esc(c.transcript)}
       </li>`;
     }).join('') + pager : notice();
@@ -1041,6 +1043,7 @@ function renderLog() {
       <div class="entry-head">${esc(inc.headline)}</div>
       <div class="entry-where">${esc(inc.location_text || 'Location not stated')}${inc.precision === 'source' ? ' · approx.' : ''}${inc.units?.length ? ` · ${esc(inc.units.join(', '))}` : ''}</div>
       <p class="entry-sum">${esc(inc.summary)}</p>
+      ${storyButton(updates.findLast((u) => u.thread_id)?.thread_id)}
       <div class="entry-more">
         ${updates.map((u) => `<div class="update"><time>${hhmm(u.at)}</time> ${esc(u.summary)}
           ${u.transcript ? `<p class="transcript">“${esc(u.transcript)}”</p>` : ''}
@@ -1145,6 +1148,7 @@ $('log').addEventListener('click', (e) => {
   const play = e.target.closest('.play');
   if (play) { e.stopPropagation(); return playRecording(play.dataset.src, play.dataset.label); }
   if (e.target.closest('#build-today')) return buildToday();
+  if (e.target.closest('[data-thread]')) return; // opens the story card (below), without selecting the entry
   const turn = e.target.closest('[data-page]');
   if (turn) {
     logPage += Number(turn.dataset.page);

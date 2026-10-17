@@ -90,7 +90,7 @@ export function updateIncident(id, u) {
 
 export function getIncident(id) {
   const inc = parseIncident(db.prepare(`SELECT * FROM incidents WHERE id = ?`).get(id));
-  if (inc) inc.updates = db.prepare(`SELECT u.at, u.summary, c.transcript, c.audio FROM updates u
+  if (inc) inc.updates = db.prepare(`SELECT u.at, u.summary, c.transcript, c.audio, c.thread_id FROM updates u
     LEFT JOIN calls c ON c.id = u.call_id WHERE u.incident_id = ? ORDER BY u.at`).all(id);
   return inc;
 }
