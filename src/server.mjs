@@ -19,6 +19,7 @@ import { widerCatchup } from './ai/wider.mjs';
 import { studioRoute } from './studio/routes.mjs';
 import { changes } from './changes.mjs';
 import { reportRoute, reportStatus } from './report.mjs';
+import { shareRoute } from './share.mjs';
 
 const PORT = Number(process.env.PORT || 8077);
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json', '.json': 'application/json' };
@@ -246,11 +247,12 @@ createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   const remote = isRemote(req);
-  const hidden = hideFrom(remote);
+  // A tunnel visitor Access didn't sign in (a path ever let through without a login) never gets transcripts.
+  const hidden = hideFrom(remote) || (remote && !req.headers['cf-access-authenticated-user-email']);
   const out = (body, code) => json(res, hidden ? scrub(body) : body, code);
   try {
     if (p === '/api/version') return json(res, { version: appVersion() });
-    if (p === '/api/config') return json(res, { version: appVersion(), station, regions, viewer: { remote, transcripts: !hidden, canShare: canEdit(req), canListen: canEdit(req) || Boolean(sessionCreds(req)), broadcastifyUser: sessionCreds(req)?.user || null, sharing: settings.tunnelTranscripts, studio: studioAccess(req), guestStudio: canEdit(req) ? settings.guestStudio : undefined }, sources: sources.map((s) => ({ ...s, status: status[s.id] || { state: 'standby' } })) });
+    if (p === '/api/config') return json(res, { version: appVersion(), station, regions, publicUrl: process.env.PUBLIC_URL || null, viewer: { remote, transcripts: !hidden, canShare: canEdit(req), canListen: canEdit(req) || Boolean(sessionCreds(req)), broadcastifyUser: sessionCreds(req)?.user || null, sharing: settings.tunnelTranscripts, studio: studioAccess(req), guestStudio: canEdit(req) ? settings.guestStudio : undefined }, sources: sources.map((s) => ({ ...s, status: status[s.id] || { state: 'standby' } })) });
     if (p === '/api/report/status') return reportStatus(url, res, json);
     if (p === '/api/report') return reportRoute(req, res, { json, readJson, canEdit, version: appVersion });
     if (p === '/api/settings' && req.method === 'POST') {
@@ -388,6 +390,7 @@ createServer(async (req, res) => {
         icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }],
       }));
     }
+    if (p.startsWith('/s/') && await shareRoute(req, res, { p, hidden, remote, port: PORT, page: (html) => versionAssets(html, 'public'), serveFile })) return;
     if (p.startsWith('/audio/')) return serveFile(res, join('data', 'audio'), decodeURIComponent(p.slice(7)), req.headers.range);
     if (p.startsWith('/reels/')) return serveFile(res, join('data', 'digests'), decodeURIComponent(p.slice(7)), req.headers.range);
     return serveFile(res, 'public', p === '/' ? 'index.html' : p.slice(1));

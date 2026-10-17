@@ -1696,6 +1696,14 @@ document.addEventListener('click', (e) => {
 });
 $('story-close').addEventListener('click', () => $('story').close());
 $('story-play').addEventListener('click', () => playStory());
+// Share: the story's own page (/s/<id>, src/share.mjs), by the share sheet or a copied link.
+$('story-share').addEventListener('click', async () => {
+  const url = `${state.publicUrl?.replace(/\/$/, '') || location.origin}/s/${storyId}`;
+  if (navigator.share) return navigator.share({ title: $('story-title').textContent, url }).catch(() => {});
+  try { await navigator.clipboard.writeText(url); } catch { return void prompt('Copy this link', url); }
+  $('story-share').textContent = 'Link copied';
+  setTimeout(() => { $('story-share').textContent = 'Share'; }, 2500);
+});
 
 // Wider catch-up (src/ai/wider.mjs): this story's traffic on other channels too, picked by the model, with
 // a summary and why each transmission is included; then it plays like Play all.
@@ -2002,6 +2010,7 @@ async function boot() {
   state.regions = config.regions;
   state.sources = config.sources;
   state.station = config.station;
+  state.publicUrl = config.publicUrl;
   applyLook();
   TZ = config.station.timezone || TZ;
   tick();

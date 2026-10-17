@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<base href="/">
+<title>{{title}} · {{site}}</title>
+<meta name="description" content="{{description}}">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="{{site}}">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:url" content="{{url}}">
+<meta property="og:image" content="{{image}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{title}}">
+<meta name="twitter:description" content="{{description}}">
+<meta name="twitter:image" content="{{image}}">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#5a3a22">
+<link rel="stylesheet" href="vendor/fonts.css">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="share.css">
+</head>
+<body>
+<main class="sheet">
+  <header class="title-card">
+    <a class="brand" href="/" id="brand">{{script}}</a>
+    <p class="kicker" id="kicker">{{when}}</p>
+    <h1 id="title">{{title}}</h1>
+    <p class="why" id="why"></p>
+    <dl class="facts" id="facts"></dl>
+  </header>
+  <section class="where" id="where" hidden>
+    <div class="map" id="map" role="img" aria-label="Map of where it happened"></div>
+    <p class="place" id="place"></p>
+  </section>
+  <section class="radio" aria-labelledby="radio-title">
+    <div class="radio-head">
+      <h2 id="radio-title">On the radio</h2>
+      <button type="button" class="key" id="play-all">Play all</button>
+    </div>
+    <div class="caption" id="caption" aria-live="off"></div>
+    <ol class="log" id="log"></ol>
+  </section>
+  <footer class="foot">
+    <button type="button" class="key" id="share">Share this story</button>
+    <a class="key" id="open-app" href="/">Open in Squelch</a>
+    <p class="fine" id="fine"></p>
+  </footer>
+</main>
+<audio id="player" preload="none"></audio>
+<script type="application/json" id="story-data">{{data}}</script>
+<script src="vendor/leaflet.js"></script>
+<script src="share.js"></script>
+</body>
+</html>
