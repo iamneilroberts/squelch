@@ -19,7 +19,7 @@ import { widerCatchup } from './ai/wider.mjs';
 import { studioRoute } from './studio/routes.mjs';
 import { changes } from './changes.mjs';
 import { reportRoute, reportStatus } from './report.mjs';
-import { shareRoute } from './share.mjs';
+import { shareRoute, previewRoute, sharePath } from './share.mjs';
 
 const PORT = Number(process.env.PORT || 8077);
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json', '.json': 'application/json' };
@@ -244,7 +244,14 @@ setInterval(nightly, 15 * 60e3);
 setTimeout(nightly, 10e3);
 
 createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://x');
+  // Shared-link previews (src/share.mjs): the only path meant to be open without a sign-in, so it's served before
+  // anything else and never falls through.
+  if (req.url.startsWith('/p/')) return previewRoute(req, res, { port: PORT, serveFile }).catch((e) => { res.writeHead(500); res.end(); console.warn('[share]', e.message); });
+  // From the tunnel, a path Node would rewrite (dot segments, backslashes, //p/..) is refused, so the path Cloudflare
+  // Access matched is the path routed here, and a malformed one can't crash the server.
+  let url;
+  try { url = new URL(req.url, 'http://x'); } catch { res.writeHead(400); return res.end(); }
+  if (isRemote(req) && url.pathname !== req.url.split('?')[0]) { res.writeHead(400); return res.end(); }
   const p = url.pathname;
   const remote = isRemote(req);
   // A tunnel visitor Access didn't sign in (a path ever let through without a login) never gets transcripts.
@@ -360,7 +367,7 @@ createServer(async (req, res) => {
       return r ? out(r) : json(res, { error: 'no such scan' }, 404); // its plays carry transcripts
     }
     const th = p.match(/^\/api\/threads\/(\d+)$/);
-    if (th) { const t = getThread(Number(th[1])); return t ? out(t) : (res.writeHead(404), res.end()); }
+    if (th) { const t = getThread(Number(th[1])); return t ? out({ ...t, share: sharePath(t.id) }) : (res.writeHead(404), res.end()); }
     if (p === '/api/threads') return out(recentThreads(Math.min(24, Number(url.searchParams.get('hours')) || 3)));
     // Wider catch-up (src/ai/wider.mjs): built from transcripts, so not for visitors they're hidden from.
     const wi = p.match(/^\/api\/threads\/(\d+)\/wider$/);

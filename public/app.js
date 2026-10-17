@@ -1608,6 +1608,7 @@ function connect() {
 
 /* ───────── Channel story: tap a title line for the conversation's key facts and chronology ───────── */
 let storyId = null;
+let storyShare = null; // its shared-link path (/p/…, src/share.mjs)
 let storyClips = []; // every transmission in the story with audio, oldest first
 let widerClips = []; // the wider catch-up's transmissions, in the order they went out
 const storySeen = new Map(); // story id → its newest transmission this page has shown on the card
@@ -1658,6 +1659,7 @@ async function renderStory() {
   $('story-play').innerHTML = `${ICON_PLAY} Play all · ${storyClips.length} transmission${storyClips.length > 1 ? 's' : ''}`;
   $('story-wider').hidden = !state.viewer?.transcripts; // built from transcripts (src/ai/wider.mjs)
   $('story-feedback').hidden = $('story-snooze').hidden = notify.opened?.story !== t.id;
+  storyShare = t.share;
   $('story-title').innerHTML = `${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}`;
   $('story-follow').innerHTML = followKey(t.id);
   $('story-facts').innerHTML = t.facts.map((f) => `<dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd>`).join('');
@@ -1698,7 +1700,7 @@ $('story-close').addEventListener('click', () => $('story').close());
 $('story-play').addEventListener('click', () => playStory());
 // Share: the story's own page (/s/<id>, src/share.mjs), by the share sheet or a copied link.
 $('story-share').addEventListener('click', async () => {
-  const url = `${state.publicUrl?.replace(/\/$/, '') || location.origin}/s/${storyId}`;
+  const url = `${state.publicUrl?.replace(/\/$/, '') || location.origin}${storyShare || `/s/${storyId}`}`;
   if (navigator.share) return navigator.share({ title: $('story-title').textContent, url }).catch(() => {});
   try { await navigator.clipboard.writeText(url); } catch { return void prompt('Copy this link', url); }
   $('story-share').textContent = 'Link copied';

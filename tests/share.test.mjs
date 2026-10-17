@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
+import { request } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -12,7 +13,7 @@ process.env.DB_PATH = join(mkdtempSync(join(tmpdir(), 'share-')), 'test.db');
 process.env.SOURCES_FILE = join(repo, 'sources.example.json');
 process.chdir(repo); // the route reads its templates from public/
 
-const { shareRoute } = await import('../src/share.mjs');
+const { shareRoute, previewRoute, sharePath } = await import('../src/share.mjs');
 const { db, newThread } = await import('../src/db.mjs');
 
 const SECRET = 'Unit 4 copies, the caller is John Q Example at 12 Elm';
@@ -65,6 +66,18 @@ test('a visitor Access did not sign in never gets transcripts, even while the ow
   assert.equal((await tunnel('/api/captions/county-fire-1.mp3.vtt')).status, 404);
   assert.ok(!(await (await tunnel(`/api/threads/${id}`)).text()).includes('John Q Example'));
   assert.ok((await (await tunnel(`/api/threads/${id}`, 'ann@example.com')).text()).includes('John Q Example'));
+
+  // The preview path is the one Access may let through unsigned: a crafted path under it can't reach the app,
+  // even claiming to be a signed-in guest. (fetch would tidy the path, so this is a raw request.)
+  for (const raw of [`/p/../api/threads/${id}`, `/p/%2e%2e/api/threads/${id}`, '/p/../s/' + id, `/P/../api/threads/${id}`, `//p/../api/threads/${id}`,
+    `/p\\..\\api\\threads\\${id}`, `/./p/../api/threads/${id}`, `http://h/p/../api/threads/${id}`, '//[']) {
+    const r = await new Promise((ok) => request({ host: '127.0.0.1', port, path: raw, headers: { 'cf-connecting-ip': '203.0.113.9', 'cf-access-authenticated-user-email': 'ann@example.com' } },
+      (res) => { let b = ''; res.on('data', (d) => { b += d; }); res.on('end', () => ok({ status: res.statusCode, b })); }).end());
+    assert.ok([400, 404].includes(r.status), `${raw} → ${r.status}`);
+    assert.ok(!r.b.includes('John Q Example'), raw);
+  }
+  // The app learns each story's shared-link path.
+  assert.equal(JSON.parse(await (await tunnel(`/api/threads/${id}`, 'ann@example.com')).text()).share, sharePath(id));
 });
 
 test('story text cannot break out of the page', async () => {
@@ -89,6 +102,37 @@ test('the preview card page carries no transcript, and a missing story launches 
   const img = await get('/s/999999/card.jpg');
   assert.equal(img.code, 302); // straight to the fallback icon
   assert.ok(Date.now() - t0 < 200);
+});
+
+async function preview(path) {
+  const res = { code: 0, headers: {}, body: '', writeHead(c, h) { this.code = c; Object.assign(this.headers, h); }, end(b) { this.body = String(b ?? ''); } };
+  await previewRoute({ url: path, headers: { host: 'scanner.example' } }, res, { port: 0, serveFile: () => {} });
+  return res;
+}
+
+test('a shared link previews the story: title, place, summary and card, no notes or transcripts', async () => {
+  const path = sharePath(id);
+  assert.match(path, new RegExp(`^/p/${id}\\.[\\w-]{16}$`));
+  const r = await preview(path);
+  assert.equal(r.code, 200);
+  assert.match(r.body, new RegExp(`<meta property="og:image" content="https://scanner.example${path}/card.jpg\\?v=\\d+">`));
+  assert.match(r.body, new RegExp(`<meta http-equiv="refresh" content="0; url=/s/${id}">`));
+  assert.ok(r.body.includes('Two dogs on Main Street'));
+  assert.ok(!r.body.includes('John Q Example'));
+  assert.ok(!r.body.includes('Dogs reported loose'));
+  assert.equal(r.headers['X-Robots-Tag'], 'noindex');
+  // The page links to the shared link, not the story number.
+  assert.equal(data((await get(`/s/${id}`)).body).url, `http://scanner.example${path}`);
+});
+
+test('a shared link only works with its own signature', async () => {
+  const other = newThread('county-fire', { subject: 'Not shared', facts: [], type: 'other', alert: 0.1, why: null });
+  const sig = sharePath(id).split('.')[1];
+  const flip = (sig[0] === 'A' ? 'B' : 'A') + sig.slice(1);
+  for (const bad of [`/p/${other}.${sig}`, `/p/${id}.${flip}`, `/p/${id}`, `/p/${id}.${sig}/other`, `/p/${id}.${sig.slice(0, 15)}`, '/p/999999999.' + sig]) {
+    assert.equal((await preview(bad)).code, 404, bad);
+  }
+  assert.equal((await preview(sharePath(other))).code, 200);
 });
 
 test('unknown stories are a 404 and other paths are not handled', async () => {
