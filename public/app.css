@@ -476,6 +476,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .cc-line { margin: 0; overflow-wrap: anywhere; }
 .cc-who { color: inherit; text-decoration: none; }
+.cc:has(.cc-story) { cursor: pointer; }
+.cc-story { margin-left: 2px; padding: 0 4px; border: 1px solid oklch(0.6 0 0); border-radius: 3px; font-size: .85em; color: oklch(0.85 0 0); white-space: nowrap; }
 .cc-probe { position: absolute; visibility: hidden; white-space: pre; } /* measures text so line breaks can be predicted */
 .cc-old { color: oklch(0.72 0 0); }
 .cc-old .cc-src { opacity: .7; }

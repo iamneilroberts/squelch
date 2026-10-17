@@ -327,6 +327,8 @@ function ccWho(id, thread) {
   return `${thread ? `<a href="#" class="cc-who" data-thread="${thread}">${who}</a>` : who} `;
 }
 const callByAudio = (name) => state.calls.find((c) => c.audio === name);
+// A transmission's story, looked up when needed: a scanned one goes on air before its story is assigned.
+const ccThread = (seg) => (seg.audio && callByAudio(seg.audio)?.thread_id) || seg.thread;
 const ccSet = (html) => { $('cc-text').innerHTML = html; };
 const ccOff = () => !state.viewer?.transcripts;
 const ccWords = (text) => String(text || '').split(/\s+/).filter(Boolean);
@@ -362,28 +364,36 @@ function ccRender(segs) {
   const cols = Math.floor(box.clientWidth / cw);
   const out = [];
   let left = CC_ROWS;
-  for (const seg of [...segs].reverse()) {
+  for (const [i, seg] of [...segs.entries()].reverse()) {
     if (left < 1 || !seg.words.length) continue;
-    probe.innerHTML = ccWho(seg.id, seg.thread);
+    const thread = ccThread(seg);
+    const cue = i === segs.length - 1 && thread ? ' <span class="cc-story">Story&nbsp;›</span>' : ''; // the whole strip opens the story
+    probe.innerHTML = ccWho(seg.id, thread);
     const indent = Math.ceil(probe.getBoundingClientRect().width / cw);
     let from = 0;
-    const words = () => (from ? ['…', ...seg.words.slice(from)] : seg.words);
+    const words = () => [...(from ? ['…', ...seg.words.slice(from)] : seg.words), ...(cue ? ['Story ›··'] : [])];
     while (from < seg.words.length - 1 && ccRows(words(), cols, indent) > left) from++;
     left -= ccRows(words(), cols, indent);
     const now = seg.now ?? seg.words.length;
     const text = (a, b) => esc(seg.words.slice(Math.max(a, from), b).join(' '));
-    out.unshift(`<p class="cc-line${seg.old ? ' cc-old' : ''}">${ccWho(seg.id, seg.thread)}${from ? '… ' : ''}${text(0, now)}${now < seg.words.length ? `${now > from ? ' ' : ''}<span class="cc-now">${text(now, seg.words.length)}</span>` : ''}</p>`);
+    out.unshift(`<p class="cc-line${seg.old ? ' cc-old' : ''}" data-seg="${i}">${ccWho(seg.id, thread)}${from ? '… ' : ''}${text(0, now)}${now < seg.words.length ? `${now > from ? ' ' : ''}<span class="cc-now">${text(now, seg.words.length)}</span>` : ''}${cue}</p>`);
   }
   probe.remove();
   ccSet(out.join(''));
 }
 addEventListener('resize', () => { if (ccShown.length) ccRender(ccShown); });
+$('cc').addEventListener('click', (e) => {
+  if (e.target.closest('[data-thread]')) return; // the source tag is a link already
+  const seg = ccShown[e.target.closest('[data-seg]')?.dataset.seg ?? ccShown.length - 1];
+  const thread = seg && ccThread(seg);
+  if (thread) openStory(thread);
+});
 
 function ccLoad(src, offset = 0) {
   ccOffset = offset;
   if (ccCur?.words.length) ccPast = [...ccPast, ccCur].slice(-2);
   const name = decodeURIComponent(src).replace(/^\/audio\//, '');
-  ccCur = { id: /^(.+)-\d+\.mp3$/.exec(name)?.[1] ?? null, thread: callByAudio(name)?.thread_id, words: [] };
+  ccCur = { id: /^(.+)-\d+\.mp3$/.exec(name)?.[1] ?? null, audio: name, thread: callByAudio(name)?.thread_id, words: [] };
   radio.querySelectorAll('track').forEach((t) => t.remove());
   if (ccOff()) return ccIdle();
   if (!src.startsWith('/audio/')) return ccRender(ccPast.map((x) => ({ ...x, old: true })));
@@ -412,7 +422,7 @@ function ccLive() {
   if (ccOff()) return ccIdle();
   const recent = state.calls.filter((c) => c.source_id === s.id && c.transcript).slice(0, 3).reverse();
   if (!recent.length) return ccSet(`<p class="cc-line cc-note">Captions for ${esc(s.short)} appear about a minute behind the audio.</p>`);
-  ccRender(recent.map((c, i) => ({ id: s.id, thread: c.thread_id, words: ccWords(c.transcript), old: i < recent.length - 1 })));
+  ccRender(recent.map((c, i) => ({ id: s.id, audio: c.audio, thread: c.thread_id, words: ccWords(c.transcript), old: i < recent.length - 1 })));
 }
 
 radio.addEventListener('playing', () => {
@@ -587,10 +597,14 @@ function scanPlaying(p) {
   syncScanKeys();
   moveNeedle(state.byId.get(c.source_id));
   setLit(true);
-  $('now-playing').innerHTML = `${p.tag ? `${p.tag} · ` : ''}${titleOf(c)}&nbsp;·&nbsp;${hhmm(c.at)}`;
+  scanTitle(p, c);
   ccLoad(`/audio/${encodeURIComponent(c.audio)}`, p.offset);
-  onAirCall = c;
   showOnAir();
+}
+// Title line and lock screen for the transmission on air; again when its story arrives after it went on air.
+function scanTitle(p, c) {
+  $('now-playing').innerHTML = `${p.tag ? `${p.tag} · ` : ''}${titleOf(c)}&nbsp;·&nbsp;${hhmm(c.at)}`;
+  onAirCall = c;
   mediaMeta(c);
 }
 
@@ -1323,6 +1337,9 @@ function connect() {
     state.calls.unshift(c); // first: playback looks the call up by its clip
     state.calls.length = Math.min(state.calls.length, 200);
     if (c.source_id === state.tuned?.id) ccLive();
+    if (ccShown.some((s) => s.audio === c.audio)) ccRender(ccShown); // its story is known now
+    if (scan.lastCall?.id === c.id) { scan.lastCall = c; scan.last.set(c.source_id, c); } // scanned before its story was assigned
+    if (scan.shown?.call.id === c.id) scanTitle(scan.shown, c);
     if (storyId && c.thread_id === storyId) renderStory();
     if (c.thread_id) storyCall(c);
     if (c.thread_id && c.thread_id === follow.id) followCall(c);

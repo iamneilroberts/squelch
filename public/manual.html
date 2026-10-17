@@ -117,6 +117,7 @@
     <section class="page wide" id="captions">
       <h2>Closed captions</h2>
       <p>Transcripts arrive without word timings. So when a clip is first played, the server finds where in it the voice is (the same speech detection as the squelch) and spreads the transcript over those stretches, each line in proportion to its length. The result is a WebVTT file (<code>/api/captions/&lt;clip&gt;.vtt</code>), cached with the call, that the page attaches to the audio. That keeps the caption strip in step with play, pause and seek.</p>
+      <p>Tap anywhere on the strip for the story card of the transmission it shows (the newest line ends in <em>Story ›</em> once its story is known; a scanned transmission can go on air a few seconds before that).</p>
       <p>The strip rolls up three lines. Each transmission is one paragraph starting with its band tag and station, e.g. <span class="tag-sample">ATC</span> MOB INTL. The text is monospace, so line breaks can be predicted: older text is trimmed from the front ("…") so every visible paragraph keeps its tag. When tuned live, the strip shows that channel's transcripts as they arrive, about a minute behind.</p>
     </section>
 
