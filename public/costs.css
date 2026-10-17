@@ -47,7 +47,7 @@
 .hint { margin: -6px 0 10px; font-size: 12px; color: var(--ink-soft); }
 
 /* Balance: dotted leaders, like a handwritten ledger. */
-.leaders { margin: 0; display: grid; gap: 2px; }
+.leaders { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .leaders div { display: flex; align-items: baseline; gap: 6px; line-height: 26px; }
 .leaders dt { white-space: nowrap; }
 .leaders dd { margin: 0; font-weight: 700; white-space: nowrap; }
@@ -120,6 +120,12 @@ table.accounts { width: 100%; border-collapse: collapse; font-size: 13px; }
 }
 @media (max-width: 520px) {
   .ledger-head h1 { letter-spacing: .14em; font-size: 18px; }
+  .page { padding: 14px 14px 18px 46px; }
+  /* Labels wrap; the value stays whole at the end of the dotted leader. */
+  .leaders dt { white-space: normal; min-width: 0; }
+  .leaders div::after { min-width: 12px; }
+  .gate-table { display: block; max-width: 100%; overflow-x: auto; font-size: 12px; }
+  .gate-table th, .gate-table td { padding-right: 10px; white-space: nowrap; }
   .trace summary { grid-template-columns: 40px minmax(0, 1fr) 64px; }
   .trace .feed { display: none; }
 }
