@@ -6,8 +6,10 @@ import { basename, extname } from 'node:path';
 import { openRouter } from './llm.mjs';
 import { span } from '../meter.mjs';
 
-// Bench 2026-10-16: 4% WER / 95% key terms at $0.02 per audio hour. gemini-3.8-flash is the accuracy pick (2% WER, $0.52/h).
-export const DEFAULT_TRANSCRIBE_MODEL = 'xiaomi/mimo-v2.6-flash';
+// Bench 2026-10-17, low reasoning: 6% WER / 93% key terms at $0.16 per audio hour (default reasoning: 3% / 97%, but
+// ~10x the cost on live clips and close to max_tokens). mimo-v2.6-flash (4% WER on 10-16) went deaf on OpenRouter on
+// 10-17: 100% WER, "no audio was provided" on real traffic.
+export const DEFAULT_TRANSCRIBE_MODEL = 'google/gemini-3.8-flash';
 
 // Local vocabulary (per region, from sources.json) nudges the model toward street names and callsigns.
 const UNITS = 'Engine, Ladder, Rescue, Medic, Battalion, Squad, Station, Sheriff, Deputy, Trooper';
@@ -44,17 +46,24 @@ export async function transcribe(file, model = process.env.TRANSCRIBE_MODEL || D
   return { ...r, text: HALLUCINATIONS.test(text) || PLACEHOLDER.test(text) || META.test(text) || echoesPrompt(text, vocab) ? '' : text };
 }
 
+// Reasoning models sometimes think until max_tokens and reply with nothing; that clip is retried once, not dropped.
 async function viaOpenRouter(file, model, vocab) {
   const format = extname(file).slice(1) || 'mp3';
-  const j = await openRouter({
-    model,
-    max_tokens: 1000,
-    messages: [{ role: 'user', content: [
-      { type: 'text', text: prompt(vocab) },
-      { type: 'input_audio', input_audio: { data: (await readFile(file)).toString('base64'), format } },
-    ] }],
-  }, { purpose: 'transcribe' });
-  return { text: j.choices?.[0]?.message?.content ?? '', costUsd: j.usage?.cost ?? null };
+  const data = (await readFile(file)).toString('base64');
+  for (let attempt = 0; ; attempt++) {
+    const j = await openRouter({
+      model,
+      max_tokens: 2000,
+      reasoning: { effort: 'low' },
+      messages: [{ role: 'user', content: [
+        { type: 'text', text: prompt(vocab) },
+        { type: 'input_audio', input_audio: { data, format } },
+      ] }],
+    }, { purpose: 'transcribe' });
+    const choice = j.choices?.[0];
+    if (choice?.finish_reason !== 'length') return { text: choice?.message?.content ?? '', costUsd: j.usage?.cost ?? null };
+    if (attempt) throw new Error('transcript cut off (max_tokens) twice');
+  }
 }
 
 async function viaWhisper(file, vocab) {

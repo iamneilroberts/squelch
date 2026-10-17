@@ -84,7 +84,7 @@
     <section class="page wide" id="transcribe">
       <h2>Transcription and the speech gate</h2>
       <ul>
-        <li><strong>Speech-to-text.</strong> Each clip goes to <code>xiaomi/mimo-v2.6-flash</code> through OpenRouter, with the area's place and street names as vocabulary.</li>
+        <li><strong>Speech-to-text.</strong> Each clip goes to <code>google/gemini-3.8-flash</code> through OpenRouter, with the area's place and street names as vocabulary.</li>
         <li><strong>Filters.</strong> Transcribers sometimes invent words from noise. Empty answers, placeholders, the model's own commentary ("no intelligible speech") and echoes of the prompt are thrown out.</li>
         <li><strong>Speech gate.</strong> TypeSafe's Jev asks two quick questions of every transcript: is this real speech, and is it newsworthy?
           <ul>
@@ -173,7 +173,7 @@
       <div class="table-scroll"><table class="accounts">
         <thead><tr><th>Job</th><th>Model</th><th>Runs</th></tr></thead>
         <tbody>
-          <tr><td>Speech-to-text</td><td><code>xiaomi/mimo-v2.6-flash</code></td><td>every clip that passes the squelch</td></tr>
+          <tr><td>Speech-to-text</td><td><code>google/gemini-3.8-flash</code></td><td>every clip that passes the squelch</td></tr>
           <tr><td>Speech gate</td><td><code>~typesafe/jev-latest</code></td><td>every transcript</td></tr>
           <tr><td>Channel story + alert</td><td><code>openai/gpt-6-luna</code></td><td>every saved transmission</td></tr>
           <tr><td>Incident triage</td><td><code>openai/gpt-6-luna</code></td><td>transcripts the gate calls newsworthy</td></tr>

@@ -58,7 +58,7 @@ feed ─► ffmpeg 45 s segments ─► squelch ─► speech-to-text ─► Jev
 | Step | Where | Default |
 |---|---|---|
 | Silence + **adaptive squelch** | `src/ingest/stream.mjs`, `src/ingest/vad.mjs` | keeps only what rises above each clip's own background in 16 spectral bands; drops hum/static clips before they cost anything |
-| Speech-to-text | `src/ai/transcribe.mjs` | `xiaomi/mimo-v2.6-flash` via OpenRouter audio input |
+| Speech-to-text | `src/ai/transcribe.mjs` | `google/gemini-3.8-flash` via OpenRouter audio input |
 | Speech + newsworthy gate | `src/ai/jev.mjs` | TypeSafe Jev: drops model filler, skips triage for routine traffic (5 % audited) |
 | Incident triage | `src/ai/triage.mjs` | `openai/gpt-6-luna`, strict JSON; merges follow-ups into open incidents |
 | Channel story | `src/ai/thread.mjs` | `openai/gpt-6-luna`: continues or starts each channel's story, keeps its facts and writes a chronology line per transmission |
