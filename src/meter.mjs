@@ -94,8 +94,15 @@ export function costSummary(hours) {
   const rows = db.prepare(`SELECT kind, purpose, provider, model, COUNT(*) AS n, SUM(ok = 0) AS errors,
       SUM(in_tok) AS in_tok, SUM(out_tok) AS out_tok, SUM(cost) AS cost, SUM(cost IS NULL AND kind != 'http') AS unpriced
     FROM spans WHERE at >= ? GROUP BY kind, purpose, provider, model ORDER BY cost DESC NULLS LAST, n DESC`).all(since);
+  // Durations in one sorted read, grouped by purpose and model.
+  const durations = new Map();
+  for (const x of db.prepare(`SELECT purpose, COALESCE(model,'') AS model, ms FROM spans WHERE at >= ? ORDER BY ms`).all(since)) {
+    const k = `${x.purpose}\n${x.model}`;
+    if (!durations.has(k)) durations.set(k, []);
+    durations.get(k).push(x.ms);
+  }
   for (const r of rows) {
-    const ms = db.prepare(`SELECT ms FROM spans WHERE at >= ? AND purpose = ? AND COALESCE(model,'') = ? ORDER BY ms`).all(since, r.purpose, r.model ?? '').map((x) => x.ms);
+    const ms = durations.get(`${r.purpose}\n${r.model ?? ''}`) ?? [];
     r.p50 = ms[Math.floor(ms.length * 0.5)] ?? null;
     r.p95 = ms[Math.min(ms.length - 1, Math.floor(ms.length * 0.95))] ?? null;
   }

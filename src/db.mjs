@@ -119,6 +119,14 @@ export const geocache = {
 };
 
 // Audio clips older than `hours` are deleted from disk (the transcript stays), except clips a digest kept.
+// Transcripts, updates and stories older than `days` are deleted; calls a daily digest kept stay.
+export function pruneHistory(days) {
+  const before = new Date(Date.now() - days * 864e5).toISOString();
+  db.prepare('DELETE FROM calls WHERE at < ? AND keep = 0').run(before);
+  db.prepare('DELETE FROM updates WHERE at < ?').run(before);
+  db.prepare('DELETE FROM threads WHERE updated_at < ? AND id NOT IN (SELECT thread_id FROM calls WHERE thread_id IS NOT NULL)').run(before);
+}
+
 export function expireAudio(hours) {
   const before = new Date(Date.now() - hours * 3600e3).toISOString();
   const rows = db.prepare(`SELECT audio FROM calls WHERE at < ? AND audio IS NOT NULL AND keep = 0`).all(before);
@@ -154,6 +162,7 @@ for (const col of ['type TEXT', 'alert REAL NOT NULL DEFAULT 0', 'why TEXT']) {
 }
 db.exec('CREATE INDEX IF NOT EXISTS threads_source ON threads (source_id, updated_at)');
 db.exec('CREATE INDEX IF NOT EXISTS calls_thread ON calls (thread_id)');
+db.exec('CREATE INDEX IF NOT EXISTS updates_incident ON updates (incident_id)');
 
 // The channel's ongoing story: its latest thread, if that was updated within `minutes`.
 export function currentThread(sourceId, minutes = 30) {

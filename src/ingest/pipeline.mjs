@@ -2,7 +2,7 @@
 import { EventEmitter } from 'node:events';
 import { rmSync, renameSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { insertCall, tagCall, createIncident, updateIncident, openIncidentsFor, expireAudio, setGate, currentThread, saveThread } from '../db.mjs';
+import { insertCall, tagCall, createIncident, updateIncident, openIncidentsFor, expireAudio, pruneHistory, setGate, currentThread, saveThread } from '../db.mjs';
 import { withTrace, linkTraceToCall, pruneSpans, span, setTraceVad } from '../meter.mjs';
 import { loudnessSpread } from './vad.mjs';
 import { gate } from '../ai/jev.mjs';
@@ -57,11 +57,13 @@ export function startIngest(sources, regions) {
   }
   // Don't leave ffmpeg children running after the server stops.
   for (const sig of ['SIGINT', 'SIGTERM']) process.once(sig, () => { stops.forEach((stop) => stop()); process.exit(0); });
-  // Every transmission is recorded; clips older than RECORD_DAYS are deleted unless a daily digest kept them.
+  // Every transmission is recorded; clips older than RECORD_DAYS are deleted unless a daily digest kept them,
+  // and transcripts and stories after 30 days.
   const keepHours = Number(process.env.RECORD_DAYS || 7) * 24;
   setInterval(() => {
     expireAudio(keepHours).forEach((f) => rmSync(join('data', 'audio', f), { force: true }));
     pruneSpans(30);
+    pruneHistory(30);
   }, 3600e3);
 }
 

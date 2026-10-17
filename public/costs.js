@@ -207,4 +207,6 @@ async function refresh() {
   }
 }
 refresh();
-setInterval(refresh, 15e3);
+// Every 15 s while the Ledger is on screen; at once when it comes back.
+setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 15e3);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
