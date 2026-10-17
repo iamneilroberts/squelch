@@ -114,10 +114,17 @@ const dlKey = (a, f) => standalone
   ? `<button type="button" class="key" data-save="${fileUrl(a, f)}" data-name="squelch-${a.id}-${esc(f.name)}">${f.kind === 'mp4' ? 'MP4' : 'HTML'} <span class="na">${mb(f.bytes)}</span></button>`
   : `<a class="key" href="${fileUrl(a, f, true)}" download>${f.kind === 'mp4' ? 'MP4' : 'HTML'} <span class="na">${mb(f.bytes)}</span></a>`;
 const fileUrl = (a, f, dl) => `/api/studio/animations/${a.id}/files/${encodeURIComponent(f.name)}${dl ? '?download' : ''}`;
-const playable = (a) => ({ mp4: a.files.find((f) => f.kind === 'mp4'), web: a.files.find((f) => f.kind === 'web') });
+const blobUrl = async (url) => {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(r.status);
+  return URL.createObjectURL(await r.blob());
+};
+const playable = (a) =>({ mp4: a.files.find((f) => f.kind === 'mp4'), web: a.files.find((f) => f.kind === 'web') });
 
 function player(a) {
   const { mp4, web } = playable(a);
+  // An installed iPhone app's video player loads without the site's login, so there the page fetches the file and plays it from memory.
+  if (mp4 && standalone) return `<button type="button" class="anim-poster" data-blob="${fileUrl(a, mp4)}"><span class="key">Play <span class="na">${mb(mp4.bytes)}</span></span></button>`;
   if (mp4) return `<video class="anim-video" controls playsinline preload="metadata" src="${fileUrl(a, mp4)}"></video>`;
   // Web pages carry their audio and art inline (often a megabyte or more), so they load on demand.
   if (web) return `<button type="button" class="anim-poster" data-web="${fileUrl(a, web)}"><span class="key">Play</span></button>`;
@@ -163,10 +170,21 @@ $('library').addEventListener('click', async (e) => {
   const li = e.target.closest('.anim');
   if (!li) return;
   const id = li.dataset.id;
+  const blob = e.target.closest('[data-blob]');
+  if (blob) {
+    const label = blob.innerHTML;
+    blob.disabled = true;
+    blob.querySelector('.key').textContent = 'Loading…';
+    try {
+      blob.outerHTML = `<video class="anim-video" controls playsinline autoplay src="${await blobUrl(blob.dataset.blob)}"></video>`;
+    } catch { blob.innerHTML = label; blob.disabled = false; }
+    return;
+  }
   const web = e.target.closest('[data-web]');
   if (web) {
+    const src = standalone ? await blobUrl(web.dataset.web).catch(() => web.dataset.web) : web.dataset.web;
     // Sandboxed: a generated page gets scripts but no access to this origin.
-    li.querySelector('.anim-play').innerHTML = `<iframe class="anim-frame" sandbox="allow-scripts" allow="autoplay" src="${web.dataset.web}" title="Animation"></iframe>`;
+    li.querySelector('.anim-play').innerHTML = `<iframe class="anim-frame" sandbox="allow-scripts" allow="autoplay" src="${src}" title="Animation"></iframe>`;
     return;
   }
   const rate = e.target.closest('[data-rate]');
