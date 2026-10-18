@@ -70,12 +70,16 @@ test('a visitor Access did not sign in never gets transcripts, even while the ow
   // The preview path is the one Access may let through unsigned: a crafted path under it can't reach the app,
   // even claiming to be a signed-in guest. (fetch would tidy the path, so this is a raw request.)
   for (const raw of [`/p/../api/threads/${id}`, `/p/%2e%2e/api/threads/${id}`, '/p/../s/' + id, `/P/../api/threads/${id}`, `//p/../api/threads/${id}`,
-    `/p\\..\\api\\threads\\${id}`, `/./p/../api/threads/${id}`, `http://h/p/../api/threads/${id}`, '//[']) {
+    `/p\\..\\api\\threads\\${id}`, `/./p/../api/threads/${id}`, `http://h/p/../api/threads/${id}`, '//[', `/P/x`]) {
     const r = await new Promise((ok) => request({ host: '127.0.0.1', port, path: raw, headers: { 'cf-connecting-ip': '203.0.113.9', 'cf-access-authenticated-user-email': 'ann@example.com' } },
       (res) => { let b = ''; res.on('data', (d) => { b += d; }); res.on('end', () => ok({ status: res.statusCode, b })); }).end());
     assert.ok([400, 404].includes(r.status), `${raw} → ${r.status}`);
     assert.ok(!r.b.includes('John Q Example'), raw);
   }
+  // Access matches p/* in any case, so /P/ must land in the preview handler too.
+  const upper = await new Promise((ok) => request({ host: '127.0.0.1', port, path: `/P/${sharePath(id).slice(3)}`, headers: { 'cf-connecting-ip': '203.0.113.9' } },
+    (res) => { res.resume(); res.on('end', () => ok(res.statusCode)); }).end());
+  assert.equal(upper, 200);
   // The app learns each story's shared-link path.
   assert.equal(JSON.parse(await (await tunnel(`/api/threads/${id}`, 'ann@example.com')).text()).share, sharePath(id));
 });

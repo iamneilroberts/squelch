@@ -119,10 +119,10 @@ export async function shareRoute(req, res, { p, hidden, remote, port, page, serv
   return true;
 }
 
-// /p/<id>.<signature> and /p/<id>.<signature>/card.jpg, matched on the raw request path. Anything starting /p/ ends
+// /p/<id>.<signature> and /p/<id>.<signature>/card.jpg, matched on the raw request path. Anything starting /p/ (any case) ends
 // here (a 404 unless it is exactly one of these), so a crafted path can't reach the rest of the app through it.
 export async function previewRoute(req, res, { port, serveFile }) {
-  const m = req.url.split('?')[0].match(/^\/p\/(\d{1,9})\.([\w-]{16})(\/card\.jpg)?$/);
+  const m = req.url.split('?')[0].match(/^\/p\/(\d{1,9})\.([\w-]{16})(\/card\.jpg)?$/i);
   const id = m && Number(m[1]);
   const t = m && signed(id, m[2]) && db.prepare('SELECT 1 FROM threads WHERE id = ?').get(id);
   if (!t) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('This link isn’t valid, or the story is no longer kept (30 days).'); }

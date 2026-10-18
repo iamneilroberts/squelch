@@ -245,8 +245,8 @@ setTimeout(nightly, 10e3);
 
 createServer(async (req, res) => {
   // Shared-link previews (src/share.mjs): the only path meant to be open without a sign-in, so it's served before
-  // anything else and never falls through.
-  if (req.url.startsWith('/p/')) return previewRoute(req, res, { port: PORT, serveFile }).catch((e) => { res.writeHead(500); res.end(); console.warn('[share]', e.message); });
+  // anything else and never falls through. Any case: Access matches /P/ to the p/* rule too.
+  if (/^\/p\//i.test(req.url)) return previewRoute(req, res, { port: PORT, serveFile }).catch((e) => { res.writeHead(500); res.end(); console.warn('[share]', e.message); });
   // From the tunnel, a path Node would rewrite (dot segments, backslashes, //p/..) is refused, so the path Cloudflare
   // Access matched is the path routed here, and a malformed one can't crash the server.
   let url;
