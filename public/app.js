@@ -201,7 +201,7 @@ narrow.addEventListener('change', applyDialStyle);
 /* The skin: Classic, or LCD with a choice of backlight and (on a wide screen) of layout. index.html sets the
    attributes before first paint; these keep them in step with the Look card. Auto backlight is blue by day and
    red from sunset to sunrise at the station. */
-const LOOK = { 'dial-style': ['pcm.dial', 'auto'], skin: ['pcm.skin', 'classic'], backlight: ['pcm.backlight', 'auto'], 'wide-layout': ['pcm.wideLayout', 'lcd'] };
+const LOOK = { 'dial-style': ['pcm.dial', 'auto'], skin: ['pcm.skin', 'classic'], backlight: ['pcm.backlight', 'auto'], 'backlight-classic': ['pcm.backlight', 'auto'], 'wide-layout': ['pcm.wideLayout', 'lcd'] }; // each skin lists its own backlights; both groups keep one pick
 const html = document.documentElement;
 const { sunIsUp, stationLatLng: whereIs } = window.pcmSkin; // skin-boot.js (loaded in <head>) holds the sun maths, shared with the manual
 const stationLatLng = () => whereIs(state.regions);
@@ -213,18 +213,19 @@ function applyLook() {
   if (where) window.pcmSkin.setWhere(where);
   if (auto) store.set('pcm.autoLight', auto);
   html.dataset.backlight = ['blue', 'night', 'red', 'daylight'].includes(pick) ? pick : auto || html.dataset.backlight;
-  document.querySelector('meta[name="theme-color"]').content = html.dataset.skin === 'lcd' ? '#141518' : '#5a3a22';
+  document.querySelector('meta[name="theme-color"]').content = html.dataset.skin === 'lcd' ? '#141518' : html.dataset.backlight === 'night' ? '#1c1511' : '#5a3a22';
   applyDialStyle();
 }
 setInterval(applyLook, 60e3);
-$('btn-look').addEventListener('click', () => {
-  for (const [name, [key, dflt]] of Object.entries(LOOK)) for (const r of document.querySelectorAll(`[name="${name}"]`)) r.checked = r.value === (store.get(key) || dflt);
-  $('look').showModal();
-});
+function syncLook() { // data-also: Classic's Day stands for LCD's Blue too, as both draw the daytime Classic
+  for (const [name, [key, dflt]] of Object.entries(LOOK)) for (const r of document.querySelectorAll(`[name="${name}"]`)) r.checked = [r.value, r.dataset.also].includes(store.get(key) || dflt);
+}
+$('btn-look').addEventListener('click', () => { syncLook(); $('look').showModal(); });
 $('look').addEventListener('change', (e) => {
   if (!LOOK[e.target.name]) return;
   store.set(LOOK[e.target.name][0], e.target.value);
   applyLook();
+  syncLook(); // the other skin's backlight list shows the same pick when the skin changes
 });
 // LCD skin: the volume keys, and the base unit's scroll knob (Scan, then Hold / Resume)
 document.addEventListener('click', (e) => {

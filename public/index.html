@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="vendor/leaflet.css">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="skin-lcd.css">
+<link rel="stylesheet" href="skin-classic.css">
 </head>
 <body>
 <div class="cabinet">
@@ -203,6 +204,12 @@
   <fieldset class="notify-level"><legend>Skin</legend>
     <label><input type="radio" name="skin" value="classic"> <strong>Classic</strong> — the walnut tabletop receiver</label>
     <label><input type="radio" name="skin" value="lcd"> <strong>LCD</strong> — a backlit scanner display on charcoal</label>
+  </fieldset>
+  <fieldset class="notify-level look-classic"><legend>Backlight</legend>
+    <label><input type="radio" name="backlight-classic" value="auto"> <strong>Auto</strong> — day look by day, red light after sunset</label>
+    <label><input type="radio" name="backlight-classic" value="daylight" data-also="blue"> <strong>Day</strong></label>
+    <label><input type="radio" name="backlight-classic" value="night"> <strong>Night Bakelite</strong> — dark walnut, glowing dial</label>
+    <label><input type="radio" name="backlight-classic" value="red"> <strong>Red</strong> — night vision</label>
   </fieldset>
   <fieldset class="notify-level look-lcd"><legend>Backlight</legend>
     <label><input type="radio" name="backlight" value="auto"> <strong>Auto</strong> — blue by day, red from sunset to sunrise</label>

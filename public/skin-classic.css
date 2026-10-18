@@ -1,0 +1,114 @@
+/* Squelch — Classic skin, Night Bakelite: the same walnut-and-bakelite radio in a dark room. Black bakelite case,
+   cream lettering, the dial still a backlit amber window, dark green-bar paper. Classic with any other backlight is
+   untouched: everything here is scoped to [data-skin="classic"][data-backlight="night"] and mostly re-points app.css
+   tokens. Rules that only set a token on one element re-point a colour that app.css uses for two jobs (dark ink on a
+   light face by day, which becomes light ink on a dark face here). */
+
+[data-skin="classic"][data-backlight="night"] {
+  color-scheme: dark;
+  --walnut-950: oklch(0.13 0.02 45);
+  --walnut-900: oklch(0.17 0.028 45);
+  --walnut-700: oklch(0.22 0.035 50);
+  --walnut-500: oklch(0.28 0.04 55);
+  --bakelite: oklch(0.25 0.012 55);
+  --bakelite-2: oklch(0.21 0.012 55);
+  --bakelite-3: oklch(0.15 0.01 55);
+  --ink: oklch(0.89 0.03 85);
+  --ink-soft: oklch(0.74 0.03 80);
+  --brass: oklch(0.62 0.1 80);
+  --brass-dark: oklch(0.42 0.07 68);
+  --dial-off: oklch(0.68 0.1 76);
+  --dial-on: oklch(0.8 0.13 80);
+  --needle: oklch(0.74 0.16 45);
+  --paper: oklch(0.23 0.008 90);
+  --greenbar: oklch(0.265 0.03 150);
+  --red-ink: oklch(0.73 0.16 30);
+  --blue-ink: oklch(0.78 0.1 250);
+
+  --c-faceplate-hi: oklch(0.38 0.012 60 / .5);
+  --c-faceplate-sheen: oklch(1 0 0 / .1);
+  --c-faceplate-shadow: oklch(0 0 0 / .75);
+  --c-grille-hole-a: oklch(0.08 0.01 50 / .45);
+  --c-grille-hole-b: oklch(0.05 0.01 50 / .45);
+  --c-grille-edge: oklch(0.3 0.025 62);
+  --c-grille-edge-2: oklch(0.22 0.02 55);
+  --c-grille-shade: oklch(0 0 0 / .6);
+  --c-badge-hi: oklch(0.42 0.008 85);
+  --c-badge-lo: oklch(0.28 0.01 75);
+  --c-badge-mid: oklch(0.35 0.01 80);
+  --c-badge-edge: oklch(0.26 0.01 70);
+  --c-badge-text: oklch(0.13 0.01 60);
+  --c-badge-shadow: oklch(0 0 0 / .5);
+  --c-badge-sheen: oklch(1 0 0 / .18);
+  --c-badge-script-shadow: oklch(0 0 0 / .5);
+  --c-dial-scroll-sheen: oklch(1 0 0 / .3);
+  --c-dial-scroll-shadow: oklch(0 0 0 / .5);
+  --c-dial-rim: oklch(0.63 0.09 73);
+  --c-dial-shadow: oklch(0.15 0.04 50 / .6);
+  --c-dial-glass-a: oklch(1 0 0 / .22);
+  --c-dial-glass-b: oklch(1 0 0 / .06);
+  --c-chbar-rim: oklch(0.63 0.09 73);
+  --c-keys-shadow: oklch(0 0 0 / .6);
+  --c-key-face: oklch(0.35 0.012 60);
+  --c-key-face-hover: oklch(0.39 0.012 60);
+  --c-key-pressed-shadow: oklch(0 0 0 / .45);
+  --c-bcfy-bg: oklch(0.2 0.01 70 / .85);
+  --c-log-fresh: oklch(0.36 0.05 90 / .7);
+  --c-tooltip-shadow: oklch(0 0 0 / .5);
+  --c-map-bg-hi: oklch(0.25 0.02 70);
+  --c-map-bg-lo: oklch(0.1 0.01 50);
+  --c-map-veil: oklch(0 0 0 / .45);
+  --c-map-attrib-bg: oklch(0.2 0.01 60 / .85);
+  --c-stamp-pulse: oklch(0.73 0.16 30 / .18);
+  --c-ship: oklch(0.75 0.09 200);
+  --c-tide-mark: oklch(0.78 0.08 230);
+  --c-tab-edge: oklch(0.19 0.012 55);
+  --c-paper-edge: oklch(0.32 0.01 90);
+  --c-entry-rule: oklch(0.4 0.015 90);
+  --c-entry-selected: oklch(0.33 0.04 90 / .7);
+  --c-update-rule: oklch(0.42 0.02 90);
+  --c-traffic-rule: oklch(0.4 0.015 90);
+  --c-notice-code-bg: oklch(0.3 0.01 90);
+  --c-report-chip-planned: oklch(0.78 0.12 75);
+  --c-report-chip-fixed: oklch(0.75 0.13 145);
+  --c-report-reply-bg: oklch(1 0 0 / .05);
+  /* the manual's ledger book (costs.css) */
+  --ledger: oklch(0.23 0.008 90);
+  --ledger-rule: oklch(0.5 0.05 245 / .35);
+  --ledger-margin: oklch(0.6 0.16 25 / .5);
+  --k-jev: oklch(0.72 0.13 150);
+  --k-http: oklch(0.72 0.02 70);
+}
+
+/* The dial is still a lit amber window, so its lettering keeps the daytime inks. */
+[data-skin="classic"][data-backlight="night"] :is(.dial-scroll, .chbar) {
+  --walnut-950: oklch(0.2 0.035 45);
+  --walnut-900: oklch(0.22 0.045 45);
+  --needle: oklch(0.42 0.17 29);
+  --red-ink: oklch(0.33 0.13 27);
+  --blue-ink: oklch(0.36 0.1 255);
+  --ink-soft: oklch(0.38 0.03 65);
+}
+/* The channel bar's band names sit on the dimmer amber: mostly walnut, a tint of the band. */
+[data-skin="classic"][data-backlight="night"] .chbar-group small { color: color-mix(in oklch, var(--c), oklch(0.16 0.03 45) 88%); }
+/* Map stamps: a dark disk under the letter, so red ink still reads on the dark chart. */
+[data-skin="classic"][data-backlight="night"] .stamp { --c-faceplate-hi: oklch(0.15 0.01 60 / .96); --red-ink: oklch(0.79 0.13 32); }
+/* Keys, tabs and switches: light lettering on the dark faces (app.css letters them in --walnut-900). */
+[data-skin="classic"][data-backlight="night"] :is(.key, .bell, .toggle, .leaflet-bar a, .ledger-head h1, .back) { --walnut-900: oklch(0.88 0.03 85); }
+[data-skin="classic"][data-backlight="night"] .tabs button { --walnut-900: var(--ink-soft); }
+/* Cream-on-dark lettering that app.css takes from the case colour. */
+[data-skin="classic"][data-backlight="night"] :is(.chart-head, .ledger-link, .train-mark, .knob, .manual .part, .anim-poster .na) { --bakelite: var(--ink); }
+[data-skin="classic"][data-backlight="night"] .strip { --bakelite-2: var(--ink-soft); }
+/* Edges and rules on the dark paper cards need to be lighter than the paper, not darker. */
+[data-skin="classic"][data-backlight="night"] .story { --bakelite-3: oklch(0.4 0.012 60); }
+
+/* The chart: the sepia tiles, inverted to a dark sea. */
+[data-skin="classic"][data-backlight="night"] #map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) sepia(.45) saturate(.7) brightness(.78) contrast(.92); }
+[data-skin="classic"][data-backlight="night"] :is(.leaflet-control-attribution, .leaflet-control-attribution a, .leaflet-popup-content a) { color: var(--ink-soft); }
+[data-skin="classic"][data-backlight="night"] .leaflet-popup-close-button { color: var(--ink-soft); }
+
+/* Manual pages: the light literals in costs.css and studio.css. */
+[data-skin="classic"][data-backlight="night"] :is(.manual code, .tip-hint code, .cmd) { background: oklch(0.3 0.01 90); }
+[data-skin="classic"][data-backlight="night"] .manual code { overflow-wrap: anywhere; } /* a long feed URL widened a 360 px page */
+[data-skin="classic"][data-backlight="night"] .flow span { background: oklch(0.27 0.01 90); }
+[data-skin="classic"][data-backlight="night"] .tag-sample { color: oklch(0.78 0.1 220); border-color: oklch(0.6 0.1 220); }
