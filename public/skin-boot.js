@@ -24,6 +24,11 @@
   function where() {
     try { var w = JSON.parse(get('pcm.where')); return Array.isArray(w) && isFinite(w[0]) && isFinite(w[1]) ? w : null; } catch (e) { return null; }
   }
+  // Once: Classic had no Backlight choice before Night Bakelite, so a pick kept while on Classic is left over from LCD.
+  if (!get('pcm.lookMig1')) {
+    if (get('pcm.skin') !== 'lcd' && (get('pcm.backlight') || 'auto') !== 'auto') set('pcm.backlight', 'auto');
+    set('pcm.lookMig1', '1');
+  }
   function apply() {
     var pick = get('pcm.backlight') || 'auto', w = where(), hr = new Date().getHours();
     var up = w ? sunIsUp(w[0], w[1]) : hr >= 7 && hr < 19; // no station position yet: the clock
