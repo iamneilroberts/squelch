@@ -220,6 +220,8 @@ setInterval(applyLook, 60e3);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyLook); // Clear's Auto follows the phone's light/dark setting
 function syncLook() { // data-also: Classic's Day stands for LCD's Blue and VFD too, as both draw the daytime Classic
   for (const [name, [key, dflt]] of Object.entries(LOOK)) for (const r of document.querySelectorAll(`[name="${name}"]`)) r.checked = [r.value, ...(r.dataset.also || '').split(' ')].includes(store.get(key) || dflt);
+  if (html.dataset.skin === 'clear' && (store.get('pcm.dial') || 'auto') !== 'auto') // Clear offers only presets and (wide) the slide rule: tick the dial it draws
+    for (const r of document.querySelectorAll('[name="dial-style"]')) r.checked = r.value === html.dataset.dial;
 }
 $('btn-look').addEventListener('click', () => { syncLook(); $('look').showModal(); });
 $('look').addEventListener('change', (e) => {

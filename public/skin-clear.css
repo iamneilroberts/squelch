@@ -104,9 +104,12 @@
 /* ───────── Page, type, focus ───────── */
 [data-skin="clear"] body { background: var(--bg); color: var(--text); font: var(--body-fs)/1.5 var(--ui); }
 /* No spaced-out capitals anywhere: words read as words. */
-[data-skin="clear"] body :is(*, *::before, *::after) { letter-spacing: normal !important; text-transform: none !important; text-shadow: none !important; }
+[data-skin="clear"] body *, [data-skin="clear"] body *::before, [data-skin="clear"] body *::after { letter-spacing: normal !important; text-transform: none !important; text-shadow: none !important; }
 [data-skin="clear"] :focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
 [data-skin="clear"] .look-classic { display: none; }
+/* Clear draws preset keys (or, on a wide screen, the slide rule): the other dials aren't on offer. */
+[data-skin="clear"] #look label:has(> [name="dial-style"]:is([value="bar"], [value="drum"])) { display: none; }
+@media (max-width: 720px) { [data-skin="clear"] #look label:has(> [name="dial-style"][value="rule"]) { display: none; } }
 [data-skin="clear"] .look-clear { display: block; }
 [data-skin="clear"] :is(.eye, .nixie, .dial-glass, .scroll-knob, .rx-led) { display: none; }
 [data-skin="clear"] .cabinet { gap: 16px; }
