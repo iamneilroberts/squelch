@@ -25,8 +25,8 @@
     try { var w = JSON.parse(get('pcm.where')); return Array.isArray(w) && isFinite(w[0]) && isFinite(w[1]) ? w : null; } catch (e) { return null; }
   }
   function apply() {
-    var pick = get('pcm.backlight') || 'auto', w = where(), hr = new Date().getHours(), last = get('pcm.autoLight');
-    var up = w ? sunIsUp(w[0], w[1]) : last ? last === 'blue' : hr >= 7 && hr < 19; // no station position yet: last time's answer, else the clock
+    var pick = get('pcm.backlight') || 'auto', w = where(), hr = new Date().getHours();
+    var up = w ? sunIsUp(w[0], w[1]) : hr >= 7 && hr < 19; // no station position yet: the clock
     d.dataset.skin = get('pcm.skin') === 'lcd' ? 'lcd' : 'classic';
     d.dataset.wide = get('pcm.wideLayout') === 'base' ? 'base' : 'lcd';
     d.dataset.backlight = pick === 'blue' || pick === 'night' || pick === 'red' || pick === 'daylight' ? pick
