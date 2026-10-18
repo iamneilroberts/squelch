@@ -112,3 +112,199 @@
 [data-skin="classic"][data-backlight="night"] .manual code { overflow-wrap: anywhere; } /* a long feed URL widened a 360 px page */
 [data-skin="classic"][data-backlight="night"] .flow span { background: oklch(0.27 0.01 90); }
 [data-skin="classic"][data-backlight="night"] .tag-sample { color: oklch(0.78 0.1 220); border-color: oklch(0.6 0.1 220); }
+
+/* Red light: night vision. Dim red only, on a seven-step ramp at hue 25–32, so nothing anywhere has a blue or green
+   channel to spoil dark-adapted eyes: lamps, magic eye, nixie, band colours, links and the chart all collapse onto
+   the ramp, the walnut texture is dropped, and nothing is brighter than about L 0.70. Scoped to
+   [data-skin="classic"][data-backlight="red"]; the LCD skin keeps its own red backlight. */
+[data-skin="classic"][data-backlight="red"] {
+  color-scheme: dark;
+  accent-color: var(--r-ink);
+  --r-0: oklch(.10 .02 25);
+  --r-1: oklch(.13 .03 25);
+  --r-2: oklch(.16 .04 25);
+  --r-3: oklch(.20 .05 25);
+  --r-soft: oklch(.60 .18 29);
+  --r-ink: oklch(.66 .20 29);
+  --r-hot: oklch(.70 .20 32);
+  --walnut-950: var(--r-0);
+  --walnut-900: var(--r-1);
+  --walnut-700: oklch(.17 .042 25);
+  --walnut-500: oklch(.21 .054 25);
+  --bakelite: oklch(.15 .035 25);
+  --bakelite-2: var(--r-1);
+  --bakelite-3: oklch(.1 .02 25);
+  --ink: var(--r-ink);
+  --ink-soft: var(--r-soft);
+  --brass: oklch(.45 .13 28);
+  --brass-dark: oklch(.3 .08 26);
+  --dial-off: var(--r-2);
+  --dial-on: var(--r-3);
+  --dial-hot: oklch(.24 .06 25);
+  --needle: var(--r-hot);
+  --phosphor: oklch(.67 .200 29);
+  --phosphor-dim: oklch(.34 .090 26);
+  --nixie: oklch(.61 .183 29);
+  --paper: oklch(.115 .025 25);
+  --greenbar: var(--r-1);
+  --red-ink: var(--r-ink);
+  --blue-ink: var(--r-ink);
+  --lamp-green: oklch(.63 .190 29);
+  --lamp-amber: oklch(.65 .195 29);
+  --lamp-red: oklch(.52 .157 28);
+  --c-faceplate-hi: oklch(.28 .074 26 / .5);
+  --c-faceplate-sheen: oklch(.70 .200 32 / .1);
+  --c-faceplate-shadow: oklch(0 0 0 / .75);
+  --c-grille-hole-a: oklch(.08 .016 25 / .45);
+  --c-grille-hole-b: oklch(.05 .010 25 / .45);
+  --c-grille-edge: oklch(.17 .042 25);
+  --c-grille-edge-2: var(--r-1);
+  --c-grille-shade: oklch(0 0 0 / .6);
+  --c-badge-hi: oklch(.22 .055 25);
+  --c-badge-lo: oklch(.16 .04 25);
+  --c-badge-mid: oklch(.19 .048 25);
+  --c-badge-edge: oklch(.15 .035 25);
+  --c-badge-text: oklch(.10 .020 25);
+  --c-badge-shadow: oklch(0 0 0 / .5);
+  --c-badge-sheen: oklch(.70 .200 32 / .18);
+  --c-badge-script-shadow: oklch(0 0 0 / .5);
+  --c-dial-scroll-sheen: oklch(.70 .200 32 / .3);
+  --c-dial-scroll-shadow: oklch(0 0 0 / .5);
+  --c-dial-rim: oklch(.14 .035 25);
+  --c-dial-shadow: oklch(.11 .025 25 / .6);
+  --c-dial-glass-a: oklch(.5 .15 28 / .1);
+  --c-dial-glass-clear: oklch(.70 .200 32 / 0);
+  --c-dial-glass-b: oklch(.5 .15 28 / .04);
+  --c-station-hover: oklch(.3 .08 26 / .4);
+  --c-needle-glow: oklch(.52 .157 28 / .6);
+  --c-station-shadow: oklch(.23 .058 25 / .22);
+  --c-station-sheen: oklch(.3 .08 26 / .65);
+  --c-chbar-rim: oklch(.14 .035 25);
+  --c-chbar-shadow: oklch(.23 .058 25 / .5);
+  --c-chbar-lamp-off: oklch(.28 .074 26 / .45);
+  --c-chbar-lamp-shadow: oklch(0 0 0 / .45);
+  --c-chbar-lamp-lit-edge: oklch(.23 .058 25 / .45);
+  --c-keys-shadow: oklch(0 0 0 / .6);
+  --c-key-face: var(--r-2);
+  --c-key-face-hover: var(--r-3);
+  --c-key-pressed-shadow: oklch(0 0 0 / .45);
+  --c-eye-ring: oklch(.11 .025 25);
+  --c-eye-shadow: oklch(.10 .019 25);
+  --c-eye-cap: oklch(.15 .038 25);
+  --c-nixie-a: oklch(.14 .032 25);
+  --c-nixie-b: oklch(.10 .019 25);
+  --c-nixie-c: oklch(.26 .067 26);
+  --c-nixie-glow: oklch(.58 .175 29 / .8);
+  --c-nixie-glow-edge: oklch(.23 .058 25 / .6);
+  --c-nixie-glow-dark: oklch(.11 .025 25);
+  --c-nixie-ghost: oklch(.30 .079 26 / .5);
+  --c-knob-hi: oklch(.24 .061 25);
+  --c-knob-lo: oklch(.17 .042 25);
+  --c-knob-mid: oklch(.27 .069 26);
+  --c-knob-sheen: oklch(.70 .200 32 / .25);
+  --c-chicken-hi: oklch(.30 .079 26);
+  --c-chicken-lo: oklch(.15 .038 25);
+  --c-chicken-dot-lo: oklch(.19 .048 25);
+  --c-chicken-dot-hi: oklch(.32 .083 26);
+  --c-progress-shadow: oklch(0 0 0 / .6);
+  --c-bcfy-bg: oklch(.15 .038 25 / .85);
+  --c-cc-bg: oklch(.12 .027 25);
+  --c-cc-shadow: oklch(0 0 0 / .7);
+  --c-cc-text: oklch(.70 .200 32);
+  --c-cc-tag: oklch(.61 .183 29);
+  --c-cc-story-dim: oklch(.62 .18 29);
+  --c-cc-story: oklch(.68 .200 30);
+  --c-cc-old: oklch(.59 .177 29);
+  --c-cc-now: oklch(.70 .200 32);
+  --c-band-police: oklch(.62 .185 29);
+  --c-band-fire: oklch(.62 .185 29);
+  --c-band-air: oklch(.66 .200 29);
+  --c-band-marine: oklch(.65 .195 29);
+  --c-band-rail: oklch(.66 .200 29);
+  --c-band-weather: oklch(.68 .200 30);
+  --c-band-ham: oklch(.63 .19 29);
+  --c-follow-shadow: oklch(.09 .018 25 / .8);
+  --c-log-fresh: oklch(.27 .069 26 / .7);
+  --c-bell-shadow: oklch(0 0 0 / .4);
+  --c-chart-rule: oklch(.70 .200 32 / .15);
+  --c-tooltip-shadow: oklch(0 0 0 / .5);
+  --c-map-bg-hi: oklch(.19 .048 25);
+  --c-map-bg-lo: oklch(.09 .018 25);
+  --c-map-veil: oklch(0 0 0 / .45);
+  --c-map-attrib-bg: oklch(.1 .02 25 / .92);
+  --c-bat-1: oklch(.52 .157 28);
+  --c-bat-2: oklch(.68 .200 30);
+  --c-bat-3: oklch(.46 .135 28);
+  --c-bat-4: oklch(.26 .067 26);
+  --c-bat-after-1: oklch(.34 .090 26);
+  --c-bat-after-2: oklch(.70 .200 32);
+  --c-stamp-pulse: oklch(.60 .179 29 / .18);
+  --c-ship: oklch(.61 .183 29);
+  --c-tide-mark: oklch(.63 .190 29);
+  --c-tab-edge: oklch(.15 .035 25);
+  --c-paper-edge: oklch(.24 .061 25);
+  --c-entry-rule: oklch(.30 .079 26);
+  --c-entry-selected: oklch(.25 .063 25 / .7);
+  --c-update-rule: oklch(.32 .083 26);
+  --c-traffic-rule: oklch(.30 .079 26);
+  --c-notice-code-bg: oklch(.23 .058 25);
+  --c-strip-rule: oklch(.70 .200 32 / .1);
+  --c-blink-peak: oklch(.70 .200 32);
+  --c-gauge-alert: oklch(.63 .190 29);
+  --c-share-toggle: oklch(.40 .112 27);
+  --c-report-chip-planned: oklch(.63 .190 29);
+  --c-report-chip-fixed: oklch(.61 .183 29);
+  --c-report-reply-bg: oklch(.70 .200 32 / .05);
+  --ledger: oklch(.115 .025 25);
+  --ledger-rule: oklch(.16 .04 25);
+  --ledger-margin: oklch(.52 .157 28 / .5);
+  --k-jev: var(--r-hot);
+  --k-http: var(--r-soft);
+}
+
+/* Plain links (the browser's own blue) take the ramp too. */
+:where([data-skin="classic"][data-backlight="red"]) :any-link { color: var(--r-ink); }
+[data-skin="classic"][data-backlight="red"] :focus-visible { outline-color: var(--r-ink); }
+/* The walnut texture image is dropped: just the dark red gradient. */
+[data-skin="classic"][data-backlight="red"] body { background-image: linear-gradient(180deg, var(--walnut-500), var(--walnut-700) 40%, var(--walnut-900)); background-size: 100% 100%; }
+/* The dial: a dark window with glowing red lettering rather than a lit amber one, so it does not light the room. */
+[data-skin="classic"][data-backlight="red"] .dial {
+  background:
+    radial-gradient(60% 140% at var(--needle-x, 50%) 50%, oklch(.22 .06 26 / calc(.7 * var(--lit))), transparent 70%),
+    linear-gradient(180deg, color-mix(in oklch, var(--dial-off), var(--dial-on) calc(var(--lit) * 100%)), color-mix(in oklch, var(--c-dial-rim), var(--dial-on) calc(var(--lit) * 60%)));
+}
+/* --dial-on also letters the gauges and fills the progress bar: those keep a lit red. */
+[data-skin="classic"][data-backlight="red"] :is(.gauge, .share-toggle) { --dial-on: var(--r-ink); }
+[data-skin="classic"][data-backlight="red"] .progress { --dial-on: var(--r-soft); }
+[data-skin="classic"][data-backlight="red"] :is(.dial-scroll, .chbar) { --walnut-950: var(--r-soft); --walnut-900: var(--r-ink); --needle: var(--r-hot); --red-ink: var(--r-hot); --blue-ink: var(--r-soft); --ink-soft: var(--r-soft); }
+/* Keys, tabs and switches: red lettering on the dark faces (app.css letters them in --walnut-900). */
+[data-skin="classic"][data-backlight="red"] :is(.key, .bell, .toggle, .leaflet-bar a, .ledger-head h1, .back) { --walnut-900: var(--r-ink); --ink-soft: var(--r-ink); }
+[data-skin="classic"][data-backlight="red"] .tabs button { --walnut-900: var(--r-soft); }
+[data-skin="classic"][data-backlight="red"] .badge { --ink-soft: var(--r-ink); } /* the station line sits on the grille cloth */
+/* Lettering that app.css takes from the case colour. */
+[data-skin="classic"][data-backlight="red"] :is(.chart-head, .ledger-link, .train-mark, .knob, .manual .part, .anim-poster .na) { --bakelite: var(--r-ink); }
+[data-skin="classic"][data-backlight="red"] .strip { --bakelite-2: var(--r-soft); }
+[data-skin="classic"][data-backlight="red"] .story { --bakelite-3: oklch(.3 .08 26); }
+
+/* The chart: grayscale, inverted, then multiplied red. */
+[data-skin="classic"][data-backlight="red"] #map .leaflet-tile-pane { filter: grayscale(1) invert(1) brightness(.55) sepia(1) saturate(4) hue-rotate(-30deg); }
+[data-skin="classic"][data-backlight="red"] :is(.leaflet-control-attribution, .leaflet-control-attribution a, .leaflet-popup-content a) { color: var(--r-soft); }
+[data-skin="classic"][data-backlight="red"] .leaflet-popup-close-button { color: var(--r-soft); }
+[data-skin="classic"][data-backlight="red"] .leaflet-attribution-flag path { fill: var(--r-soft); }
+[data-skin="classic"][data-backlight="red"] .leaflet-attribution-flag path:first-child { fill: var(--r-3); }
+
+/* Manual pages: the light and blue literals in costs.css and studio.css. */
+[data-skin="classic"][data-backlight="red"] :is(.manual code, .tip-hint code, .cmd) { background: var(--r-3); }
+[data-skin="classic"][data-backlight="red"] .manual code { overflow-wrap: anywhere; }
+[data-skin="classic"][data-backlight="red"] .flow span { background: var(--r-3); }
+[data-skin="classic"][data-backlight="red"] .st-thread { background: oklch(.45 .13 28); }
+[data-skin="classic"][data-backlight="red"] .tag-sample { color: var(--r-ink); border-color: var(--r-soft); }
+[data-skin="classic"][data-backlight="red"] .ledger-head [role="tab"][aria-selected="true"] { box-shadow: 0 1px 0 var(--bakelite-3), 0 1px 2px oklch(0 0 0 / .5), inset 0 2px 4px var(--c-key-pressed-shadow); }
+[data-skin="classic"][data-backlight="red"] .leaders div::after { border-bottom-color: oklch(.4 .1 27 / .6); }
+[data-skin="classic"][data-backlight="red"] .span-track { background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), oklch(.4 .1 27 / .35) calc(10% - 1px) 10%); }
+/* Studio: the dark-blue video frames go red-black, and the videos and posters are tinted onto the ramp. */
+[data-skin="classic"][data-backlight="red"] :is(.anim-video, .anim-frame) { background: var(--r-1); }
+[data-skin="classic"][data-backlight="red"] .anim-poster { background: radial-gradient(circle, var(--r-3) 2px, transparent 2.5px) 0 0 / 14px 14px, var(--r-1); }
+[data-skin="classic"][data-backlight="red"] :is(.anim-video, .anim-frame, .anim-poster img) { filter: grayscale(1) sepia(1) saturate(3) hue-rotate(-25deg) brightness(.6); }
+[data-skin="classic"][data-backlight="red"] .anim.flash { animation-name: studio-flash-red; }
+@keyframes studio-flash-red { from { background: oklch(.3 .08 26 / .7); } to { background: transparent; } }

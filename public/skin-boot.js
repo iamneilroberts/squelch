@@ -1,7 +1,9 @@
 /* The Look choices (Skin, Backlight, wide layout) go on <html> before the first paint, on every page, so the LCD skin
-   never flashes the Classic one. Loaded synchronously in <head>. Auto backlight is blue by day and red from sunset to
-   sunrise at the station: the station's coordinates are kept in pcm.where (app.js saves them from /api/config; a page
-   that has none yet fetches the config once), so every page works out the sun the same way as the receiver. */
+   never flashes the Classic one. Loaded synchronously in <head>. Auto backlight follows the sun at the station: by day
+   it is blue (Classic draws its day look), from sunset to sunrise it is red in the LCD skin and Night Bakelite in
+   Classic. app.js calls apply() too, so both agree. The station's coordinates are kept in pcm.where (app.js saves them
+   from /api/config; a page that has none yet fetches the config once), so every page works out the sun the same way
+   as the receiver. */
 (function () {
   var d = document.documentElement;
   var get = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -23,16 +25,17 @@
     try { var w = JSON.parse(get('pcm.where')); return Array.isArray(w) && isFinite(w[0]) && isFinite(w[1]) ? w : null; } catch (e) { return null; }
   }
   function apply() {
-    var pick = get('pcm.backlight') || 'auto', w = where(), hr = new Date().getHours();
+    var pick = get('pcm.backlight') || 'auto', w = where(), hr = new Date().getHours(), last = get('pcm.autoLight');
+    var up = w ? sunIsUp(w[0], w[1]) : last ? last === 'blue' : hr >= 7 && hr < 19; // no station position yet: last time's answer, else the clock
     d.dataset.skin = get('pcm.skin') === 'lcd' ? 'lcd' : 'classic';
     d.dataset.wide = get('pcm.wideLayout') === 'base' ? 'base' : 'lcd';
     d.dataset.backlight = pick === 'blue' || pick === 'night' || pick === 'red' || pick === 'daylight' ? pick
-      : w ? (sunIsUp(w[0], w[1]) ? 'blue' : 'red') : (get('pcm.autoLight') || (hr >= 7 && hr < 19 ? 'blue' : 'red'));
+      : up ? 'blue' : d.dataset.skin === 'lcd' ? 'red' : 'night';
   }
   apply();
   window.pcmSkin = { sunIsUp: sunIsUp, stationLatLng: stationLatLng, apply: apply, setWhere: function (w) { if (w) set('pcm.where', JSON.stringify(w)); } };
-  // Auto in the LCD skin with no station position kept yet: ask the server once, then re-apply.
-  if (d.dataset.skin === 'lcd' && (get('pcm.backlight') || 'auto') === 'auto' && !where() && window.fetch) {
+  // Auto with no station position kept yet: ask the server once, then re-apply.
+  if ((get('pcm.backlight') || 'auto') === 'auto' && !where() && window.fetch) {
     fetch('/api/config').then(function (r) { return r.json(); }).then(function (c) {
       var w = stationLatLng(c.regions); if (w) { window.pcmSkin.setWhere(w); apply(); }
     }).catch(function () {});

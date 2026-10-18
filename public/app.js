@@ -199,21 +199,18 @@ function applyDialStyle() {
 applyDialStyle();
 narrow.addEventListener('change', applyDialStyle);
 /* The skin: Classic, or LCD with a choice of backlight and (on a wide screen) of layout. index.html sets the
-   attributes before first paint; these keep them in step with the Look card. Auto backlight is blue by day and
-   red from sunset to sunrise at the station. */
+   attributes before first paint; these keep them in step with the Look card. skin-boot.js's apply() works out the
+   attributes, Auto backlight included (by day blue; after sunset red in LCD, Night Bakelite in Classic). */
 const LOOK = { 'dial-style': ['pcm.dial', 'auto'], skin: ['pcm.skin', 'classic'], backlight: ['pcm.backlight', 'auto'], 'backlight-classic': ['pcm.backlight', 'auto'], 'wide-layout': ['pcm.wideLayout', 'lcd'] }; // each skin lists its own backlights; both groups keep one pick
 const html = document.documentElement;
-const { sunIsUp, stationLatLng: whereIs } = window.pcmSkin; // skin-boot.js (loaded in <head>) holds the sun maths, shared with the manual
+const { stationLatLng: whereIs } = window.pcmSkin; // skin-boot.js (loaded in <head>) holds the sun maths, shared with the manual
 const stationLatLng = () => whereIs(state.regions);
 function applyLook() {
-  html.dataset.skin = store.get('pcm.skin') === 'lcd' ? 'lcd' : 'classic';
-  html.dataset.wide = store.get('pcm.wideLayout') === 'base' ? 'base' : 'lcd';
-  const pick = store.get('pcm.backlight') || 'auto', where = stationLatLng();
-  const auto = where ? (sunIsUp(...where) ? 'blue' : 'red') : store.get('pcm.autoLight'); // until the config arrives, last time's answer
+  const where = stationLatLng();
   if (where) window.pcmSkin.setWhere(where);
-  if (auto) store.set('pcm.autoLight', auto);
-  html.dataset.backlight = ['blue', 'night', 'red', 'daylight'].includes(pick) ? pick : auto || html.dataset.backlight;
-  document.querySelector('meta[name="theme-color"]').content = html.dataset.skin === 'lcd' ? '#141518' : html.dataset.backlight === 'night' ? '#1c1511' : '#5a3a22';
+  window.pcmSkin.apply();
+  document.querySelector('meta[name="theme-color"]').content = html.dataset.skin === 'lcd' ? '#141518'
+    : { night: '#1c1511', red: '#1a0606' }[html.dataset.backlight] || '#5a3a22';
   applyDialStyle();
 }
 setInterval(applyLook, 60e3);
