@@ -111,7 +111,11 @@
 [data-skin="clear"] #look label:has(> [name="dial-style"]:is([value="bar"], [value="drum"])) { display: none; }
 @media (max-width: 720px) { [data-skin="clear"] #look label:has(> [name="dial-style"][value="rule"]) { display: none; } }
 [data-skin="clear"] .look-clear { display: block; }
-[data-skin="clear"] :is(.eye, .nixie, .dial-glass, .scroll-knob, .rx-led) { display: none; }
+[data-skin="clear"] :is(.eye, .dial-glass, .scroll-knob, .rx-led) { display: none; }
+/* The clock stays, as plain digits under a heading like Location and Vol. */
+[data-skin="clear"] .nixie { display: flex; flex-wrap: wrap; align-content: start; row-gap: 6px; padding: 0; border-radius: 0; background: none; box-shadow: none; font: 600 22px/1.2 var(--mono); color: var(--text); font-variant-numeric: tabular-nums; }
+[data-skin="clear"] .nixie::before { content: 'Time'; flex-basis: 100%; font: 600 14px/1.2 var(--ui); color: var(--soft); }
+[data-skin="clear"] .nixie span { display: inline; width: auto; height: auto; border-radius: 0; font: inherit; color: inherit; text-shadow: none; background: none; box-shadow: none; }
 [data-skin="clear"] .cabinet { gap: 16px; }
 
 /* ───────── Keys: flat, bordered; pressed = filled accent plus an underline ───────── */
