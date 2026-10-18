@@ -214,8 +214,8 @@ function applyLook() {
   applyDialStyle();
 }
 setInterval(applyLook, 60e3);
-function syncLook() { // data-also: Classic's Day stands for LCD's Blue too, as both draw the daytime Classic
-  for (const [name, [key, dflt]] of Object.entries(LOOK)) for (const r of document.querySelectorAll(`[name="${name}"]`)) r.checked = [r.value, r.dataset.also].includes(store.get(key) || dflt);
+function syncLook() { // data-also: Classic's Day stands for LCD's Blue and VFD too, as both draw the daytime Classic
+  for (const [name, [key, dflt]] of Object.entries(LOOK)) for (const r of document.querySelectorAll(`[name="${name}"]`)) r.checked = [r.value, ...(r.dataset.also || '').split(' ')].includes(store.get(key) || dflt);
 }
 $('btn-look').addEventListener('click', () => { syncLook(); $('look').showModal(); });
 $('look').addEventListener('change', (e) => {

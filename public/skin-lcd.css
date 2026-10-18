@@ -48,6 +48,11 @@
   --lcd-ink: #1c2215; --lcd-inv: #c5cbb2; --lcd-ghost: rgba(28, 34, 21, .09); --lcd-glow: none; --lcd-bezel: #141513;
   --led: #b8e07a; --led-glow: #8fc23a; --accent: #cfe8a0;
 }
+[data-skin="lcd"][data-backlight="vfd"] {
+  --lcd-bg: radial-gradient(120% 100% at 50% 35%, #021314 0%, #01090a 60%, #000405 100%);
+  --lcd-ink: #53ecdc; --lcd-inv: #01090a; --lcd-ghost: rgba(83, 236, 220, .09); --lcd-glow: 0 0 6px rgba(83, 236, 220, .55); --lcd-bezel: #000101;
+  --led: #53ecdc; --led-glow: #00c8c0; --accent: #5eeedf;
+}
 
 /* ───────── Page ───────── */
 [data-skin="lcd"] body {
