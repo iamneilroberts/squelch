@@ -82,7 +82,7 @@ const guestId = (req) => {
 configureNotify({ allowGuests: () => settings.guestNotifications });
 // The page's own files, newest change first. An open page (often a Home Screen app, which has no
 // reload button) compares it with the version it loaded and offers to reload.
-const appVersion = () => String(Math.round(Math.max(...['index.html', 'app.js', 'app.css', 'skin-lcd.css', 'skin-lcd-pages.css', 'skin-classic.css', 'skin-boot.js', 'sw.js', 'manual.html', 'manual.js', 'costs.js', 'costs.css', 'studio.js', 'studio.css', 'changes.js', 'changes.css']
+const appVersion = () => String(Math.round(Math.max(...['index.html', 'app.js', 'app.css', 'skin-lcd.css', 'skin-lcd-pages.css', 'skin-classic.css', 'skin-clear.css', 'skin-boot.js', 'sw.js', 'manual.html', 'manual.js', 'costs.js', 'costs.css', 'studio.js', 'studio.css', 'changes.js', 'changes.css']
   .map((f) => statSync(join('public', f)).mtimeMs))));
 
 const json = (res, body, code = 200) => {

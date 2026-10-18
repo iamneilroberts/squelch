@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="skin-lcd.css">
 <link rel="stylesheet" href="skin-classic.css">
+<link rel="stylesheet" href="skin-clear.css">
 </head>
 <body>
 <div class="cabinet">
@@ -194,7 +195,7 @@
 <dialog class="story notify" id="look" aria-labelledby="look-title">
   <header class="story-head"><h2 id="look-title">Look</h2><button type="button" class="key tkey story-close" id="look-close" aria-label="Close"><svg class="ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
   <fieldset class="notify-level"><legend>Tuning dial</legend>
-    <label><input type="radio" name="dial-style" value="auto"> <strong>Automatic</strong> — channel bar on a phone, slide rule on a wide screen</label>
+    <label><input type="radio" name="dial-style" value="auto"> <strong>Automatic</strong> — suits the screen and skin: the channel bar on a phone, the slide rule on a wide screen, preset keys in Clear</label>
     <label><input type="radio" name="dial-style" value="bar"> <strong>Channel bar</strong> — one line with a lamp per channel; tap it for the presets</label>
     <label><input type="radio" name="dial-style" value="presets"> <strong>Preset keys</strong> — every station in view, grouped by band</label>
     <label><input type="radio" name="dial-style" value="drum"> <strong>Tuning drum</strong> — swipe the dial under a fixed needle</label>
@@ -204,6 +205,7 @@
   <fieldset class="notify-level"><legend>Skin</legend>
     <label><input type="radio" name="skin" value="classic"> <strong>Classic</strong> — the walnut tabletop receiver</label>
     <label><input type="radio" name="skin" value="lcd"> <strong>LCD</strong> — a backlit scanner display on charcoal</label>
+    <label><input type="radio" name="skin" value="clear"> <strong>Clear</strong> — plain and high-contrast, system fonts, big targets</label>
   </fieldset>
   <fieldset class="notify-level look-classic"><legend>Backlight</legend>
     <label><input type="radio" name="backlight-classic" value="auto"> <strong>Auto</strong> — day look by day, Night Bakelite after sunset</label>
@@ -218,6 +220,11 @@
     <label><input type="radio" name="backlight" value="red"> <strong>Red</strong> — night vision</label>
     <label><input type="radio" name="backlight" value="daylight"> <strong>Daylight</strong> — unlit, reflective gray-green</label>
     <label><input type="radio" name="backlight" value="vfd"> <strong>VFD</strong> — cyan vacuum-fluorescent glow, like a bench scanner</label>
+  </fieldset>
+  <fieldset class="notify-level look-clear"><legend>Backlight</legend>
+    <label><input type="radio" name="backlight-clear" value="auto"> <strong>Auto</strong> — follows your phone’s light/dark setting</label>
+    <label><input type="radio" name="backlight-clear" value="daylight" data-also="blue vfd"> <strong>Light</strong></label>
+    <label><input type="radio" name="backlight-clear" value="night" data-also="red"> <strong>Dark</strong></label>
   </fieldset>
   <fieldset class="notify-level look-lcd look-wide"><legend>Wide-screen layout</legend>
     <label><input type="radio" name="wide-layout" value="lcd"> <strong>LCD window</strong> — the phone layout, stretched</label>

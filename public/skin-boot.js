@@ -1,9 +1,9 @@
 /* The Look choices (Skin, Backlight, wide layout) go on <html> before the first paint, on every page, so the LCD skin
    never flashes the Classic one. Loaded synchronously in <head>. Auto backlight follows the sun at the station: by day
    it is blue (Classic draws its day look), from sunset to sunrise it is red in the LCD skin and Night Bakelite in
-   Classic. app.js calls apply() too, so both agree. The station's coordinates are kept in pcm.where (app.js saves them
-   from /api/config; a page that has none yet fetches the config once), so every page works out the sun the same way
-   as the receiver. */
+   Classic. In the Clear skin Auto follows the phone's light/dark setting instead: night when it is dark. app.js calls
+   apply() too, so both agree. The station's coordinates are kept in pcm.where (app.js saves them from /api/config; a
+   page that has none yet fetches the config once), so every page works out the sun the same way as the receiver. */
 (function () {
   var d = document.documentElement;
   var get = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -29,15 +29,18 @@
     if (get('pcm.skin') !== 'lcd' && (get('pcm.backlight') || 'auto') !== 'auto') set('pcm.backlight', 'auto');
     set('pcm.lookMig1', '1');
   }
+  var dark = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : { matches: false };
   function apply() {
-    var pick = get('pcm.backlight') || 'auto', w = where(), hr = new Date().getHours();
+    var pick = get('pcm.backlight') || 'auto', w = where(), hr = new Date().getHours(), skin = get('pcm.skin');
     var up = w ? sunIsUp(w[0], w[1]) : hr >= 7 && hr < 19; // no station position yet: the clock
-    d.dataset.skin = get('pcm.skin') === 'lcd' ? 'lcd' : 'classic';
+    d.dataset.skin = skin === 'lcd' || skin === 'clear' ? skin : 'classic';
     d.dataset.wide = get('pcm.wideLayout') === 'base' ? 'base' : 'lcd';
     d.dataset.backlight = pick === 'blue' || pick === 'night' || pick === 'red' || pick === 'daylight' || pick === 'vfd' ? pick
+      : d.dataset.skin === 'clear' ? (dark.matches ? 'night' : 'blue')
       : up ? 'blue' : d.dataset.skin === 'lcd' ? 'red' : 'night';
   }
   apply();
+  if (dark.addEventListener) dark.addEventListener('change', apply);
   window.pcmSkin = { sunIsUp: sunIsUp, stationLatLng: stationLatLng, apply: apply, setWhere: function (w) { if (w) set('pcm.where', JSON.stringify(w)); } };
   // Auto with no station position kept yet: ask the server once, then re-apply.
   if ((get('pcm.backlight') || 'auto') === 'auto' && !where() && window.fetch) {

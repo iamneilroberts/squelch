@@ -1109,8 +1109,8 @@ button.report-open { font: inherit; cursor: pointer; background: none; border: 0
 .report-link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--blue-ink); }
 .has-news::after, .has-changes::after { content: ''; display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; vertical-align: middle; background: var(--lamp-red); box-shadow: 0 0 5px var(--lamp-red); }
 
-/* The LCD skin's own parts (skin-lcd.css shows them); Classic has none of them. */
-.lcd-only, .lcd-readout, .look-lcd { display: none; }
+/* The LCD skin's own parts (skin-lcd.css shows them), and the Clear skin's Backlight list (skin-clear.css); Classic has none of them. */
+.lcd-only, .lcd-readout, .look-lcd, .look-clear { display: none; }
 /* …and the Look card's Classic backlight list is Classic's own. */
 [data-skin="lcd"] .look-classic { display: none; }
 .look-classic label { min-height: 44px; padding: 12px 0; } /* 44 px touch targets */
