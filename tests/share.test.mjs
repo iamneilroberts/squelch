@@ -13,7 +13,7 @@ process.env.DB_PATH = join(mkdtempSync(join(tmpdir(), 'share-')), 'test.db');
 process.env.SOURCES_FILE = join(repo, 'sources.example.json');
 process.chdir(repo); // the route reads its templates from public/
 
-const { shareRoute, previewRoute, sharePath } = await import('../src/share.mjs');
+const { shareRoute, previewRoute, sharePath, shareTitle, streetOnly, WITHHELD } = await import('../src/share.mjs');
 const { db, newThread } = await import('../src/db.mjs');
 
 const SECRET = 'Unit 4 copies, the caller is John Q Example at 12 Elm';
@@ -127,6 +127,30 @@ test('a shared link previews the story: title, place, summary and card, no notes
   assert.equal(r.headers['X-Robots-Tag'], 'noindex');
   // The page links to the shared link, not the story number.
   assert.equal(data((await get(`/s/${id}`)).body).url, `http://scanner.example${path}`);
+});
+
+test('a shared health, police or injury-crash story shows its type only, with the withheld note', async () => {
+  const story = (type, subject, why) => newThread('county-fire', { subject, facts: [{ label: 'Incident', value: why }], type, alert: 0.5, why });
+  for (const [sid, label] of [[story('medical', 'Overdose at 12 Elm', 'Teen unresponsive'), 'Medical call'], [story('police', 'Arrest on Main', 'Suspect detained'), 'Police call'],
+    [story('crash', 'Two-car crash on I-10', 'Child patient transported'), 'Crash']]) {
+    const t = { ...db.prepare('SELECT * FROM threads WHERE id = ?').get(sid) };
+    for (const r of [await preview(sharePath(sid)), await get(`/s/${sid}/card`)]) {
+      assert.ok(r.body.includes(label) && r.body.includes(WITHHELD), label);
+      assert.ok(!/Overdose|Teen|Arrest|Suspect|Two-car|Child/.test(r.body), label);
+    }
+    assert.match(shareTitle({ ...t, facts: JSON.parse(t.facts) }), new RegExp(`: ${label}$`)); // the share sheet's title
+  }
+  // A crash that mentions no one hurt keeps its headline and summary.
+  const minor = story('crash', 'Fender bender on Airport Blvd', 'Cars moved to the shoulder');
+  const r = await preview(sharePath(minor));
+  assert.ok(r.body.includes('Fender bender on Airport Blvd') && r.body.includes('Cars moved to the shoulder') && !r.body.includes(WITHHELD));
+});
+
+test('a withheld story shows the street, not the home', () => {
+  for (const [place, street] of [['7525 Three Notch Road, between Travis Road and Lakeland Drive', 'Three Notch Road, between Travis Road and Lakeland Drive'],
+    ['Memorial Boulevard, Apartment 135 (address unclear)', 'Memorial Boulevard'], ['Magnolia Apartments, 3624 28th Drive, apartment G-17', 'Magnolia Apartments, 28th Drive'],
+    ['800 Conti Street, Unit 218, between Bayou Street', 'Conti Street, between Bayou Street'], ['Hotel at 64 South Water Street', 'Hotel at South Water Street'],
+    ['8160 County Road 64', 'County Road 64'], ['3491 Dolphin Drive, room 223', 'Dolphin Drive'], ['Super 8', 'Super 8']]) assert.equal(streetOnly(place), street);
 });
 
 test('a shared link only works with its own signature', async () => {

@@ -121,7 +121,7 @@ $('log').addEventListener('click', (e) => {
 // Share: the phone's share sheet, else copy the link.
 $('share').addEventListener('click', async () => {
   const url = s.url;
-  const title = `${s.channel.short}: ${s.subject}`;
+  const title = s.shareTitle;
   if (navigator.share) return navigator.share({ title, url }).catch(() => {});
   try { await navigator.clipboard.writeText(url); } catch { return void prompt('Copy this link', url); }
   $('share').textContent = 'Link copied';

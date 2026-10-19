@@ -19,7 +19,7 @@ import { widerCatchup } from './ai/wider.mjs';
 import { studioRoute } from './studio/routes.mjs';
 import { changes } from './changes.mjs';
 import { reportRoute, reportStatus } from './report.mjs';
-import { shareRoute, previewRoute, sharePath } from './share.mjs';
+import { shareRoute, previewRoute, sharePath, shareTitle } from './share.mjs';
 
 const PORT = Number(process.env.PORT || 8077);
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json', '.json': 'application/json' };
@@ -367,7 +367,7 @@ createServer(async (req, res) => {
       return r ? out(r) : json(res, { error: 'no such scan' }, 404); // its plays carry transcripts
     }
     const th = p.match(/^\/api\/threads\/(\d+)$/);
-    if (th) { const t = getThread(Number(th[1])); return t ? out({ ...t, share: sharePath(t.id) }) : (res.writeHead(404), res.end()); }
+    if (th) { const t = getThread(Number(th[1])); return t ? out({ ...t, share: sharePath(t.id), shareTitle: shareTitle(t) }) : (res.writeHead(404), res.end()); }
     if (p === '/api/threads') return out(recentThreads(Math.min(24, Number(url.searchParams.get('hours')) || 3)));
     // Wider catch-up (src/ai/wider.mjs): built from transcripts, so not for visitors they're hidden from.
     const wi = p.match(/^\/api\/threads\/(\d+)\/wider$/);

@@ -51,8 +51,27 @@ function story(id, transcripts) {
 }
 
 const summary = (s) => s.why || s.facts[0]?.value || '';
+
+// What a shared link shows to anyone holding it (the /p preview, the card, the share sheet's title). A story about
+// someone's health or a police matter goes out as its type only, with a note that the details were withheld; the
+// signed-in app and /s/<id> page keep everything.
+const PRIVATE = { medical: 'Medical call', police: 'Police call', pursuit: 'Police pursuit' };
+const HURT = /injur|patient|fatal|killed|dead|died|hurt|victim|trapped|entrap/i;
+export const WITHHELD = 'Details withheld to protect privacy.';
+function face(t, short, place = '') {
+  const label = PRIVATE[t.type] || (t.type === 'crash' && HURT.test([t.subject, t.why, ...t.facts.map((f) => f.value)].join(' ')) && 'Crash');
+  return label ? { title: `${short}: ${label}`, summary: WITHHELD, place: streetOnly(place) } : { title: `${short}: ${t.subject}`, summary: summary(t), place };
+}
+// "7525 Three Notch Road, Apartment 135 (unclear)" → "Three Notch Road": no house number, unit or aside, so a withheld
+// story can't be traced to a home. Numbers inside a road's name ("County Road 64", "28th Drive") stay.
+export const streetOnly = (place) => place
+  .replace(/\([^)]*\)/g, '')
+  .replace(/,?\s*(?:\b(?:apartment|apt|unit|suite|room|lot)\b\.?\s*#?|#)\s*[\w-]*\d[\w-]*/gi, '')
+  .replace(/(^|[,;]\s*|\bat\s+)\d+\s+(?=[A-Za-z]|\d+(?:st|nd|rd|th)\b)/gi, '$1')
+  .replace(/\s*([,;])(\s*[,;])+/g, '$1').replace(/^[\s,;]+|[\s,;]+$/g, '').replace(/\s{2,}/g, ' ');
+export const shareTitle = (t) => face(t, sources.find((s) => s.id === t.source_id)?.short || t.source_id).title;
 const originOf = (req, remote) => process.env.PUBLIC_URL?.replace(/\/$/, '') || `${req.headers['x-forwarded-proto'] || (remote ? 'https' : 'http')}://${req.headers.host}`;
-const describe = (s) => [summary(s), `${s.channel.short} · ${when(s.started_at)}${s.place?.label ? ` · ${s.place.label}` : ''}`].filter(Boolean).join(' — ');
+const describe = (s, f) => [f.summary, `${s.channel.short} · ${when(s.started_at)}${f.place ? ` · ${f.place}` : ''}`].filter(Boolean).join(' — ');
 const fill = (html, vars) => html.replace(/\{\{(\w+)\}\}/g, (m, k) => vars[k] ?? '');
 
 // Cards render one at a time (each is a Chrome), are kept until the story changes, and a failed one isn't retried
@@ -63,7 +82,7 @@ let queue = Promise.resolve();
 function card(id, port) {
   const t = db.prepare('SELECT updated_at FROM threads WHERE id = ?').get(id);
   if (!t || Date.now() - (failed.get(id) || 0) < 5 * 60e3) return Promise.resolve(null);
-  const file = join(CARDS, `${id}-${Date.parse(t.updated_at)}.jpg`);
+  const file = join(CARDS, `${id}-${Date.parse(t.updated_at)}-2.jpg`); // -2: cards made before the privacy rule (face) are redone
   if (existsSync(file)) return Promise.resolve(file);
   if (!rendering.has(file)) {
     const run = queue.then(() => withBrowser(async (browser) => {
@@ -99,20 +118,21 @@ export async function shareRoute(req, res, { p, hidden, remote, port, page, serv
   if (!s) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('That story isn’t here any more. Stories are kept for 30 days.'); return true; }
   const origin = originOf(req, remote);
   const template = m[2] ? 'share-card.html' : 'share.html';
+  const f = m[2] ? face(s, s.channel.short, s.place?.label) : { title: `${s.channel.short}: ${s.subject}`, summary: summary(s), place: s.place?.label || '' }; // the card is public
   const html = fill(readFileSync(join('public', template), 'utf8'), {
-    title: esc(`${s.channel.short}: ${s.subject}`),
-    description: esc(short(describe(s), 200)),
+    title: esc(f.title),
+    description: esc(short(describe(s, f), 200)),
     url: esc(`${origin}${sharePath(id)}`),
     image: esc(`${origin}/s/${id}/card.jpg?v=${Date.parse(s.updated_at)}`),
     site: esc(`${station.script} ${station.caps}`),
     when: esc(when(s.started_at)),
-    place: esc(s.place?.label || ''),
+    place: esc(f.place),
     script: esc(station.script),
     channel: esc(s.channel.name || s.channel.short),
-    summary: esc(short(summary(s), 160)),
+    summary: esc(short(f.summary, 160)),
     count: `${s.events.length} transmission${s.events.length === 1 ? '' : 's'}`,
     // Inside <script type="application/json">: "<" escaped so no text in it can close the tag.
-    data: JSON.stringify({ ...s, url: `${origin}${sharePath(id)}` }).replace(/</g, '\\u003c'),
+    data: JSON.stringify({ ...s, url: `${origin}${sharePath(id)}`, shareTitle: face(s, s.channel.short).title }).replace(/</g, '\\u003c'),
   });
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(page(html));
@@ -132,9 +152,10 @@ export async function previewRoute(req, res, { port, serveFile }) {
   }
   const s = story(id, false);
   const origin = originOf(req, true);
+  const f = face(s, s.channel.short, s.place?.label);
   const html = fill(readFileSync(join('public', 'share-preview.html'), 'utf8'), {
-    title: esc(`${s.channel.short}: ${s.subject}`),
-    description: esc(short(describe(s), 200)),
+    title: esc(f.title),
+    description: esc(short(describe(s, f), 200)),
     url: esc(`${origin}${sharePath(id)}`),
     image: esc(`${origin}${sharePath(id)}/card.jpg?v=${Date.parse(s.updated_at)}`),
     site: esc(`${station.script} ${station.caps}`),
