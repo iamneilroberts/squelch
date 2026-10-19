@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path';
 import { Script } from 'node:vm';
 import { openRouter } from '../ai/llm.mjs';
 import { RULES } from './script.mjs';
-import { notesBlock } from './notes.mjs';
+import { notesBlock, guardOutput } from './notes.mjs';
 import { scrub, timeCaptions } from './track.mjs';
 import { withBrowser } from './browser.mjs';
 import { direct, LIB, ENGINE } from './director.mjs';
@@ -61,14 +61,15 @@ export function page(code, tl, audio, label) {
 }
 
 // Loads the page and draws 24 moments across it. Returns an error message, or null if it plays.
-async function playCheck(browser, file, total) {
+// `seen` (optional) collects the text on screen at each step, for the content guard.
+export async function playCheck(browser, file, total, seen = []) {
   const p = await browser.newPage();
   const errors = [];
   p.on('pageerror', (e) => errors.push(e.message));
   try {
     await p.goto(`file://${resolve(file)}`, { waitUntil: 'load', timeout: 30e3 });
     if (errors.length) return `page error: ${errors[0]}`;
-    const r = await p.evaluate((total) => {
+    const r = await p.evaluate((total, seen) => {
       const s = window.__studio;
       if (!s) return 'the player did not start';
       const spans = s.shots().sort((a, b) => a[0] - b[0]);
@@ -81,10 +82,13 @@ async function playCheck(browser, file, total) {
         try { s.frame(t); } catch (e) { return `at ${t.toFixed(1)} s: ${e.message}`; }
         const shown = document.querySelector('#world > g:not([display])');
         if (!shown || shown.querySelectorAll('*').length < 3) return `an empty scene at ${t.toFixed(1)} s`;
+        seen.push(document.body.innerText, ...[...shown.querySelectorAll('text')].map((x) => x.textContent));
       }
-      return null;
-    }, total);
-    return r || (errors.length ? `page error: ${errors[0]}` : null);
+      return { seen };
+    }, total, []);
+    if (typeof r === 'string') return r;
+    seen.push(...r.seen);
+    return errors.length ? `page error: ${errors[0]}` : null;
   } finally { await p.close(); }
 }
 
@@ -133,8 +137,11 @@ async function oneShot(job, { script, tl, file, label, track }) {
     if (problem) continue;
     writeFileSync(file, page(code, tl, track.file, label));
     job.progress('checking it plays');
-    const checked = await withBrowser(async (b) => ({ error: await playCheck(b, file, tl.total) })); // null: no browser here
+    const seen = [];
+    const checked = await withBrowser(async (b) => ({ error: await playCheck(b, file, tl.total, seen) })); // null: no browser here
     played = Boolean(checked);
+    const hit = guardOutput(seen.join('\n')); // what the model's code puts on screen, as the two-pass guard checks its plan
+    if (hit) throw new Error(`The content guard stopped the cartoon (it shows “${hit.toLowerCase()}”)`);
     problem = checked?.error ?? null;
     if (!problem) break;
   }
