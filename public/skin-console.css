@@ -333,7 +333,7 @@
   [data-skin="console"] .chbar-now strong { font: 600 13px var(--ui); color: var(--text); }
   [data-skin="console"] .chbar-mode { font: 600 12px var(--mono); color: var(--link); }
   [data-skin="console"] .chbar-lamps { display: none; }
-  [data-skin="console"] .chbar[aria-expanded="false"] + .dial-frame, [data-skin="console"] .chbar[aria-expanded="false"] ~ .controls :is([id="keys"], .selector), [data-skin="console"] .chbar[aria-expanded="false"] ~ .controls .knob-wrap { display: none; }
+  [data-skin="console"] .chbar[aria-expanded="false"] + .dial-frame, [data-skin="console"] .chbar[aria-expanded="false"] ~ .controls :is([id="keys"], .selector) { display: none; }
   [data-skin="console"] .chbar[aria-expanded="true"] + .dial-frame { animation: none; }
   [data-skin="console"] .selector { order: 10; margin: 0 16px 10px; }
   [data-skin="console"] #keys { order: 11; margin: 0 16px 10px; }
@@ -424,7 +424,7 @@
 [data-skin="console"] .bh-type, [data-skin="console"] .printer:has(#tab-incidents[aria-selected="true"]) .bh-status { display: none; }
 [data-skin="console"] .printer:has(#tab-incidents[aria-selected="true"]) .bh-type { display: block; }
 [data-skin="console"] .printer:has(:is([id="tab-traffic"], [id="tab-digest"])[aria-selected="true"]) .board-head { display: none; }
-[data-skin="console"] .entry { margin: 0; padding: 8px 12px; border-bottom: 1px solid var(--rule); font-size: 13px; }
+[data-skin="console"] .entry { scroll-margin-top: 40px; margin: 0; padding: 8px 12px; border-bottom: 1px solid var(--rule); font-size: 13px; }
 [data-skin="console"] .entry:hover { background: color-mix(in oklch, var(--panel), var(--text) 4%); }
 [data-skin="console"] .entry:hover .entry-head { text-decoration: none; }
 [data-skin="console"] .entry.selected { margin: 0; padding: 8px 12px; }
@@ -461,8 +461,8 @@
 [data-skin="console"] .entry:not(.story-row) .entry-meta > span:nth-child(n+4):not(.flag) { grid-area: 2 / 5; font-size: 12px; color: var(--soft); }
 [data-skin="console"] .entry:not(.story-row) .entry-head { grid-area: 1 / 4; }
 [data-skin="console"] .entry-where { grid-area: 2 / 4; font-size: 12px; color: var(--soft); }
-[data-skin="console"] .entry-sum { display: none; grid-area: 3 / 4 / auto / 6; margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
-[data-skin="console"] .entry.selected .entry-sum { display: block; }
+[data-skin="console"] .entry > .entry-sum { display: none; grid-area: 3 / 4 / auto / 6; margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
+[data-skin="console"] .entry.selected > .entry-sum { display: block; }
 [data-skin="console"] .entry > .story-key { grid-area: 4 / 4; justify-self: start; }
 [data-skin="console"] .entry-more { grid-area: 5 / 4 / auto / 6; }
 [data-skin="console"] .entry-more .entry-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--soft); }
@@ -500,6 +500,10 @@
 [data-skin="console"] .notice h2 { font: 700 17px var(--ui); color: var(--text); }
 
 /* Phones: the board as cards — tag, time, channel and status on one line; the incident under them */
+/* Touch screens (phones and tablets): the board's keys reach the full target size */
+@media (max-width: 1099px) {
+  [data-skin="console"] :is(.play, .story-key, .reel, .digest-actions button, .pager .key, .tabs button, .story-row .follow-key) { min-height: var(--hit); }
+}
 @media (max-width: 720px) {
   [data-skin="console"] .board-head { display: none; }
   [data-skin="console"] .entry { grid-template-columns: auto auto minmax(0, 1fr) auto; padding: 10px 16px; }
@@ -512,8 +516,7 @@
   [data-skin="console"] .entry:not(.story-row) .entry-meta > span:nth-child(n+4):not(.flag) { grid-area: 3 / 4; }
   [data-skin="console"] .story-line { grid-area: 4 / 1 / auto / -1; }
   [data-skin="console"] .story-row .follow-key { grid-area: 2 / 4 / 4 / 5; align-self: center; justify-self: end; min-height: var(--hit); margin: 0; padding: 0 12px; }
-  [data-skin="console"] :is(.entry-sum, .entry > .story-key, .entry-more) { grid-column: 1 / -1; }
-  [data-skin="console"] :is(.play, .story-key, .reel, .digest-actions button, .pager .key, .tabs button) { min-height: var(--hit); }
+  [data-skin="console"] :is(.entry > .entry-sum, .entry > .story-key, .entry-more) { grid-column: 1 / -1; }
   [data-skin="console"] .tabs { padding: 8px 16px; }
   [data-skin="console"] .tabs { display: grid; grid-template-columns: 1fr 1fr; }
   [data-skin="console"] .tabs::before { display: none; }
@@ -532,7 +535,7 @@
   [data-skin="console"] .story-row .live, [data-skin="console"] .story-row:not(:has(.live))::after, [data-skin="console"] .entry:not(.story-row) .entry-meta > span:nth-child(3) { grid-area: 1 / 4; }
   [data-skin="console"] .story-row .follow-key { grid-area: 2 / 4 / 4; }
   [data-skin="console"] .entry:not(.story-row) .entry-meta > span:nth-child(n+4):not(.flag) { grid-area: 2 / 4; }
-  [data-skin="console"] .entry-sum { grid-area: 4 / 3 / auto / 5; }
+  [data-skin="console"] .entry > .entry-sum { grid-area: 4 / 3 / auto / 5; }
   [data-skin="console"] .entry > .story-key { grid-area: 5 / 3; }
   [data-skin="console"] .entry-more { grid-area: 6 / 3 / auto / 5; }
 }
