@@ -21,6 +21,7 @@ export function startStream(source, { onClip, onStatus }) {
   let stopped = false;
   let busy = false;
   let backoff = 5;
+  let newest = null; // the latest segment seen: only a new one means audio is arriving (a leftover file doesn't)
   let held = null; // STITCH: { f, since } — a finished segment still talking at its end, waiting for its successor
 
   // audio.broadcastify.com requires an account; send it as HTTP Basic auth when configured.
@@ -71,7 +72,7 @@ export function startStream(source, { onClip, onStatus }) {
     busy = true;
     try {
       const files = readdirSync(dir).filter((f) => f.endsWith('.wav') && f !== held?.f).sort();
-      if (files.length) { backoff = 5; onStatus({ state: 'receiving', lastSegment: new Date().toISOString() }); }
+      if (files.length && files.at(-1) !== newest) { newest = files.at(-1); backoff = 5; onStatus({ state: 'receiving', lastSegment: new Date().toISOString() }); }
       const threshold = source.squelchDb ?? -42;
       for (const f of files.slice(0, -1)) {
         if (held) {
