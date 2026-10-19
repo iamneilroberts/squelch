@@ -1709,7 +1709,7 @@ $('story-play').addEventListener('click', () => playStory());
 // Share: the story's own page (/s/<id>, src/share.mjs), by the share sheet or a copied link.
 $('story-share').addEventListener('click', async () => {
   const url = `${state.publicUrl?.replace(/\/$/, '') || location.origin}${storyShare || `/s/${storyId}`}`;
-  if (navigator.share) return navigator.share({ title: storyShareTitle, url }).catch(() => {});
+  if (navigator.share) return navigator.share({ title: storyShareTitle || undefined, url }).catch(() => {});
   try { await navigator.clipboard.writeText(url); } catch { return void prompt('Copy this link', url); }
   $('story-share').textContent = 'Link copied';
   setTimeout(() => { $('story-share').textContent = 'Share'; }, 2500);

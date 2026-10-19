@@ -14,7 +14,7 @@ process.env.SOURCES_FILE = join(repo, 'sources.example.json');
 process.chdir(repo); // the route reads its templates from public/
 
 const { shareRoute, previewRoute, sharePath, shareTitle, streetOnly, WITHHELD } = await import('../src/share.mjs');
-const { db, newThread } = await import('../src/db.mjs');
+const { db, newThread, createIncident } = await import('../src/db.mjs');
 
 const SECRET = 'Unit 4 copies, the caller is John Q Example at 12 Elm';
 const id = newThread('county-fire', { subject: 'Loose dogs </script><script>alert(1)</script>', facts: [{ label: 'Incident', value: 'Two dogs on Main Street' }], type: 'animal', alert: 0.2, why: null });
@@ -131,13 +131,18 @@ test('a shared link previews the story: title, place, summary and card, no notes
 
 test('a shared health, police or injury-crash story shows its type only, with the withheld note', async () => {
   const story = (type, subject, why) => newThread('county-fire', { subject, facts: [{ label: 'Incident', value: why }], type, alert: 0.5, why });
-  for (const [sid, label] of [[story('medical', 'Overdose at 12 Elm', 'Teen unresponsive'), 'Medical call'], [story('police', 'Arrest on Main', 'Suspect detained'), 'Police call'],
-    [story('crash', 'Two-car crash on I-10', 'Child patient transported'), 'Crash']]) {
+  const medical = story('medical', 'Overdose at 12 Elm', 'Teen unresponsive');
+  const at = new Date().toISOString();
+  const inc = createIncident({ source_id: 'county-fire', at, headline: 'x', summary: 'x', category: 'notable', type: 'medical', location_text: 'near 4410 Elm St, Apt B', lat: 30.6, lng: -88.1, precision: 'geocoded', confidence: 1 }).id;
+  db.prepare('INSERT INTO calls (source_id, at, thread_id, incident_id) VALUES (?,?,?,?)').run('county-fire', at, medical, inc);
+  for (const [sid, label] of [[medical, 'Medical call'], [story('police', 'Arrest on Main', 'Suspect detained'), 'Police call'],
+    [story('crash', 'Rollover on I-10', 'One transported to USA Medical'), 'Crash']]) {
     const t = { ...db.prepare('SELECT * FROM threads WHERE id = ?').get(sid) };
     for (const r of [await preview(sharePath(sid)), await get(`/s/${sid}/card`)]) {
       assert.ok(r.body.includes(label) && r.body.includes(WITHHELD), label);
-      assert.ok(!/Overdose|Teen|Arrest|Suspect|Two-car|Child/.test(r.body), label);
+      assert.ok(!/Overdose|Teen|Arrest|Suspect|Rollover|transported|4410|Apt/.test(r.body), label);
     }
+    assert.equal(data((await get(`/s/${sid}`)).body).shareTitle, shareTitle({ ...t, facts: JSON.parse(t.facts) })); // the /s page's share sheet
     assert.match(shareTitle({ ...t, facts: JSON.parse(t.facts) }), new RegExp(`: ${label}$`)); // the share sheet's title
   }
   // A crash that mentions no one hurt keeps its headline and summary.
@@ -150,7 +155,9 @@ test('a withheld story shows the street, not the home', () => {
   for (const [place, street] of [['7525 Three Notch Road, between Travis Road and Lakeland Drive', 'Three Notch Road, between Travis Road and Lakeland Drive'],
     ['Memorial Boulevard, Apartment 135 (address unclear)', 'Memorial Boulevard'], ['Magnolia Apartments, 3624 28th Drive, apartment G-17', 'Magnolia Apartments, 28th Drive'],
     ['800 Conti Street, Unit 218, between Bayou Street', 'Conti Street, between Bayou Street'], ['Hotel at 64 South Water Street', 'Hotel at South Water Street'],
-    ['8160 County Road 64', 'County Road 64'], ['3491 Dolphin Drive, room 223', 'Dolphin Drive'], ['Super 8', 'Super 8']]) assert.equal(streetOnly(place), street);
+    ['8160 County Road 64', 'County Road 64'], ['3491 Dolphin Drive, room 223', 'Dolphin Drive'], ['Super 8', 'Super 8'],
+    ['near 1234 Dauphin St', 'near Dauphin St'], ['12A Elm St', 'Elm St'], ['12-14 Elm St Apt B', 'Elm St'], ['Lot 7, Trailer 14, Pine Road', 'Pine Road'],
+    ['State Highway 181 and Sherwood Road', 'State Highway 181 and Sherwood Road'], ['900 West I-65 Service Road', 'West I-65 Service Road']]) assert.equal(streetOnly(place), street);
 });
 
 test('a shared link only works with its own signature', async () => {

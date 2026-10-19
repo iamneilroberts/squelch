@@ -56,18 +56,19 @@ const summary = (s) => s.why || s.facts[0]?.value || '';
 // someone's health or a police matter goes out as its type only, with a note that the details were withheld; the
 // signed-in app and /s/<id> page keep everything.
 const PRIVATE = { medical: 'Medical call', police: 'Police call', pursuit: 'Police pursuit' };
-const HURT = /injur|patient|fatal|killed|dead|died|hurt|victim|trapped|entrap/i;
+const HURT = /\b(injur\w*|hurt|patient\w*|victim\w*|fatal\w*|killed|dead|died|deceased|doa|coroner|cpr|unresponsive|bleed\w*|trauma\w*|ejected|trapped|entrap\w*|transport\w*|ambulance\w*|ems|medic\w*|hospital\w*)\b/i;
 export const WITHHELD = 'Details withheld to protect privacy.';
+const withheld = (t) => PRIVATE[t.type] || (t.type === 'crash' && HURT.test([t.subject, t.why, ...t.facts.map((f) => f.value)].join(' ')) && 'Crash');
 function face(t, short, place = '') {
-  const label = PRIVATE[t.type] || (t.type === 'crash' && HURT.test([t.subject, t.why, ...t.facts.map((f) => f.value)].join(' ')) && 'Crash');
+  const label = withheld(t);
   return label ? { title: `${short}: ${label}`, summary: WITHHELD, place: streetOnly(place) } : { title: `${short}: ${t.subject}`, summary: summary(t), place };
 }
-// "7525 Three Notch Road, Apartment 135 (unclear)" → "Three Notch Road": no house number, unit or aside, so a withheld
-// story can't be traced to a home. Numbers inside a road's name ("County Road 64", "28th Drive") stay.
+// "near 7525 Three Notch Road, Apt B (unclear)" → "near Three Notch Road": no house number, unit or aside, so a withheld
+// story can't be traced to a home. A road's own number ("County Road 64", "Highway 181 and…", "28th Drive") stays.
 export const streetOnly = (place) => place
   .replace(/\([^)]*\)/g, '')
-  .replace(/,?\s*(?:\b(?:apartment|apt|unit|suite|room|lot)\b\.?\s*#?|#)\s*[\w-]*\d[\w-]*/gi, '')
-  .replace(/(^|[,;]\s*|\bat\s+)\d+\s+(?=[A-Za-z]|\d+(?:st|nd|rd|th)\b)/gi, '$1')
+  .replace(/,?\s*(?:\b(?:apartment|apt|unit|suite|ste|room|rm|lot|trailer|building|bldg|space|spc)\b\.?\s*#?|#)\s*(?:[\w-]*\d[\w-]*|[A-Za-z]\b)/gi, '')
+  .replace(/(?<!\b(?:highway|hwy|road|rd|route|rte|cr|us|sr|i|interstate|exit|mile)[\s-])\b\d+[A-Za-z]?(?:-\d+[A-Za-z]?)?\s+(?=[A-Za-z]|\d+(?:st|nd|rd|th)\b)/gi, '')
   .replace(/\s*([,;])(\s*[,;])+/g, '$1').replace(/^[\s,;]+|[\s,;]+$/g, '').replace(/\s{2,}/g, ' ');
 export const shareTitle = (t) => face(t, sources.find((s) => s.id === t.source_id)?.short || t.source_id).title;
 const originOf = (req, remote) => process.env.PUBLIC_URL?.replace(/\/$/, '') || `${req.headers['x-forwarded-proto'] || (remote ? 'https' : 'http')}://${req.headers.host}`;
@@ -79,10 +80,12 @@ const fill = (html, vars) => html.replace(/\{\{(\w+)\}\}/g, (m, k) => vars[k] ??
 const rendering = new Map(); // file → promise
 const failed = new Map(); // id → when
 let queue = Promise.resolve();
+// A card's version follows the story and whether it's withheld, which can change without the story's time (boostThread).
+const version = (t) => `${Date.parse(t.updated_at)}${withheld(t) ? 'w' : ''}`;
 function card(id, port) {
-  const t = db.prepare('SELECT updated_at FROM threads WHERE id = ?').get(id);
+  const t = getThread(id);
   if (!t || Date.now() - (failed.get(id) || 0) < 5 * 60e3) return Promise.resolve(null);
-  const file = join(CARDS, `${id}-${Date.parse(t.updated_at)}-2.jpg`); // -2: cards made before the privacy rule (face) are redone
+  const file = join(CARDS, `${id}-${version(t)}.jpg`);
   if (existsSync(file)) return Promise.resolve(file);
   if (!rendering.has(file)) {
     const run = queue.then(() => withBrowser(async (browser) => {
@@ -123,7 +126,7 @@ export async function shareRoute(req, res, { p, hidden, remote, port, page, serv
     title: esc(f.title),
     description: esc(short(describe(s, f), 200)),
     url: esc(`${origin}${sharePath(id)}`),
-    image: esc(`${origin}/s/${id}/card.jpg?v=${Date.parse(s.updated_at)}`),
+    image: esc(`${origin}/s/${id}/card.jpg?v=${version(s)}`),
     site: esc(`${station.script} ${station.caps}`),
     when: esc(when(s.started_at)),
     place: esc(f.place),
@@ -157,7 +160,7 @@ export async function previewRoute(req, res, { port, serveFile }) {
     title: esc(f.title),
     description: esc(short(describe(s, f), 200)),
     url: esc(`${origin}${sharePath(id)}`),
-    image: esc(`${origin}${sharePath(id)}/card.jpg?v=${Date.parse(s.updated_at)}`),
+    image: esc(`${origin}${sharePath(id)}/card.jpg?v=${version(s)}`),
     site: esc(`${station.script} ${station.caps}`),
     story: esc(`/s/${id}`),
   });
