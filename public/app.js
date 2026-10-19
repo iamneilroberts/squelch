@@ -193,17 +193,17 @@ addEventListener('resize', () => moveNeedle(state.tuned || visibleSources().find
 const narrow = matchMedia('(max-width: 720px)');
 function applyDialStyle() {
   const pick = store.get('pcm.dial') || 'auto', skin = document.documentElement.dataset.skin;
-  document.documentElement.dataset.dial = skin === 'clear' ? (pick === 'rule' && !narrow.matches ? 'rule' : 'presets') // Clear: preset keys, or the slide rule on a wide screen
+  document.documentElement.dataset.dial = skin === 'clear' || skin === 'console' ? (pick === 'rule' && skin === 'clear' && !narrow.matches ? 'rule' : 'presets') // Clear: preset keys, or the slide rule on a wide screen; Console: its channel list is the preset keys
     : pick === 'auto' ? (narrow.matches || skin === 'lcd' ? 'bar' : 'rule') : pick; // the LCD skin's window is the channel bar
   if (state.byId.size) buildDial();
 }
 applyDialStyle();
 narrow.addEventListener('change', applyDialStyle);
-/* The skin: Classic, Clear, or LCD with a choice of backlight and (on a wide screen) of layout. index.html sets the
+/* The skin: Classic, Clear, Console, or LCD with a choice of backlight and (on a wide screen) of layout. index.html sets the
    attributes before first paint; these keep them in step with the Look card. skin-boot.js's apply() works out the
    attributes, Auto backlight included (by day blue; after sunset red in LCD, Night Bakelite in Classic; in Clear,
-   the phone's light/dark setting). */
-const LOOK = { 'dial-style': ['pcm.dial', 'auto'], skin: ['pcm.skin', 'classic'], backlight: ['pcm.backlight', 'auto'], 'backlight-classic': ['pcm.backlight', 'auto'], 'backlight-clear': ['pcm.backlight', 'auto'], 'wide-layout': ['pcm.wideLayout', 'lcd'] }; // each skin lists its own backlights; every group keeps one pick
+   and Console, the phone's light/dark setting). */
+const LOOK = { 'dial-style': ['pcm.dial', 'auto'], skin: ['pcm.skin', 'classic'], backlight: ['pcm.backlight', 'auto'], 'backlight-classic': ['pcm.backlight', 'auto'], 'backlight-clear': ['pcm.backlight', 'auto'], 'backlight-console': ['pcm.backlight', 'auto'], 'wide-layout': ['pcm.wideLayout', 'lcd'] }; // each skin lists its own backlights; every group keeps one pick
 const html = document.documentElement;
 const { stationLatLng: whereIs } = window.pcmSkin; // skin-boot.js (loaded in <head>) holds the sun maths, shared with the manual
 const stationLatLng = () => whereIs(state.regions);
@@ -212,15 +212,15 @@ function applyLook() {
   if (where) window.pcmSkin.setWhere(where);
   window.pcmSkin.apply();
   document.querySelector('meta[name="theme-color"]').content = html.dataset.skin === 'lcd' ? '#141518'
-    : html.dataset.skin === 'clear' ? (['night', 'red'].includes(html.dataset.backlight) ? '#292929' : '#ffffff')
+    : ['clear', 'console'].includes(html.dataset.skin) ? (['night', 'red'].includes(html.dataset.backlight) ? (html.dataset.skin === 'clear' ? '#292929' : '#15191d') : '#ffffff')
     : { night: '#1c1511', red: '#1a0606' }[html.dataset.backlight] || '#5a3a22';
   applyDialStyle();
 }
 setInterval(applyLook, 60e3);
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyLook); // Clear's Auto follows the phone's light/dark setting
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyLook); // Clear's and Console's Auto follow the phone's light/dark setting
 function syncLook() { // data-also: Classic's Day stands for LCD's Blue and VFD too, as both draw the daytime Classic
   for (const [name, [key, dflt]] of Object.entries(LOOK)) for (const r of document.querySelectorAll(`[name="${name}"]`)) r.checked = [r.value, ...(r.dataset.also || '').split(' ')].includes(store.get(key) || dflt);
-  if (html.dataset.skin === 'clear' && (store.get('pcm.dial') || 'auto') !== 'auto') // Clear offers only presets and (wide) the slide rule: tick the dial it draws
+  if (['clear', 'console'].includes(html.dataset.skin) && (store.get('pcm.dial') || 'auto') !== 'auto') // Clear offers only presets and (wide) the slide rule, Console only presets: tick the dial it draws
     for (const r of document.querySelectorAll('[name="dial-style"]')) r.checked = r.value === html.dataset.dial;
 }
 $('btn-look').addEventListener('click', () => { syncLook(); $('look').showModal(); });
@@ -1363,8 +1363,9 @@ const isLive = (iso) => Date.now() - new Date(iso) < 5 * 60e3;
 const storyOf = ({ events, ...t }) => ({ ...t, count: events.length, last: events.at(-1) || null }); // a story card's thread as a Stories row
 function storyRow(t) {
   const line = ccOff() || !t.last?.transcript ? esc(t.last?.note) : `“${esc(t.last.transcript)}”`;
+  const pri = t.alert >= 0.6 ? 'P1' : t.alert >= 0.4 ? 'P2' : 'P3'; // the Console skin's board columns (hidden in the others): breaking / notify's chatty level / the rest
   return `<li class="entry story-row${t.alert >= 0.6 ? ' breaking' : ''}" data-thread="${t.id}">
-    <div class="entry-meta"><span>${hhmm(t.last?.at || t.updated_at)}</span><span>${t.count} transmission${t.count === 1 ? '' : 's'}</span>
+    <span class="pri-tag" data-p="${pri}">${pri}</span><span class="entry-ch">${shortOf(t.source_id)}</span><span class="entry-subj">${esc(t.subject)}</span><div class="entry-meta"><span>${hhmm(t.last?.at || t.updated_at)}</span><span>${t.count} transmission${t.count === 1 ? '' : 's'}</span>
       ${isLive(t.updated_at) ? '<span class="live">● live</span>' : ''}${t.alert >= 0.9 ? '<span class="flag">** Breaking **</span>' : ''}${followKey(t.id)}</div>
     <div class="entry-head">${ccTag(t.source_id)} ${shortOf(t.source_id)}: ${esc(t.subject)}</div>
     ${line ? `<p class="story-line${openCls(`s${t.last?.id}`)}" data-key="s${t.last?.id}">${line}</p>` : ''}
