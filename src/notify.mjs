@@ -191,10 +191,10 @@ export const subId = (endpoint) => subRow(endpoint)?.id ?? null;
 // Who a browser's endpoint belongs to, for tying a Studio job to the browser that queued it.
 export const subInfo = (endpoint) => { const s = typeof endpoint === 'string' && subRow(endpoint); return s ? { id: s.id, owner: Boolean(s.owner), label: s.label } : null; };
 export const ownerSubIds = () => db.prepare('SELECT id FROM push_subs WHERE owner = 1').all().map((r) => r.id);
-export function pushTo(id, payload) {
-  const s = pushReady && db.prepare('SELECT * FROM push_subs WHERE id = ?').get(id);
-  return s && (s.owner || allowGuests()) && !heldBack(s) ? push(s, payload) : Promise.resolve(false);
-}
+const pushIf = (s, payload) => (s && (s.owner || allowGuests()) && !heldBack(s) ? push(s, payload) : Promise.resolve(false));
+export const pushTo = (id, payload) => pushIf(pushReady && db.prepare('SELECT * FROM push_subs WHERE id = ?').get(id), payload);
+// By endpoint, for a browser remembered across time (src/report.mjs): an id can pass to a new browser once its own is deleted.
+export const pushToEndpoint = (endpoint, payload) => pushIf(pushReady && subRow(endpoint), payload);
 
 export function sendTest(endpoint) {
   const s = subRow(endpoint);

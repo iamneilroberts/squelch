@@ -4,7 +4,7 @@
 // pushes a reporter's browser when either changes (and owners when a fix is ready to ship).
 import { execFile } from 'node:child_process';
 import { db } from './db.mjs';
-import { pushReady, pushTo, subId, ownerSubIds } from './notify.mjs';
+import { pushReady, pushTo, pushToEndpoint, subId, ownerSubIds } from './notify.mjs';
 
 export const REPO = process.env.REPORT_REPO || 'iamneilroberts/squelch';
 const OWNER = (process.env.REPORT_OWNER || REPO.split('/')[0]).toLowerCase(); // files every report, so only its replies count
@@ -75,8 +75,8 @@ export async function reportRoute(req, res, { json, readJson, canEdit, version }
     const out = await gh(['issue', 'create', '-R', REPO, '--title', title, '--body-file', '-', '--label', 'from-app', '--label', problem ? 'bug' : 'enhancement'], issue);
     const url = out.match(/https:\/\/github\.com\/\S+\/issues\/(\d+)/);
     if (!url) throw new Error(`no issue URL in: ${out.slice(0, 200)}`);
-    const sub = typeof b.endpoint === 'string' && subId(b.endpoint); // this browser gets a notification when the report moves
-    if (sub) db.prepare('INSERT OR IGNORE INTO report_subs (issue, sub_id, last_status) VALUES (?, ?, ?)').run(Number(url[1]), sub, 'received');
+    if (typeof b.endpoint === 'string' && subId(b.endpoint)) // this browser gets a notification when the report moves
+      db.prepare('INSERT OR IGNORE INTO report_watch (issue, endpoint, last_status) VALUES (?, ?, ?)').run(Number(url[1]), b.endpoint, 'received');
     return json(res, { url: url[0], number: Number(url[1]) });
   } catch (e) {
     console.log(`[report] gh issue create failed: ${String(e.stderr || e.message).slice(0, 300)}`);
@@ -85,7 +85,11 @@ export async function reportRoute(req, res, { json, readJson, canEdit, version }
 }
 
 /* ───────── My reports ───────── */
-db.exec('CREATE TABLE IF NOT EXISTS report_subs (issue INTEGER NOT NULL, sub_id INTEGER NOT NULL, last_status TEXT, last_reply_id INTEGER, PRIMARY KEY (issue, sub_id))');
+// Browsers by push endpoint: report_subs kept push_subs ids, and SQLite gives a deleted browser's id to the next one.
+db.exec('CREATE TABLE IF NOT EXISTS report_watch (issue INTEGER NOT NULL, endpoint TEXT NOT NULL, last_status TEXT, last_reply_id INTEGER, PRIMARY KEY (issue, endpoint))');
+if (db.prepare("SELECT 1 FROM sqlite_master WHERE name = 'report_subs'").get()) {
+  db.exec('INSERT OR IGNORE INTO report_watch SELECT r.issue, p.endpoint, r.last_status, r.last_reply_id FROM report_subs r JOIN push_subs p ON p.id = r.sub_id; DROP TABLE report_subs');
+}
 db.exec('CREATE TABLE IF NOT EXISTS report_ready (issue INTEGER PRIMARY KEY, at TEXT NOT NULL)'); // owners already told "fix ready"
 
 const replyText = (body) => body.trimStart().slice(MARK.length).split(/<details/i)[0].replace(/<!--[\s\S]*?-->/g, '').trim().slice(0, 1500);
@@ -130,10 +134,10 @@ export async function reportStatus(url, res, json) {
 const short = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
 // Every POLL_MS: a reporter's browser hears when its report's status or latest reply changes; owners hear when a fix is ready.
 let polling = false;
-async function pollReports() {
+export async function pollReports() {
   if (!pushReady || polling) return;
-  db.prepare('DELETE FROM report_subs WHERE sub_id NOT IN (SELECT id FROM push_subs)').run(); // browsers that unsubscribed
-  const rows = db.prepare('SELECT * FROM report_subs').all();
+  db.prepare('DELETE FROM report_watch WHERE endpoint NOT IN (SELECT endpoint FROM push_subs)').run(); // browsers that unsubscribed
+  const rows = db.prepare('SELECT * FROM report_watch').all();
   const owners = ownerSubIds();
   if ((!rows.length && !owners.length) || !(await ghReady())) return;
   polling = true;
@@ -143,9 +147,9 @@ async function pollReports() {
       if (s === undefined) continue; // GitHub didn't answer: next time
       for (const r of rows.filter((x) => x.issue === n)) {
         if (s && s.status === r.last_status && s.reply_id === r.last_reply_id) continue;
-        if (s) await pushTo(r.sub_id, { title: `Your report #${n}: ${STATUS[s.status] || s.status} — ${short(s.title, 60)}`, body: s.reply && s.reply_id !== r.last_reply_id ? short(s.reply.replace(/\s+/g, ' '), 160) : 'Tap to see it.', tag: `report-${n}`, url: '/?report=mine' });
-        if (!s || s.state === 'closed') db.prepare('DELETE FROM report_subs WHERE issue = ? AND sub_id = ?').run(n, r.sub_id); // its last word
-        else db.prepare('UPDATE report_subs SET last_status = ?, last_reply_id = ? WHERE issue = ? AND sub_id = ?').run(s.status, s.reply_id, n, r.sub_id);
+        if (s) await pushToEndpoint(r.endpoint, { title: `Your report #${n}: ${STATUS[s.status] || s.status} — ${short(s.title, 60)}`, body: s.reply && s.reply_id !== r.last_reply_id ? short(s.reply.replace(/\s+/g, ' '), 160) : 'Tap to see it.', tag: `report-${n}`, url: '/?report=mine' });
+        if (!s || s.state === 'closed') db.prepare('DELETE FROM report_watch WHERE issue = ? AND endpoint = ?').run(n, r.endpoint); // its last word
+        else db.prepare('UPDATE report_watch SET last_status = ?, last_reply_id = ? WHERE issue = ? AND endpoint = ?').run(s.status, s.reply_id, n, r.endpoint);
       }
     }
     if (owners.length) {
@@ -163,4 +167,4 @@ async function pollReports() {
     polling = false;
   }
 }
-setInterval(pollReports, POLL_MS);
+setInterval(pollReports, POLL_MS).unref(); // the server keeps the process alive, not this
