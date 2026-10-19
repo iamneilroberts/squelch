@@ -38,6 +38,11 @@
     d.dataset.backlight = pick === 'blue' || pick === 'night' || pick === 'red' || pick === 'daylight' || pick === 'vfd' ? pick
       : d.dataset.skin === 'clear' || d.dataset.skin === 'console' ? (dark.matches ? 'night' : 'blue')
       : up ? 'blue' : d.dataset.skin === 'lcd' ? 'red' : 'night';
+    // The phone's status bar matches the look from the first paint (a page without the meta has nothing to set).
+    var meta = document.querySelector('meta[name="theme-color"]'), skin2 = d.dataset.skin, bl = d.dataset.backlight;
+    if (meta) meta.content = skin2 === 'lcd' ? '#141518'
+      : skin2 === 'clear' || skin2 === 'console' ? (bl === 'night' || bl === 'red' ? (skin2 === 'clear' ? '#292929' : '#15191d') : '#ffffff')
+      : { night: '#1c1511', red: '#1a0606' }[bl] || '#5a3a22';
   }
   apply();
   if (dark.addEventListener) dark.addEventListener('change', apply);

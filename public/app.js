@@ -210,11 +210,8 @@ const stationLatLng = () => whereIs(state.regions);
 function applyLook() {
   const where = stationLatLng();
   if (where) window.pcmSkin.setWhere(where);
-  window.pcmSkin.apply();
+  window.pcmSkin.apply(); // also sets the theme-color
   requestAnimationFrame(() => map.invalidateSize()); // a skin change resizes the chart (map is built before the first applyLook at boot)
-  document.querySelector('meta[name="theme-color"]').content = html.dataset.skin === 'lcd' ? '#141518'
-    : ['clear', 'console'].includes(html.dataset.skin) ? (['night', 'red'].includes(html.dataset.backlight) ? (html.dataset.skin === 'clear' ? '#292929' : '#15191d') : '#ffffff')
-    : { night: '#1c1511', red: '#1a0606' }[html.dataset.backlight] || '#5a3a22';
   applyDialStyle();
 }
 setInterval(applyLook, 60e3);
